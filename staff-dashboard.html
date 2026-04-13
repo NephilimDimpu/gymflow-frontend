@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Panel - GymFlow</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <style>
+        .staff-layout {
+            min-height: 100vh;
+            background: #0a0e1a;
+            color: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Bar */
+        .staff-topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 32px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .staff-topbar .logo { font-size: 18px; font-weight: 700; }
+        .staff-topbar .logout-btn {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8; font-size: 13px; padding: 8px 16px; border-radius: 8px;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .staff-topbar .logout-btn:hover { background: rgba(248,113,113,0.1); color: #f87171; }
+
+        /* Main content */
+        .staff-body {
+            max-width: 720px; width: 100%; margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* Welcome */
+        .staff-welcome {
+            margin-bottom: 32px;
+        }
+        .staff-welcome h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+        .staff-welcome .meta { font-size: 13px; color: #94a3b8; display: flex; gap: 16px; flex-wrap: wrap; }
+        .staff-welcome .meta .tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            padding: 4px 10px; border-radius: 6px; font-size: 12px;
+        }
+        .staff-welcome .meta .role-tag {
+            background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3);
+            color: #a5b4fc;
+        }
+
+        /* Cards */
+        .staff-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px; padding: 24px; margin-bottom: 20px;
+        }
+        .staff-card h3 { font-size: 16px; font-weight: 700; margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
+
+        /* Attendance */
+        .attendance-row {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .attendance-status { font-size: 14px; color: #94a3b8; }
+        .attendance-btn {
+            padding: 12px 28px; font-weight: 700; font-size: 14px;
+            border: none; border-radius: 10px; cursor: pointer;
+            color: white; transition: all 0.2s;
+        }
+        .attendance-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Routine items */
+        .routine-item {
+            display: flex; align-items: center; gap: 14px; padding: 14px;
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px; margin-bottom: 8px;
+        }
+        .routine-item .r-icon {
+            width: 42px; height: 42px; border-radius: 10px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1));
+            border: 1px solid rgba(99,102,241,0.2);
+            display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+        }
+        .routine-item .r-info h4 { font-size: 14px; color: #fff; margin: 0 0 3px; }
+        .routine-item .r-info p { font-size: 12px; color: #64748b; margin: 0; }
+        .routine-item .r-time {
+            margin-left: auto; font-size: 12px; color: #818cf8;
+            font-weight: 600; white-space: nowrap;
+            background: rgba(99,102,241,0.1); padding: 4px 10px; border-radius: 6px;
+        }
+
+        /* Week mini calendar */
+        .week-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .week-day {
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px; padding: 8px 6px; text-align: center; min-height: 80px;
+        }
+        .week-day.is-today {
+            border-color: #6366f1; background: rgba(99,102,241,0.06);
+        }
+        .week-day .d-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .week-day .d-num { font-size: 16px; font-weight: 800; color: #fff; margin: 2px 0 6px; }
+        .mini-r {
+            font-size: 10px; color: #cbd5e1; background: rgba(255,255,255,0.04);
+            border-radius: 3px; padding: 3px 4px; margin-top: 4px;
+            border-left: 2px solid #6366f1; text-align: left;
+        }
+        .mini-r .t { color: #818cf8; font-weight: 600; }
+
+        .empty-msg { color: #475569; font-size: 13px; text-align: center; padding: 16px; }
+        .quick-checkin-input {
+            width: 100%; padding: 14px 16px; font-size: 16px; font-weight: 600;
+            background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.08);
+            border-radius: 10px; color: #fff; outline: none;
+            transition: border-color 0.2s;
+        }
+        .quick-checkin-input:focus { border-color: #6366f1; }
+        .quick-checkin-input::placeholder { color: #334155; font-weight: 400; }
+
+        .checkin-result {
+            margin-top: 12px; padding: 14px; border-radius: 10px;
+            font-size: 14px; display: none;
+        }
+        .checkin-result.success { display: block; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399; }
+        .checkin-result.warning { display: block; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: #fbbf24; }
+        .checkin-result.error { display: block; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #f87171; }
+    </style>
+    <script src="assets/theme.js"></script>
+</head>
+<body>
+    <div class="staff-layout">
+        <!-- Top Bar -->
+        <div class="staff-topbar">
+            <div class="logo">💪 GymFlow <span style="font-size: 12px; color: #64748b; font-weight: 400; margin-left: 8px;">Staff Panel</span></div>
+            <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+        </div>
+
+        <!-- Main -->
+        <div class="staff-body">
+            <!-- Welcome -->
+            <div class="staff-welcome">
+                <h1>👋 Hello, <span id="staff-name">Staff</span></h1>
+                <div class="meta">
+                    <span class="tag">📍 <span id="branch-label">Branch</span></span>
+                    <span class="tag role-tag" id="role-label">Staff</span>
+                    <span class="tag">📅 <span id="current-date"></span></span>
+                </div>
+            </div>
+
+            <!-- Quick Check-In -->
+            <div class="staff-card" style="border-color: rgba(99,102,241,0.15);">
+                <h3>🏋️ Quick Member Check-In</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" class="quick-checkin-input" id="checkin-phone" placeholder="Member phone number" maxlength="10" inputmode="numeric">
+                    <button class="attendance-btn" id="checkin-go" onclick="quickCheckin()" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); min-width: 100px;">Check In</button>
+                </div>
+                <div class="checkin-result" id="checkin-result"></div>
+            </div>
+
+            <!-- Attendance -->
+            <div class="staff-card">
+                <h3>✅ Attendance</h3>
+                <div class="attendance-row">
+                    <div class="attendance-status" id="attendance-status">Loading...</div>
+                    <button class="attendance-btn" id="attendance-btn" onclick="toggleAttendance()" disabled style="background: #10b981;">Loading...</button>
+                </div>
+            </div>
+
+            <!-- Today's Routine -->
+            <div class="staff-card">
+                <h3>📋 Today's Routine</h3>
+                <div id="today-routines">
+                    <p class="empty-msg">Loading...</p>
+                </div>
+            </div>
+
+            <!-- This Week -->
+            <div class="staff-card">
+                <h3>📅 This Week</h3>
+                <div class="week-row" id="week-schedule">
+                    <p class="empty-msg" style="grid-column: 1/-1;">Loading...</p>
+                </div>
+            </div>
+
+            <!-- Routine Board -->
+            <div class="staff-card" id="board-card" style="display: none;">
+                <h3>📷 Routine Board</h3>
+                <div id="staff-board-display" style="border-radius: 10px; overflow: hidden; background: rgba(0,0,0,0.2);">
+                    <p class="empty-msg">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        const userRole = localStorage.getItem('role');
+        const branchName = localStorage.getItem('branch_name') || 'Branch';
+        const staffNameVal = localStorage.getItem('staff_name') || 'Staff';
+        const customRole = localStorage.getItem('custom_role') || userRole || 'Staff';
+
+        if (!token) window.location.href = 'login.html';
+        if (userRole === 'owner') window.location.href = 'dashboard.html';
+        if (userRole === 'manager') window.location.href = 'branch-dashboard.html';
+
+        document.getElementById('staff-name').textContent = staffNameVal;
+        document.getElementById('branch-label').textContent = branchName;
+        document.getElementById('role-label').textContent = customRole.charAt(0).toUpperCase() + customRole.slice(1);
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long' });
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+        // ============================================
+        // [ATTENDANCE]
+        // ============================================
+        let attendanceState = null;
+
+        async function loadAttendance() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/attendance/today`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) { setAttendanceUI('none'); return; }
+                const data = await res.json();
+                if (!data || !data.check_in) setAttendanceUI('none');
+                else if (data.check_in && !data.check_out) setAttendanceUI('checked_in', data.check_in);
+                else setAttendanceUI('checked_out', data.check_in, data.check_out);
+            } catch (err) {
+                console.error('[ATTENDANCE]', err);
+                setAttendanceUI('none');
+            }
+        }
+
+        function setAttendanceUI(state, checkIn, checkOut) {
+            attendanceState = state;
+            const statusEl = document.getElementById('attendance-status');
+            const btn = document.getElementById('attendance-btn');
+            btn.disabled = false;
+
+            if (state === 'none') {
+                statusEl.textContent = "You haven't checked in yet today.";
+                btn.textContent = '✅ Check In';
+                btn.style.background = '#10b981';
+            } else if (state === 'checked_in') {
+                statusEl.textContent = `Checked in at ${checkIn}. You're on duty.`;
+                btn.textContent = '🚪 Check Out';
+                btn.style.background = '#f59e0b';
+            } else {
+                statusEl.textContent = `Checked in: ${checkIn} → Out: ${checkOut}`;
+                btn.textContent = '✅ Done for today';
+                btn.disabled = true;
+                btn.style.background = '#334155';
+            }
+        }
+
+        async function toggleAttendance() {
+            const btn = document.getElementById('attendance-btn');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+            try {
+                const endpoint = attendanceState === 'none' ? 'check-in' : 'check-out';
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/attendance/${endpoint}`, {
+                    method: 'POST', headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Failed'); }
+                const data = await res.json();
+                showToast(`${endpoint === 'check-in' ? '✅ Checked in' : '🚪 Checked out'} successfully!`, 'success');
+                if (endpoint === 'check-in') setAttendanceUI('checked_in', data.check_in);
+                else setAttendanceUI('checked_out', data.check_in, data.check_out);
+            } catch (err) {
+                showToast(err.message, 'error');
+                loadAttendance();
+            }
+        }
+
+        // ============================================
+        // [ROUTINES]
+        // ============================================
+        async function loadRoutines() {
+            try {
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+                const day = today.getDay();
+                const monday = new Date(today);
+                monday.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/routines?date_from=${monday.toISOString().split('T')[0]}&date_to=${sunday.toISOString().split('T')[0]}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    document.getElementById('today-routines').innerHTML = '<p class="empty-msg">No routines available.</p>';
+                    return;
+                }
+
+                const routines = await res.json();
+
+                // Today
+                const todayRoutines = routines.filter(r => r.date === todayStr);
+                const todayEl = document.getElementById('today-routines');
+                if (todayRoutines.length === 0) {
+                    todayEl.innerHTML = '<p class="empty-msg">No classes scheduled for today. 🌟</p>';
+                } else {
+                    todayEl.innerHTML = todayRoutines.map(r => `
+                        <div class="routine-item">
+                            <div class="r-icon">🏋️</div>
+                            <div class="r-info">
+                                <h4>${r.title}</h4>
+                                <p>${r.description || 'No details'} • ${r.branch_name}</p>
+                            </div>
+                            ${r.time_slot ? `<div class="r-time">⏰ ${r.time_slot}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+
+                // Week
+                const weekEl = document.getElementById('week-schedule');
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                let html = '';
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(monday);
+                    d.setDate(monday.getDate() + i);
+                    const ds = d.toISOString().split('T')[0];
+                    const isToday = ds === todayStr;
+                    const dr = routines.filter(r => r.date === ds);
+
+                    html += `<div class="week-day ${isToday ? 'is-today' : ''}">
+                        <div class="d-label">${days[i]}</div>
+                        <div class="d-num">${d.getDate()}</div>
+                        ${dr.length === 0 ? '<p style="font-size:10px;color:#334155;margin:4px 0 0;">—</p>' :
+                            dr.map(r => `<div class="mini-r">${r.time_slot ? `<div class="t">${r.time_slot}</div>` : ''}${r.title}</div>`).join('')
+                        }
+                    </div>`;
+                }
+                weekEl.innerHTML = html;
+
+            } catch (err) {
+                console.error('[ROUTINES]', err);
+                document.getElementById('today-routines').innerHTML = '<p class="empty-msg">Could not load routines.</p>';
+            }
+        }
+
+        async function quickCheckin() {
+            const phoneInput = document.getElementById('checkin-phone');
+            const resultEl = document.getElementById('checkin-result');
+            const phone = phoneInput.value.replace(/\D/g, '');
+            if (phone.length < 4) { resultEl.className = 'checkin-result error'; resultEl.textContent = 'Enter at least 4 digits'; return; }
+
+            const btn = document.getElementById('checkin-go');
+            btn.disabled = true; btn.textContent = '...';
+            try {
+                const branchId = localStorage.getItem('branch_id');
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, branch_id: branchId ? parseInt(branchId) : null })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    resultEl.className = 'checkin-result error';
+                    resultEl.textContent = err.detail || 'Member not found';
+                    return;
+                }
+                const data = await res.json();
+                const type = data.member_status === 'expired' ? 'warning' : data.member_status === 'expiring_soon' ? 'warning' : 'success';
+                resultEl.className = `checkin-result ${type}`;
+                resultEl.textContent = data.message;
+                phoneInput.value = '';
+            } catch (err) {
+                resultEl.className = 'checkin-result error';
+                resultEl.textContent = 'Connection error';
+            } finally {
+                btn.disabled = false; btn.textContent = 'Check In';
+            }
+        }
+
+        document.getElementById('checkin-phone').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') quickCheckin();
+        });
+
+        async function loadRoutineBoard() {
+            const branchId = localStorage.getItem('branch_id');
+            if (!branchId) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/routine-board/${branchId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data || !data.image_data) return;
+                document.getElementById('board-card').style.display = '';
+                document.getElementById('staff-board-display').innerHTML = `
+                    <div style="padding: 10px 14px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; color: #94a3b8;">${data.label || 'Schedule'}</span>
+                        <span style="font-size: 10px; color: #475569;">${data.uploaded_at ? new Date(data.uploaded_at).toLocaleString() : ''}</span>
+                    </div>
+                    <img src="${data.image_data}" style="width: 100%; max-height: 400px; object-fit: contain;" alt="Routine Board">
+                `;
+            } catch (err) { console.error('[BOARD]', err); }
+        }
+
+        loadAttendance();
+        loadRoutines();
+        loadRoutineBoard();
+    </script>
+</body>
+</html>

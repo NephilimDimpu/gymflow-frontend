@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gym Check-In</title>
+    <script src="assets/config.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e1a; color: #f1f5f9;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        }
+
+        .checkin-container {
+            width: 100%; max-width: 400px; padding: 32px 24px; text-align: center;
+        }
+
+        .gym-logo { font-size: 40px; margin-bottom: 8px; }
+        .gym-name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+        .branch-name { font-size: 13px; color: #64748b; margin-bottom: 32px; }
+
+        .form-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 28px 24px;
+        }
+        .form-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+
+        .phone-input {
+            width: 100%; padding: 16px; font-size: 20px; font-weight: 700;
+            text-align: center; letter-spacing: 3px;
+            background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px; color: #fff; outline: none;
+            transition: border-color 0.2s;
+        }
+        .phone-input:focus { border-color: #6366f1; }
+        .phone-input::placeholder { color: #334155; letter-spacing: 2px; font-weight: 400; }
+
+        .checkin-btn {
+            width: 100%; padding: 16px; font-size: 18px; font-weight: 800;
+            border: none; border-radius: 12px; cursor: pointer;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff; margin-top: 16px; transition: all 0.15s;
+        }
+        .checkin-btn:active { transform: scale(0.98); }
+        .checkin-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .powered-by {
+            font-size: 11px; color: #334155; margin-top: 24px;
+        }
+
+        /* Result */
+        .result { display: none; text-align: center; padding: 24px 0; }
+        .result.active { display: block; }
+        .result-icon { font-size: 64px; margin-bottom: 12px; }
+        .result-name { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+        .result-msg { font-size: 14px; color: #94a3b8; line-height: 1.5; }
+        .result-plan { font-size: 12px; color: #475569; margin-top: 10px; }
+
+        .result.success .result-icon { color: #10b981; }
+        .result.warning .result-icon { color: #f59e0b; }
+        .result.error .result-icon { color: #ef4444; }
+
+        .try-again {
+            margin-top: 20px; padding: 12px 24px; font-size: 14px; font-weight: 600;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; color: #94a3b8; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="checkin-container">
+        <div class="gym-logo">💪</div>
+        <div class="gym-name" id="gym-name">GymFlow</div>
+        <div class="branch-name" id="branch-name">Check In</div>
+
+        <!-- Form -->
+        <div class="form-card" id="form-card">
+            <h2>📱 Quick Check-In</h2>
+            <input type="tel" class="phone-input" id="phone-input"
+                   placeholder="Phone Number" maxlength="10" inputmode="numeric"
+                   pattern="[0-9]*" autocomplete="off">
+            <button class="checkin-btn" id="checkin-btn" onclick="doCheckin()" disabled>
+                CHECK IN
+            </button>
+        </div>
+
+        <!-- Result -->
+        <div class="result" id="result-panel">
+            <div class="result-icon" id="result-icon">✅</div>
+            <div class="result-name" id="result-name"></div>
+            <div class="result-msg" id="result-msg"></div>
+            <div class="result-plan" id="result-plan"></div>
+            <button class="try-again" onclick="resetForm()">Check In Another</button>
+        </div>
+
+        <div class="powered-by">Powered by GymFlow</div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const branchId = params.get('branch');
+        const input = document.getElementById('phone-input');
+        const btn = document.getElementById('checkin-btn');
+
+        input.addEventListener('input', () => {
+            input.value = input.value.replace(/\D/g, '');
+            btn.disabled = input.value.length < 4;
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && input.value.length >= 4) doCheckin();
+        });
+
+        async function doCheckin() {
+            const phone = input.value.trim();
+            if (phone.length < 4) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Checking in...';
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, branch_id: branchId ? parseInt(branchId) : null })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    showResult('error', '❌', 'Not Found', err.detail || 'No member found.', '');
+                    return;
+                }
+
+                const data = await res.json();
+                const type = data.member_status === 'expired' ? 'warning' :
+                             data.member_status === 'expiring_soon' ? 'warning' : 'success';
+                const icon = type === 'success' ? '✅' : '⚠️';
+
+                showResult(type, icon, data.member_name, data.message,
+                    data.plan_name ? `${data.plan_name}${data.plan_expiry ? ' • Expires: ' + data.plan_expiry : ''}` : '');
+            } catch (err) {
+                showResult('error', '❌', 'Error', 'Could not connect to server.', '');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'CHECK IN';
+            }
+        }
+
+        function showResult(type, icon, name, msg, plan) {
+            document.getElementById('form-card').style.display = 'none';
+            const panel = document.getElementById('result-panel');
+            panel.className = `result active ${type}`;
+            document.getElementById('result-icon').textContent = icon;
+            document.getElementById('result-name').textContent = name;
+            document.getElementById('result-msg').textContent = msg;
+            document.getElementById('result-plan').textContent = plan;
+        }
+
+        function resetForm() {
+            document.getElementById('form-card').style.display = 'block';
+            document.getElementById('result-panel').className = 'result';
+            input.value = '';
+            btn.disabled = true;
+            input.focus();
+        }
+
+        // Focus input on load
+        input.focus();
+    </script>
+</body>
+</html>

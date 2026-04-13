@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routines - GymFlow</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+</head>
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav id="sidebar-nav">
+                <!-- Dynamically filled based on role -->
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <div>
+                    <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">📋 Routines & Schedules</h1>
+                    <p style="font-size: 14px; color: var(--theme-text-muted, #94a3b8);">Create and manage daily class schedules for your branches and staff.</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddModal()" id="add-routine-btn">+ Add Routine</button>
+            </header>
+
+            <!-- View Toggle -->
+            <div style="display: flex; gap: 4px; margin-bottom: 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 4px; width: fit-content;">
+                <button class="view-tab active" data-view="calendar" onclick="switchView('calendar')">📅 Calendar</button>
+                <button class="view-tab" data-view="table" onclick="switchView('table')">📊 Table</button>
+                <button class="view-tab" data-view="board" onclick="switchView('board')">📷 Board</button>
+            </div>
+
+            <!-- VIEW: Calendar (existing) -->
+            <div id="view-calendar">
+                <!-- Week Navigation -->
+                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 24px;">
+                    <button class="btn btn-secondary" onclick="changeWeek(-1)" style="padding: 8px 16px;">← Prev Week</button>
+                    <span id="week-label" style="font-size: 16px; font-weight: 600; color: var(--theme-text-main, #fff); flex: 1; text-align: center;"></span>
+                    <button class="btn btn-secondary" onclick="changeWeek(1)" style="padding: 8px 16px;">Next Week →</button>
+                </div>
+                <div class="week-grid" id="week-grid"></div>
+            </div>
+
+            <!-- VIEW: Table -->
+            <div id="view-table" style="display: none;">
+                <div style="overflow-x: auto;">
+                    <table class="routine-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Class / Activity</th>
+                                <th>Branch</th>
+                                <th>Staff</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="routine-table-body">
+                            <tr><td colspan="6" style="text-align:center;color:#475569;padding:24px;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VIEW: Board -->
+            <div id="view-board" style="display: none;">
+                <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px; flex-wrap: wrap;">
+                    <select id="board-branch" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff; width: auto; min-width: 200px;" onchange="loadBoard()">
+                        <option value="">Select Branch...</option>
+                    </select>
+                    <label class="btn btn-primary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        📷 Upload Board Photo
+                        <input type="file" accept="image/*" style="display: none;" onchange="uploadBoard(this)">
+                    </label>
+                    <button class="btn btn-secondary" onclick="copyMemberRoutineLink()" id="copy-routine-link" style="display: none; align-items: center; gap: 6px;">
+                        🔗 Copy Member Link
+                    </button>
+                </div>
+                <div id="board-display" style="min-height: 200px; background: rgba(255,255,255,0.02); border: 2px dashed rgba(255,255,255,0.08); border-radius: 14px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <p style="color: #475569; font-size: 14px;">Select a branch and upload a routine board photo</p>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; display: none; align-items: center; justify-content: center;">
+                <div style="background: var(--theme-card-bg, #1e293b); padding: 30px; border-radius: 12px; text-align: center; color: #fff;">
+                    <p>Loading routines...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Routine Modal -->
+    <div class="modal-backdrop" id="routine-modal">
+        <div class="modal" style="max-width: 520px; padding: 32px; background: var(--theme-card-bg, #1e293b); border: 1px solid var(--theme-card-border, #334155); border-radius: 16px; color: var(--theme-text-main, #f1f5f9);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 id="modal-title" style="margin: 0; font-size: 22px;">Add Routine</h2>
+                <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">×</button>
+            </div>
+
+            <form id="routine-form">
+                <input type="hidden" id="edit-id">
+
+                <!-- What -->
+                <div class="form-group">
+                    <label class="form-label" style="color: var(--theme-text-main, #fff);">Class / Activity Name *</label>
+                    <input type="text" id="routine-title" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. Morning Yoga, Strength Training, Cardio" required>
+                </div>
+
+                <!-- When -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label" style="color: var(--theme-text-main, #fff);">Date *</label>
+                        <input type="date" id="routine-date" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: var(--theme-text-main, #fff);">Time Slot</label>
+                        <input type="text" id="routine-time" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. 6:00 AM - 7:00 AM">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="color: var(--theme-text-main, #fff);">Notes <span style="font-size: 11px; color: #64748b;">(optional)</span></label>
+                    <textarea id="routine-desc" class="form-input" rows="2" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff; resize: vertical;" placeholder="Details, equipment needed..."></textarea>
+                </div>
+
+                <!-- Where & Who -->
+                <div style="border-top: 1px solid rgba(255,255,255,0.06); margin: 16px 0; padding-top: 16px;">
+                    <p style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Assign To</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group" id="branch-select-group" style="margin-bottom: 0;">
+                            <select id="routine-branch" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="staff-select-group" style="margin-bottom: 0;">
+                            <select id="routine-staff" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;">
+                                <option value="">All Staff</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" id="save-btn" style="flex: 2;">Save Routine</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">Cancel</button>
+                </div>
+                <button type="button" class="btn" id="delete-btn" style="display: none; width: 100%; margin-top: 10px; background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); font-size: 13px;" onclick="deleteRoutine()">🗑️ Delete Routine</button>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-backdrop.active { display: flex; }
+
+        /* View Toggle Tabs */
+        .view-tab {
+            background: transparent; border: none; color: #64748b; font-size: 13px; font-weight: 600;
+            padding: 8px 16px; border-radius: 7px; cursor: pointer; transition: all 0.15s;
+        }
+        .view-tab.active { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+        .view-tab:hover:not(.active) { color: #94a3b8; }
+
+        /* Routine Table */
+        .routine-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .routine-table th {
+            text-align: left; padding: 12px 14px; color: #64748b; font-weight: 600;
+            border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .routine-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #e2e8f0; }
+        .routine-table tr:hover { background: rgba(255,255,255,0.02); }
+        .routine-table .date-group { background: rgba(255,255,255,0.02); font-weight: 700; color: #818cf8; }
+        
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 12px;
+            min-height: 400px;
+        }
+
+        .day-column {
+            background: var(--theme-card-bg, #1e293b);
+            border: 1px solid var(--theme-card-border, #334155);
+            border-radius: 12px;
+            padding: 16px 12px;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .day-column.today {
+            border-color: var(--theme-primary, #2563eb);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
+        }
+
+        .day-header {
+            text-align: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 8px;
+        }
+
+        .day-header .day-name {
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--theme-text-muted, #94a3b8);
+        }
+
+        .day-header .day-date {
+            font-size: 20px; font-weight: 800; color: var(--theme-text-main, #fff);
+            margin-top: 2px;
+        }
+
+        .routine-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .routine-card:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-1px);
+        }
+
+        .routine-card .r-title {
+            font-weight: 600; color: var(--theme-text-main, #fff); font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .routine-card .r-time {
+            color: var(--theme-primary, #2563eb); font-weight: 500; font-size: 11px;
+        }
+
+        .routine-card .r-branch {
+            color: var(--theme-text-muted, #94a3b8); font-size: 10px; margin-top: 4px;
+        }
+
+        .routine-card .r-staff {
+            color: #10b981; font-size: 10px;
+        }
+
+        .empty-day {
+            color: var(--theme-text-muted, #64748b); font-size: 12px; text-align: center;
+            padding: 20px 0; opacity: 0.5;
+        }
+
+        @media (max-width: 1024px) {
+            .week-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .week-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        const userRole = localStorage.getItem('role') || 'owner';
+        const userBranchId = localStorage.getItem('branch_id');
+        if (!token) window.location.href = 'login.html';
+
+        // Build sidebar based on role
+        const nav = document.getElementById('sidebar-nav');
+        if (userRole === 'owner') {
+            nav.innerHTML = `
+                <a href="dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
+                <a href="members.html" class="nav-link"><span>👥</span> Members</a>
+                <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
+                <a href="staff.html" class="nav-link"><span>🔵</span> Staff</a>
+                <a href="branches.html" class="nav-link"><span>📍</span> Branches</a>
+                <a href="attendance.html" class="nav-link"><span>🕘</span> Attendance</a>
+                <a href="routines.html" class="nav-link active"><span>📋</span> Routines</a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link"><span>⚙️</span> Settings</a>
+                    <a href="#" class="nav-link" onclick="logout()"><span>🚪</span> Logout</a>
+                </div>`;
+        } else if (userRole === 'manager') {
+            nav.innerHTML = `
+                <a href="branch-dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
+                <a href="members.html" class="nav-link"><span>👥</span> Members</a>
+                <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
+                <a href="attendance.html" class="nav-link"><span>🕘</span> Attendance</a>
+                <a href="routines.html" class="nav-link active"><span>📋</span> Routines</a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link"><span>⚙️</span> Settings</a>
+                    <a href="#" class="nav-link" onclick="logout()"><span>🚪</span> Logout</a>
+                </div>`;
+            // Manager can't select branch
+            document.getElementById('branch-select-group').style.display = 'none';
+        } else {
+            // Staff shouldn't be here — redirect
+            window.location.href = 'staff-dashboard.html';
+        }
+
+        // State
+        let currentWeekStart = getMonday(new Date());
+        let allRoutines = [];
+        let branches = [];
+        let staffList = [];
+
+        function getMonday(d) {
+            const date = new Date(d);
+            const day = date.getDay();
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(date.setDate(diff));
+        }
+
+        function formatDate(d) {
+            return d.toISOString().split('T')[0];
+        }
+
+        function changeWeek(delta) {
+            currentWeekStart.setDate(currentWeekStart.getDate() + (delta * 7));
+            loadRoutines();
+        }
+
+        function renderWeek() {
+            const grid = document.getElementById('week-grid');
+            const today = new Date();
+            const todayStr = formatDate(today);
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            document.getElementById('week-label').textContent =
+                `${currentWeekStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} — ${weekEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+
+            let html = '';
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(currentWeekStart);
+                d.setDate(d.getDate() + i);
+                const dateStr = formatDate(d);
+                const isToday = dateStr === todayStr;
+                const dayRoutines = allRoutines.filter(r => r.date === dateStr);
+
+                html += `<div class="day-column ${isToday ? 'today' : ''}">
+                    <div class="day-header">
+                        <div class="day-name">${days[i]}</div>
+                        <div class="day-date">${d.getDate()}</div>
+                    </div>
+                    ${dayRoutines.length === 0 ? '<div class="empty-day">No routines</div>' :
+                        dayRoutines.map(r => `
+                            <div class="routine-card" onclick="openEditModal(${r.id})">
+                                <div class="r-title">${r.title}</div>
+                                ${r.time_slot ? `<div class="r-time">⏰ ${r.time_slot}</div>` : ''}
+                                <div class="r-branch">📍 ${r.branch_name}</div>
+                                <div class="r-staff">👤 ${r.assigned_staff_name}</div>
+                            </div>
+                        `).join('')
+                    }
+                </div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        async function loadRoutines() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/routines?date_from=${formatDate(currentWeekStart)}&date_to=${formatDate(weekEnd)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('Failed to load routines');
+                allRoutines = await res.json();
+                renderWeek();
+            } catch (err) {
+                console.error('[ROUTINES]', err);
+                showToast('Failed to load routines', 'error');
+            }
+        }
+
+        async function loadDropdowns() {
+            // Load branches
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/branches`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    branches = await res.json();
+                    const branchSel = document.getElementById('routine-branch');
+                    branchSel.innerHTML = '<option value="">All Branches</option>' +
+                        branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+                }
+            } catch (e) { console.error(e); }
+
+            // Load staff
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    staffList = await res.json();
+                    const staffSel = document.getElementById('routine-staff');
+                    staffSel.innerHTML = '<option value="">All Staff</option>' +
+                        staffList.map(s => `<option value="${s.id}">${s.name} (${s.role})</option>`).join('');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').textContent = 'Add Routine';
+            document.getElementById('edit-id').value = '';
+            document.getElementById('routine-title').value = '';
+            document.getElementById('routine-date').value = formatDate(new Date());
+            document.getElementById('routine-time').value = '';
+            document.getElementById('routine-desc').value = '';
+            document.getElementById('routine-branch').value = '';
+            document.getElementById('routine-staff').value = '';
+            document.getElementById('delete-btn').style.display = 'none';
+            document.getElementById('routine-modal').classList.add('active');
+        }
+
+        function openEditModal(id) {
+            const r = allRoutines.find(x => x.id === id);
+            if (!r) return;
+            document.getElementById('modal-title').textContent = 'Edit Routine';
+            document.getElementById('edit-id').value = r.id;
+            document.getElementById('routine-title').value = r.title || '';
+            document.getElementById('routine-date').value = r.date || '';
+            document.getElementById('routine-time').value = r.time_slot || '';
+            document.getElementById('routine-desc').value = r.description || '';
+            document.getElementById('routine-branch').value = r.branch_id || '';
+            document.getElementById('routine-staff').value = r.assigned_staff_id || '';
+            document.getElementById('delete-btn').style.display = 'block';
+            document.getElementById('routine-modal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('routine-modal').classList.remove('active'); }
+
+        document.getElementById('routine-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const data = {
+                title: document.getElementById('routine-title').value,
+                date: document.getElementById('routine-date').value,
+                time_slot: document.getElementById('routine-time').value || null,
+                description: document.getElementById('routine-desc').value || null,
+                branch_id: document.getElementById('routine-branch').value ? parseInt(document.getElementById('routine-branch').value) : null,
+                assigned_staff_id: document.getElementById('routine-staff').value ? parseInt(document.getElementById('routine-staff').value) : null
+            };
+
+            const btn = document.getElementById('save-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const url = id ? `${CONFIG.API_BASE_URL}/api/routines/${id}` : `${CONFIG.API_BASE_URL}/api/routines`;
+                const res = await fetch(url, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Save failed');
+                }
+                closeModal();
+                loadRoutines();
+                showToast(`Routine ${id ? 'updated' : 'created'} successfully`, 'success');
+            } catch (err) { showToast(err.message, 'error'); }
+            finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Routine';
+            }
+        });
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+        async function deleteRoutine() {
+            const id = document.getElementById('edit-id').value;
+            if (!id) return;
+            if (!confirm('Delete this routine?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/routines/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('Delete failed');
+                closeModal();
+                loadRoutines();
+                showToast('Routine deleted', 'success');
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        // ============================================
+        // [VIEW-SWITCHING] Calendar | Table | Board
+        // ============================================
+        let currentView = 'calendar';
+
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.view-tab[data-view="${view}"]`).classList.add('active');
+            document.getElementById('view-calendar').style.display = view === 'calendar' ? '' : 'none';
+            document.getElementById('view-table').style.display = view === 'table' ? '' : 'none';
+            document.getElementById('view-board').style.display = view === 'board' ? '' : 'none';
+            document.getElementById('add-routine-btn').style.display = view === 'board' ? 'none' : '';
+            if (view === 'table') renderTableView();
+            if (view === 'board') { populateBoardBranches(); loadBoard(); }
+        }
+
+        // ============================================
+        // [TABLE VIEW] Date-wise routine table
+        // ============================================
+        async function renderTableView() {
+            const tbody = document.getElementById('routine-table-body');
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/routines`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('Failed to load');
+                const routines = await res.json();
+                if (routines.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#475569;padding:24px;">No routines yet. Click "+ Add Routine" to get started.</td></tr>';
+                    return;
+                }
+                // Sort by date
+                routines.sort((a, b) => a.date.localeCompare(b.date));
+                let lastDate = '';
+                let html = '';
+                routines.forEach(r => {
+                    const d = new Date(r.date);
+                    const dateStr = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                    if (r.date !== lastDate) {
+                        html += `<tr class="date-group"><td colspan="6" style="padding: 10px 14px;">${dateStr}</td></tr>`;
+                        lastDate = r.date;
+                    }
+                    html += `<tr onclick="openEditModal(${JSON.stringify(r).replace(/"/g, '&quot;')})" style="cursor:pointer;">
+                        <td style="color:#64748b;">${dateStr}</td>
+                        <td style="color:#818cf8; font-weight: 600;">${r.time_slot || '—'}</td>
+                        <td style="font-weight: 600;">${r.title}</td>
+                        <td>${r.branch_name || 'All'}</td>
+                        <td>${r.assigned_staff_name || 'All'}</td>
+                        <td style="color:#64748b; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.description || '—'}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px;">Error loading routines.</td></tr>';
+            }
+        }
+
+        // ============================================
+        // [BOARD VIEW] Image upload & display
+        // ============================================
+        function populateBoardBranches() {
+            const sel = document.getElementById('board-branch');
+            if (sel.options.length > 1) return; // Already populated
+            const branchSel = document.getElementById('routine-branch');
+            for (let i = 0; i < branchSel.options.length; i++) {
+                if (branchSel.options[i].value) {
+                    sel.innerHTML += `<option value="${branchSel.options[i].value}">${branchSel.options[i].text}</option>`;
+                }
+            }
+        }
+
+        async function loadBoard() {
+            const branchId = document.getElementById('board-branch').value;
+            const display = document.getElementById('board-display');
+            if (!branchId) {
+                display.innerHTML = '<p style="color: #475569; font-size: 14px;">Select a branch to view or upload a routine board</p>';
+                return;
+            }
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/routine-board/${branchId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok || res.status === 204) {
+                    display.innerHTML = '<p style="color: #475569; font-size: 14px;">No board uploaded yet. Upload a photo of your whiteboard or schedule.</p>';
+                    return;
+                }
+                const data = await res.json();
+                if (!data || !data.image_data) {
+                    display.innerHTML = '<p style="color: #475569; font-size: 14px;">No board uploaded yet.</p>';
+                    document.getElementById('copy-routine-link').style.display = 'none';
+                    return;
+                }
+                
+                document.getElementById('copy-routine-link').style.display = 'inline-flex';
+                display.innerHTML = `
+                    <div style="width:100%; text-align: center;">
+                        <div style="padding: 12px 16px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 13px; color: #94a3b8;">${data.label || 'Routine Board'} — ${data.branch_name}</span>
+                            <span style="font-size: 11px; color: #475569;">${data.uploaded_at ? new Date(data.uploaded_at).toLocaleString() : ''}</span>
+                        </div>
+                        <img src="${data.image_data}" style="max-width: 100%; max-height: 600px; object-fit: contain; padding: 16px;" alt="Routine Board">
+                    </div>
+                `;
+                display.style.border = '1px solid rgba(255,255,255,0.06)';
+            } catch (err) {
+                display.innerHTML = '<p style="color: #ef4444; font-size: 14px;">Error loading board.</p>';
+            }
+        }
+
+        async function uploadBoard(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const branchId = document.getElementById('board-branch').value;
+            if (!branchId) {
+                showToast('Please select a branch first', 'error');
+                input.value = '';
+                return;
+            }
+
+            // Read file as base64
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64 = e.target.result;
+                try {
+                    const res = await fetch(`${CONFIG.API_BASE_URL}/api/routine-board/upload`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            image_data: base64,
+                            branch_id: parseInt(branchId),
+                            label: "Today's Schedule"
+                        })
+                    });
+                    if (!res.ok) throw new Error('Upload failed');
+                    showToast('Board uploaded!', 'success');
+                    loadBoard();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+                input.value = '';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function copyMemberRoutineLink() {
+            const branchId = document.getElementById('board-branch').value;
+            if (!branchId) return;
+            const url = `${CONFIG.FRONTEND_URL}/member-routine.html?branch=${branchId}`;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Member routine link copied to clipboard!', 'success');
+            }).catch(() => {
+                prompt('Copy this link and share with members:', url);
+            });
+        }
+
+        loadDropdowns();
+        loadRoutines();
+    </script>
+</body>
+</html>

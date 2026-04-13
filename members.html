@@ -1,0 +1,333 @@
+<!-- ============================================
+     [SCREEN-2] Members List Screen
+     Copy this to: frontend/members.html
+     View and manage all gym members
+     ============================================ -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members - Gym SaaS</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link">
+                    <span>🏠</span> Dashboard
+                </a>
+                <a href="members.html" class="nav-link active">
+                    <span>👥</span> Members
+                </a>
+                <a href="plans.html" class="nav-link">
+                    <span>📋</span> Plans
+                </a>
+                <a href="staff.html" class="nav-link">
+                    <span>🛡️</span> Staff
+                </a>
+                <a href="branches.html" class="nav-link">
+                    <span>📍</span> Branches
+                </a>
+                <a href="attendance.html" class="nav-link">
+                    <span>🕘</span> Attendance
+                </a>
+                <a href="routines.html" class="nav-link">
+                    <span>📋</span> Routines
+                </a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link">
+                        <span>⚙️</span> Settings
+                    </a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+                <div>
+                    <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">Members</h1>
+                    <p id="context-info" style="font-size: 14px; color: var(--text-muted);">Manage your gym community and subscriptions.</p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="exportMembersCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                        <span style="margin-right: 6px;">⬇️</span> Export CSV
+                    </button>
+                    <button class="btn btn-primary" onclick="location.href='add-member.html'">
+                        + Add Member
+                    </button>
+                </div>
+            </header>
+
+            <!-- Filters & Search -->
+            <div class="glass-panel" style="margin-bottom: 32px; display: flex; flex-direction: column; gap: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn filter-btn active" data-status="all" onclick="filterMembers('all')">All</button>
+                        <button class="btn filter-btn" data-status="active" onclick="filterMembers('active')">Active</button>
+                        <button class="btn filter-btn" data-status="expiring_soon" onclick="filterMembers('expiring_soon')">Expiring Soon</button>
+                        <button class="btn filter-btn" data-status="expired" onclick="filterMembers('expired')">Expired</button>
+                    </div>
+
+                    <div style="flex: 1; min-width: 300px;">
+                        <input type="text" id="search-input" class="form-input" 
+                               style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" 
+                               placeholder="Search members by name or phone..." onkeyup="searchMembers()">
+                    </div>
+                </div>
+
+                <div id="branch-filter-row" style="display: none;">
+                    <select id="branch-filter" class="form-select" 
+                            style="width: auto; min-width: 200px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" 
+                            onchange="loadMembers()">
+                        <option value="">All Branches</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div id="members-container" class="glass-panel" style="padding: 0; overflow: hidden;">
+                <table class="glass-table" id="members-table">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Contact</th>
+                            <th>Plan Details</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                <tbody id="members-tbody">
+                        <!-- Members load here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- [EMPTY-STATE] -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <span class="empty-icon">👥</span>
+                <h2 class="empty-title">No members found</h2>
+                <p class="empty-subtitle">Ready to grow? Add your first member or import your existing list to get started.</p>
+                <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
+                    <button class="btn btn-primary" onclick="location.href='add-member.html'">+ Add First Member</button>
+                    <button class="btn btn-secondary" onclick="location.href='import-members.html'">Import CSV</button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loading-overlay" class="spinner-overlay" style="display: none;">
+                <div class="glass-spinner"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- [JAVASCRIPT] Page logic -->
+    <script>
+        const token = localStorage.getItem('auth_token');
+        const userRole = localStorage.getItem('role') || 'owner';
+        if (!token) window.location.href = 'login.html';
+
+        if (userRole === 'owner') loadBranchFilter();
+
+        async function loadBranchFilter() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/branches`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const branches = await res.json();
+                    if (branches.length > 0) {
+                        document.getElementById('branch-filter-row').style.display = 'block';
+                        document.getElementById('branch-filter').innerHTML += 
+                            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+                    }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        let allMembers = [];
+        let filteredMembers = [];
+        let currentFilter = 'all';
+
+        async function loadMembers() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+            try {
+                let url = `${CONFIG.API_BASE_URL}/api/members`;
+                const branchId = document.getElementById('branch-filter')?.value;
+                if (branchId) url += `?branch_id=${branchId}`;
+
+                const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) throw new Error('Fetch failed');
+
+                allMembers = await response.json();
+                filteredMembers = allMembers;
+                renderTable(allMembers);
+            } catch (error) {
+                showToast("Failed to load members", "error");
+            } finally {
+                overlay.style.display = 'none';
+            }
+        }
+
+        function renderTable(members) {
+            const tbody = document.getElementById('members-tbody');
+            const container = document.getElementById('members-container');
+            const empty = document.getElementById('empty-state');
+
+            if (members.length === 0) {
+                container.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+
+            container.style.display = 'block';
+            empty.style.display = 'none';
+
+            tbody.innerHTML = members.map(m => `
+                <tr data-member-id="${m.id}">
+                    <td>
+                        <div style="font-weight: 700;">${m.name}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">ID: #${m.id}</div>
+                    </td>
+                    <td>
+                        <div style="font-size: 14px;">${m.phone}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">${m.email || 'No email'}</div>
+                    </td>
+                    <td>
+                        ${m.current_plan ? `
+                            <div style="font-weight: 600; color: #fff;">${m.current_plan}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Expires: ${m.expiry_date || 'N/A'}</div>
+                        ` : '<span style="color: #f87171; font-size: 12px;">INACTIVE</span>'}
+                    </td>
+                    <td>
+                        <span class="badge badge-${getStatusClass(m.status)}">${formatStatus(m.status)}</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})">🔔</button>
+                        ${userRole === 'owner' ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: #f87171;" onclick="deleteMember(${m.id})">🗑️</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getStatusClass(s) {
+            const map = { 'active': 'active', 'expiring_soon': 'expiring', 'expired': 'expired', 'pending_payment': 'pending' };
+            return map[s] || 'active';
+        }
+
+        function formatStatus(s) {
+            const map = { 'active': 'Active', 'expiring_soon': 'Expiring', 'expired': 'Expired', 'pending_payment': 'Pending' };
+            return map[s] || s;
+        }
+
+        function filterMembers(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
+            filteredMembers = status === 'all' ? allMembers : allMembers.filter(m => m.status === status);
+            renderTable(filteredMembers);
+        }
+
+        function searchMembers() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            const results = filteredMembers.filter(m => m.name.toLowerCase().includes(q) || m.phone.includes(q));
+            renderTable(results);
+        }
+
+        async function sendReminder(id) {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${id}/remind`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const d = await res.json();
+                window.showToast(d.message, res.ok ? "success" : "error");
+            } catch (err) { window.showToast("Network error", "error"); }
+        }
+
+        function editMember(id) {
+            window.location.href = `add-member.html?edit=${id}`;
+        }
+
+        async function deleteMember(id) {
+            if (!confirm('Permanently remove this member?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    window.showToast("Removed successfully", "success");
+                    loadMembers();
+                }
+            } catch (err) { window.showToast("Failed to delete", "error"); }
+        }
+
+        function exportMembersCSV() {
+            const tier = localStorage.getItem('tier') || 'starter';
+            if (tier !== 'elite') {
+                if(confirm("Elite Upgrade Required: Unlock Excel/CSV Exports with our Elite tier! Would you like to check upgrade options?")) {
+                    window.location.href = 'upgrade-plan.html';
+                }
+                return;
+            }
+            // ... (rest of export logic from original file)
+            const headers = ['Name', 'Email', 'Phone', 'Status', 'Plan', 'Plan Ends'];
+            const csvRows = filteredMembers.map(m => [
+                `"${m.name}"`, `"${m.email || ''}"`, `"${m.phone}"`, `"${m.status}"`, `"${m.current_plan || 'N/A'}"`, `"${m.expiry_date || 'N/A'}"`
+            ].join(','));
+            const blob = new Blob([headers.join(',') + '\n' + csvRows.join('\n')], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Members_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        loadMembers();
+
+        (function() {
+            const tier = localStorage.getItem('tier') || 'starter';
+            if (tier !== 'elite') {
+                const btn = document.getElementById('export-btn');
+                btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                btn.innerHTML = '✨ Unlock Elite CSV';
+            }
+        })();
+    </script>
+</body>
+
+    <!-- ============================================
+         UPGRADE PATH:
+         - Add bulk actions (select multiple, send bulk reminders)
+         - Add export to CSV/Excel
+         - Add advanced filters (by plan, by date range)
+         - Add pagination for large member lists
+         - Add member details modal/drawer
+         - Add attendance tracking
+         ============================================ -->
+</body>
+
+</html>

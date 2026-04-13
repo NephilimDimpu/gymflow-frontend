@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - GymFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #050505;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(255, 255, 255, 0.2);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        /* Ambient glowing background mesh */
+        .ambient-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .ambient-bg::before, .ambient-bg::after {
+            content: '';
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .ambient-bg::before {
+            background: linear-gradient(to right, #4f46e5, #ec4899);
+            top: -200px;
+            left: -200px;
+        }
+
+        .ambient-bg::after {
+            background: linear-gradient(to right, #06b6d4, #3b82f6);
+            bottom: -200px;
+            right: -200px;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(100px, 50px); }
+        }
+
+        /* The Glass Card */
+        .auth-card {
+            background: var(--surface);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 480px;
+            z-index: 10;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        }
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .auth-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0));
+            border: 1px solid var(--borderHighlight);
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+            font-size: 24px;
+        }
+
+        .auth-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Inputs */
+        .input-group {
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .modern-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .modern-input::placeholder {
+            color: #52525b;
+        }
+
+        .modern-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            background: var(--text-main);
+            color: #000;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(255, 255, 255, 0.15);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* Role Toggles for Login */
+        .role-toggles {
+            display: flex;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .role-btn.active {
+            background: var(--surface-hover);
+            color: var(--text-main);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .footer-link a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        #error-message {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+    </style>
+
+</head>
+<body>
+    <div class="ambient-bg"></div>
+    
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">✦</div>
+            <h1>Welcome back</h1>
+            <p>Log in to access your dashboard.</p>
+        </div>
+
+        <div class="role-toggles" style="display: flex; gap: 4px;">
+            <button type="button" id="toggle-gym" class="role-btn active" onclick="setLoginType('gym')" style="flex: 1;">
+                <span style="display: block; font-size: 14px;">🏢</span>
+                <span style="font-size: 11px;">Gym Owner</span>
+            </button>
+            <button type="button" id="toggle-manager" class="role-btn" onclick="setLoginType('manager')" style="flex: 1;">
+                <span style="display: block; font-size: 14px;">📍</span>
+                <span style="font-size: 11px;">Branch Manager</span>
+            </button>
+            <button type="button" id="toggle-staff" class="role-btn" onclick="setLoginType('staff')" style="flex: 1;">
+                <span style="display: block; font-size: 14px;">👤</span>
+                <span style="font-size: 11px;">Staff</span>
+            </button>
+        </div>
+
+        <div id="error-message"></div>
+
+        <form id="login-form">
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" class="modern-input" placeholder="name@company.com" required autocomplete="email">
+            </div>
+
+            <div class="input-group">
+                <div style="display: flex; justify-content: space-between;">
+                    <label for="password">Password</label>
+                    <a href="forgot-password.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">Forgot password?</a>
+                </div>
+                <input type="password" id="password" class="modern-input" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="submit-btn" id="login-btn">Sign In</button>
+
+            <!-- Role-specific footer messages -->
+            <p class="footer-link role-footer" id="footer-gym" style="margin-top: 2rem;">
+                No account? <a href="signup.html">Create one</a>
+            </p>
+            <p class="footer-link role-footer" id="footer-manager" style="margin-top: 2rem; display: none;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">📍 Your gym owner creates your account when adding a branch.<br>Check your email for login credentials.</span>
+            </p>
+            <p class="footer-link role-footer" id="footer-staff" style="margin-top: 2rem; display: none;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">🔑 Your gym owner or branch manager creates your account.<br>Ask them for your email and password.</span>
+            </p>
+
+            <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                <a href="customer-login.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    I am a Gym Member
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let loginType = 'gym'; // 'gym', 'manager', or 'staff'
+
+        function setLoginType(type) {
+            loginType = type;
+            const buttons = { gym: 'toggle-gym', manager: 'toggle-manager', staff: 'toggle-staff' };
+            const footers = { gym: 'footer-gym', manager: 'footer-manager', staff: 'footer-staff' };
+
+            // Update button styles
+            Object.entries(buttons).forEach(([key, id]) => {
+                const btn = document.getElementById(id);
+                if (key === type) {
+                    btn.style.background = '#2563eb';
+                    btn.style.color = 'white';
+                    btn.classList.add('active');
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#6b7280';
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Show correct footer
+            Object.entries(footers).forEach(([key, id]) => {
+                document.getElementById(id).style.display = key === type ? 'block' : 'none';
+            });
+
+            hideError();
+        }
+
+        // ============================================
+        // [JS-CHECK-AUTH] Redirect if already logged in
+        // ============================================
+        const existingToken = localStorage.getItem('auth_token');
+        if (existingToken) {
+            const existingRole = localStorage.getItem('role') || 'owner';
+            if (existingRole === 'owner') window.location.href = 'dashboard.html';
+            else if (existingRole === 'manager') window.location.href = 'branch-dashboard.html';
+            else if (existingRole === 'customer') window.location.href = 'customer-dashboard.html';
+            else window.location.href = 'staff-dashboard.html';
+        }
+
+        // ============================================
+        // [JS-LOGIN] Handle login form submission
+        // ============================================
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return;
+            }
+
+            const loginBtn = document.getElementById('login-btn');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+            hideError();
+
+            try {
+                let response;
+
+                if (loginType === 'gym') {
+                    // Gym owner login (OAuth2 form)
+                    const formData = new URLSearchParams();
+                    formData.append('username', email);
+                    formData.append('password', password);
+
+                    response = await fetch(`${CONFIG.API_BASE_URL}/api/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData
+                    });
+                } else {
+                    // Both manager and staff use the same endpoint
+                    // The backend returns the correct role for routing
+                    response = await fetch(`${CONFIG.API_BASE_URL}/api/staff/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                }
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Login failed');
+                }
+
+                const data = await response.json();
+
+                // Store auth data
+                localStorage.setItem('auth_token', data.access_token);
+                localStorage.setItem('gym_id', data.gym_id);
+                localStorage.setItem('user_type', data.user_type || 'gym');
+                localStorage.setItem('role', data.role || 'owner');
+                if (data.tier) {
+                    localStorage.setItem('tier', data.tier);
+                }
+
+                if (data.branch_id) {
+                    localStorage.setItem('branch_id', data.branch_id);
+                    localStorage.setItem('branch_name', data.branch_name || '');
+                }
+                if (data.staff_name) {
+                    localStorage.setItem('staff_name', data.staff_name);
+                }
+                if (data.gym_name) {
+                    localStorage.setItem('gym_name', data.gym_name);
+                }
+                if (data.custom_role) {
+                    localStorage.setItem('custom_role', data.custom_role);
+                }
+
+                window.location.href =
+                    data.role === 'owner' ? 'dashboard.html' :
+                        data.role === 'manager' ? 'branch-dashboard.html' :
+                            'staff-dashboard.html';
+
+            } catch (error) {
+                console.error('[LOGIN-ERROR]', error);
+                showError(error.message || 'Login failed. Please check your credentials.');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Login - GymFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(255, 255, 255, 0.2);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        .ambient-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .ambient-bg::before, .ambient-bg::after {
+            content: '';
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .ambient-bg::before {
+            background: linear-gradient(to right, #4f46e5, #ec4899);
+            top: -200px;
+            left: -200px;
+        }
+
+        .ambient-bg::after {
+            background: linear-gradient(to right, #06b6d4, #3b82f6);
+            bottom: -200px;
+            right: -200px;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(100px, 50px); }
+        }
+
+        .auth-card {
+            background: var(--surface);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 480px;
+            z-index: 10;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+            text-align: center;
+        }
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .auth-header {
+            margin-bottom: 2.5rem;
+        }
+
+        .auth-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0));
+            border: 1px solid var(--borderHighlight);
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+            font-size: 24px;
+        }
+
+        .auth-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .modern-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .modern-input::placeholder {
+            color: #52525b;
+        }
+
+        .modern-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            background: var(--text-main);
+            color: #000;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+            position: relative;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(255, 255, 255, 0.15);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .footer-link a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        #error-message, #success-message {
+            display: none;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        #error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        #success-message {
+            background: rgba(34, 197, 94, 0.1);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg"></div>
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">🏋️</div>
+            <h1>Member Portal</h1>
+            <p>Ready to hit your goals today?</p>
+        </div>
+        <div id="error-message"></div>
+        <div id="success-message"></div>
+        <form id="customer-login-form">
+            <div class="input-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" class="modern-input" placeholder="Your registered phone number" required>
+            </div>
+            <div class="input-group">
+                <div style="display: flex; justify-content: space-between;">
+                    <label for="password">Password</label>
+                </div>
+                <input type="password" id="password" class="modern-input" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="submit-btn" id="login-btn">Log In</button>
+            <p class="footer-link" style="margin-top: 2rem;">
+                Not a member? Check with your gym to get registered.
+            </p>
+            <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                <a href="login.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">
+                    Gym Staff? Sign in here
+                </a>
+            </div>
+        </form>
+    </div>
+<script>
+        // Get gym_id from URL (e.g., customer-login.html?gym_id=1)
+        const urlParams = new URLSearchParams(window.location.search);
+        const gymId = urlParams.get('gym_id') ? parseInt(urlParams.get('gym_id')) : null;
+
+        // Check if already logged in as customer
+        const existingToken = localStorage.getItem('auth_token');
+        const existingRole = localStorage.getItem('role');
+        if (existingToken && existingRole === 'customer') {
+            window.location.href = 'customer-dashboard.html';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-message');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('error-message').style.display = 'none';
+            const s = document.getElementById('success-message');
+            if (s) s.style.display = 'none';
+        }
+
+        // ============================================
+        // [JS-LOGIN] Handle login
+        // ============================================
+        document.getElementById('customer-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const phone = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!phone || !password) {
+                showError('Please enter both phone and password.');
+                return;
+            }
+
+            const btn = document.getElementById('login-btn');
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+
+            try {
+                const payload = { phone, password };
+                if (gymId) payload.gym_id = gymId;
+
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/customer/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Login failed');
+                }
+
+                const data = await res.json();
+
+                // Store auth data
+                localStorage.setItem('auth_token', data.access_token);
+                localStorage.setItem('member_id', data.member_id);
+                localStorage.setItem('member_name', data.member_name);
+                localStorage.setItem('gym_name', data.gym_name || '');
+                localStorage.setItem('branch_name', data.branch_name || '');
+                localStorage.setItem('user_type', 'customer');
+                localStorage.setItem('role', 'customer');
+
+                window.location.href = 'customer-dashboard.html';
+
+            } catch (err) {
+                showError(err.message);
+                btn.disabled = false;
+                btn.textContent = 'Log In';
+            }
+        });
+    </script>
+</body>
+</html>

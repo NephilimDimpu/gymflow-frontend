@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing | GymFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/style.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            color: #0f172a;
+        }
+
+        .navbar {
+            background: white;
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: 800;
+            color: #2563eb;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: #2563eb;
+        }
+
+        .pricing-header {
+            text-align: center;
+            padding: 80px 20px 40px;
+            background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: -60px;
+            /* Pull cards up slightly */
+            padding-bottom: 120px;
+        }
+
+        .pricing-header h1 {
+            font-size: 52px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            letter-spacing: -1.5px;
+            background: linear-gradient(to right, #1e3a8a, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .pricing-header p {
+            font-size: 20px;
+            color: #475569;
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        /* Toggle Button */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 50px;
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .toggle-label.active {
+            color: #2563eb;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e2e8f0;
+            transition: .4s;
+            border-radius: 34px;
+            border: 2px solid transparent;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        input:checked+.slider {
+            background-color: #2563eb;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Pricing Cards */
+        .pricing-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto 80px auto;
+            padding: 0 20px;
+            flex-wrap: wrap;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 320px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .pricing-card.premium {
+            border: 2px solid #2563eb;
+            transform: scale(1.03);
+            box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.1), 0 10px 10px -5px rgba(37, 99, 235, 0.04);
+        }
+
+        .badge-most-popular {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2563eb;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 24px;
+            min-height: 44px;
+        }
+
+        .card-price {
+            font-size: 56px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .card-price span {
+            font-size: 18px;
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .card-btn {
+            display: block;
+            text-align: center;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            margin: 30px 0;
+            transition: all 0.2s;
+        }
+
+        .btn-core {
+            background: white;
+            color: #0f172a;
+            border: 2px solid #cbd5e1;
+        }
+
+        .btn-core:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+
+        .btn-premium {
+            background: #2563eb;
+            color: white;
+            border: 2px solid #2563eb;
+        }
+
+        .btn-premium:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+            color: #475569;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .check-icon {
+            color: #10b981;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .premium-feature {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            max-width: 800px;
+            margin: 0 auto 100px auto;
+            padding: 0 20px;
+        }
+
+        .faq-title {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 40px;
+            letter-spacing: -0.5px;
+        }
+
+        .faq-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+        .faq-item:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .faq-question {
+            width: 100%;
+            text-align: left;
+            padding: 24px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            font-weight: 600;
+            color: #0f172a;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: inherit;
+        }
+
+        .faq-icon {
+            transition: transform 0.3s ease;
+            color: #2563eb;
+        }
+
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: #f8fafc;
+        }
+
+        .faq-answer-content {
+            padding: 0 24px 24px 24px;
+            color: #475569;
+            line-height: 1.6;
+        }
+
+        /* Annual Badge */
+        .save-badge {
+            background: #10b981;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            position: absolute;
+            top: -10px;
+            right: -20px;
+            transform: rotate(15deg);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1) rotate(15deg);
+            }
+
+            50% {
+                transform: scale(1.1) rotate(15deg);
+            }
+
+            100% {
+                transform: scale(1) rotate(15deg);
+            }
+        }
+
+        /* Footer */
+        .footer {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 60px 5% 40px;
+            text-align: center;
+            margin-top: auto;
+        }
+    </style>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">
+            🏋️‍♀️ GymFlow
+        </a>
+        <div class="nav-links">
+            <a href="index.html#features">Features</a>
+            <a href="login.html" style="margin-left: 20px;">Log In</a>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="pricing-header">
+        <h1>Simple, transparent pricing.</h1>
+        <p>No hidden fees. Every plan includes a 14-day zero-risk free trial to prove our software saves you time and
+            money.</p>
+
+        <!-- Toggle Switches -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 50px;">
+            <!-- Region Toggle -->
+            <div class="toggle-container" style="margin-bottom: 0;">
+                <span class="toggle-label active" id="label-inr" onclick="setRegion('inr')">India (INR)</span>
+                <label class="switch">
+                    <input type="checkbox" id="region-toggle" onchange="handleToggle()">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label" id="label-usd" onclick="setRegion('usd')">Global (USD)</span>
+            </div>
+
+            <!-- Billing Frequency Toggle -->
+            <div class="toggle-container" style="margin-bottom: 0; position: relative;">
+                <span class="toggle-label active" id="label-monthly" onclick="setBilling('monthly')">Monthly</span>
+                <label class="switch">
+                    <input type="checkbox" id="billing-toggle" onchange="handleBillingToggle()">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label" id="label-annual" onclick="setBilling('annual')">Annually</span>
+                <div class="save-badge">Save 20%</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Pricing Cards -->
+    <div class="pricing-container">
+
+        <!-- Starter Plan -->
+        <div class="pricing-card">
+            <div class="card-title">Starter</div>
+            <div class="card-desc">Essential tools for independent coaches and small gyms to track members.</div>
+            <div class="card-price">
+                <span class="currency-symbol">₹</span><span id="starter-amount">500</span><span>/mo</span>
+            </div>
+            <div style="font-size: 13px; color: #64748b; margin-top: -5px; min-height: 20px;" id="starter-billed-text">
+            </div>
+            <a href="signup.html?plan=starter" class="card-btn btn-core">Start 14-Day Free Trial</a>
+
+            <ul class="feature-list">
+                <li><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Unlimited Members</li>
+                <li><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Basic Member Tracking</li>
+                <li><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Manual Payment Tracking</li>
+                <li><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Public Status Links</li>
+            </ul>
+        </div>
+
+        <!-- Pro Plan (Most Popular) -->
+        <div class="pricing-card premium">
+            <div class="badge-most-popular">Most Popular</div>
+            <div class="card-title">Pro Automation</div>
+            <div class="card-desc">The ultimate automation engine for fast-growing gyms.</div>
+            <div class="card-price">
+                <span class="currency-symbol">₹</span><span id="pro-amount">999</span><span>/mo</span>
+            </div>
+            <div style="font-size: 13px; color: #64748b; margin-top: -5px; min-height: 20px;" id="pro-billed-text">
+            </div>
+            <a href="signup.html?plan=pro" class="card-btn btn-premium">Start 14-Day Free Trial</a>
+
+            <ul class="feature-list">
+                <li><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Everything in Starter, plus:</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Automated Email Reminders</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Advanced Analytics Dashboard</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Sub-Admin Roles (Staff)</li>
+            </ul>
+        </div>
+
+                <!-- Elite Plan -->
+        <div class="pricing-card">
+            <div class="card-title">Elite Dashboard</div>
+            <div class="card-desc">Premium tools and Multi-Branch support for established franchises.</div>
+            <div class="card-price">
+                <span class="currency-symbol">₹</span><span id="elite-amount">2,499</span><span>/mo</span>
+            </div>
+            <div style="font-size: 13px; color: #64748b; margin-top: -5px; min-height: 20px;" id="elite-billed-text">
+            </div>
+            <a href="signup.html?plan=elite" class="card-btn btn-core">Start 14-Day Free Trial</a>
+
+            <ul class="feature-list">
+                <li><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Everything in Pro, plus:</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Multi-Branch Master Dashboard</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> AI Bulk Receipt Scanner (OCR)</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <h2 class="faq-title">Frequently Asked Questions</h2>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Do I need a credit card to start the free trial?
+
+                <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    No! You can start your 14-day free trial without entering any payment details. We want you to see
+                    the value GymFlow brings to your gym before ever asking for a commitment.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Can I upgrade or downgrade my plan later?
+                <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    Absolutely. You can change your plan at any time right from your settings dashboard. Changes take
+                    effect on your next billing cycle, and if you're upgrading, we'll quickly prorate the difference.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                What happens if I go over the member limit?
+                <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    We don't punish you for being successful! <b>All of our plans include unlimited members.</b> We
+                    charge based on the automation features and software capabilities you need, not by how many people
+                    walk through your doors.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Can I cancel my subscription at any time?
+                <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    Yes. We don't believe in locking our customers into long-term contracts unless you explicitly choose
+                    an annual plan to save money. You can cancel a monthly plan at any time with no cancellation fees.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div style="font-size: 24px; font-weight: 800; color: white; margin-bottom: 20px;">
+            🏋️‍♀️ GymFlow
+        </div>
+        <p style="color: #64748b; font-size: 14px; margin-top: 40px;">
+            © 2026 GymFlow SaaS. All rights reserved.
+        </p>
+    </footer>
+
+    <script>
+        const pricing = {
+            monthly: {
+                inr: {
+                    starter: '500',
+                    pro: '999',
+                    elite: '2,499',
+                    symbol: '₹',
+                    billedText: ''
+                },
+                usd: {
+                    starter: '19',
+                    pro: '39',
+                    elite: '89',
+                    symbol: '$',
+                    billedText: ''
+                }
+            },
+            annual: {
+                inr: {
+                    starter: '400',
+                    pro: '799',
+                    elite: '1,999',
+                    symbol: '₹',
+                    billedText: 'Billed annually'
+                },
+                usd: {
+                    starter: '15',
+                    pro: '32',
+                    elite: '69',
+                    symbol: '$',
+                    billedText: 'Billed annually'
+                }
+            }
+        };
+
+        // Default state
+        let currentRegion = 'inr';
+        let currentBilling = 'monthly';
+
+        function setRegion(region) {
+            currentRegion = region;
+            document.getElementById('region-toggle').checked = (region === 'usd');
+            updatePrices();
+        }
+
+        function handleToggle() {
+            const isUsd = document.getElementById('region-toggle').checked;
+            currentRegion = isUsd ? 'usd' : 'inr';
+            updatePrices();
+        }
+
+        function setBilling(frequency) {
+            currentBilling = frequency;
+            document.getElementById('billing-toggle').checked = (frequency === 'annual');
+            updatePrices();
+        }
+
+        function handleBillingToggle() {
+            const isAnnual = document.getElementById('billing-toggle').checked;
+            currentBilling = isAnnual ? 'annual' : 'monthly';
+            updatePrices();
+        }
+
+        function updatePrices() {
+            // Update Region Labels
+            document.getElementById('label-inr').classList.toggle('active', currentRegion === 'inr');
+            document.getElementById('label-usd').classList.toggle('active', currentRegion === 'usd');
+
+            // Update Billing Labels
+            document.getElementById('label-monthly').classList.toggle('active', currentBilling === 'monthly');
+            document.getElementById('label-annual').classList.toggle('active', currentBilling === 'annual');
+
+            const currentPricing = pricing[currentBilling][currentRegion];
+
+            // Update DOM
+            const tiers = ['starter', 'pro', 'elite'];
+            tiers.forEach(tier => {
+                // Update symbols
+                document.querySelectorAll('.currency-symbol').forEach(el => el.innerText = currentPricing.symbol);
+                // Update amount
+                document.getElementById(`${tier}-amount`).innerText = currentPricing[tier];
+                // Update billed text (e.g. "Billed annually")
+                const textEl = document.getElementById(`${tier}-billed-text`);
+                if (textEl) textEl.innerText = currentPricing.billedText;
+            });
+        }
+
+        // FAQ Toggle Logic
+        function toggleFaq(button) {
+            const item = button.parentElement;
+            const answer = item.querySelector('.faq-answer');
+            const isActive = item.classList.contains('active');
+
+            // Close all
+            document.querySelectorAll('.faq-item').forEach(el => {
+                el.classList.remove('active');
+                el.querySelector('.faq-answer').style.maxHeight = null;
+            });
+
+            // Open clicked if it wasn't already open
+            if (!isActive) {
+                item.classList.add('active');
+                answer.style.maxHeight = answer.scrollHeight + "px";
+            }
+        }
+
+        // Smart Routing Logic
+        function checkAuthAndRoute() {
+            const token = localStorage.getItem('auth_token');
+            const role = localStorage.getItem('role');
+
+            // If logged in as owner, clicking a plan should go to upgrade-plan.html
+            if (token && role === 'owner') {
+                document.querySelectorAll('.card-btn').forEach(btn => {
+                    const href = btn.getAttribute('href');
+                    if (href && href.includes('signup.html')) {
+                        btn.setAttribute('href', href.replace('signup.html', 'upgrade-plan.html'));
+                        btn.innerText = "Change Plan";
+                    }
+                });
+            }
+        }
+
+        // Initialize
+        updatePrices();
+        checkAuthAndRoute();
+    </script>
+</body>
+
+</html>

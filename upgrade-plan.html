@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upgrade Plan | GymFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        .pricing-header {
+            text-align: center;
+            padding: 40px 20px 20px;
+        }
+        .pricing-header h1 {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .pricing-header p {
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        .pricing-container {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            max-width: 1100px;
+            margin: 30px auto 60px auto;
+            padding: 0 20px;
+            flex-wrap: wrap;
+        }
+
+        .pricing-card {
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 320px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -12px rgba(0,0,0,0.4);
+        }
+
+        .pricing-card.recommended {
+            border: 2px solid #6366f1;
+            background: rgba(99,102,241,0.04);
+        }
+
+        .pricing-card.active-plan {
+            border: 2px solid #10b981;
+        }
+
+        .badge {
+            position: absolute;
+            top: -13px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            padding: 5px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge.active { background: #10b981; }
+        .badge.recommended-badge { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+
+        .card-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 4px;
+        }
+        .card-desc {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 20px;
+            min-height: 40px;
+        }
+
+        .price-block {
+            margin-bottom: 24px;
+        }
+        .price-amount {
+            font-size: 40px;
+            font-weight: 800;
+            color: #fff;
+        }
+        .price-currency {
+            font-size: 18px;
+            font-weight: 600;
+            color: #94a3b8;
+            vertical-align: super;
+        }
+        .price-period {
+            font-size: 14px;
+            color: #475569;
+            margin-left: 2px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 28px 0;
+            flex-grow: 1;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            font-size: 13px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .feature-list li .check {
+            color: #4ade80;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .card-btn {
+            display: block;
+            text-align: center;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        .btn-outline {
+            background: transparent;
+            color: #cbd5e1;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.2);
+        }
+        .btn-primary-gradient {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+        }
+        .btn-primary-gradient:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .btn-active {
+            background: #10b981;
+            color: white;
+            pointer-events: none;
+            cursor: default;
+        }
+        .btn-disabled {
+            background: rgba(255,255,255,0.03);
+            color: #475569;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+    </style>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link">
+                    <span>🏠</span> Dashboard
+                </a>
+                <a href="members.html" class="nav-link">
+                    <span>👥</span> Members
+                </a>
+                <a href="plans.html" class="nav-link">
+                    <span>📋</span> Plans
+                </a>
+                <a href="staff.html" class="nav-link">
+                    <span>🛡️</span> Staff
+                </a>
+                <a href="branches.html" class="nav-link">
+                    <span>📍</span> Branches
+                </a>
+                <a href="attendance.html" class="nav-link">
+                    <span>🕘</span> Attendance
+                </a>
+                <a href="routines.html" class="nav-link">
+                    <span>📋</span> Routines
+                </a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link">
+                        <span>⚙️</span> Settings
+                    </a>
+                    <a href="upgrade-plan.html" class="nav-link active" style="color: #fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+    <header class="pricing-header">
+        <h1>Choose Your Plan</h1>
+        <p>Unlock powerful features and scale your gym business.</p>
+    </header>
+
+    <div class="pricing-container">
+        <!-- Starter Plan -->
+        <div class="pricing-card" id="card-starter">
+            <div id="badge-starter" class="badge" style="display: none;"></div>
+            <div class="card-icon">🚀</div>
+            <div class="card-title">Starter</div>
+            <div class="card-desc">Essential tools for independent coaches and small gyms.</div>
+            <div class="price-block">
+                <span class="price-currency">₹</span><span class="price-amount">500</span><span class="price-period">/month</span>
+            </div>
+            <ul class="feature-list">
+                <li><span class="check">✓</span> Up to 100 members</li>
+                <li><span class="check">✓</span> Membership tracking</li>
+                <li><span class="check">✓</span> Payment receipts</li>
+                <li><span class="check">✓</span> QR Check-in</li>
+                <li><span class="check">✓</span> Member portal</li>
+            </ul>
+            <button id="btn-starter" class="card-btn btn-outline" onclick="initPayment('starter')">Select Starter</button>
+        </div>
+
+        <!-- Pro Plan -->
+        <div class="pricing-card recommended" id="card-pro">
+            <div id="badge-pro" class="badge recommended-badge" style="display: none;">RECOMMENDED</div>
+            <div class="card-icon">⚡</div>
+            <div class="card-title">Pro Automation</div>
+            <div class="card-desc">The powerhouse engine for fast-growing gyms.</div>
+            <div class="price-block">
+                <span class="price-currency">₹</span><span class="price-amount">999</span><span class="price-period">/month</span>
+            </div>
+            <ul class="feature-list">
+                <li><span class="check">✓</span> Everything in Starter</li>
+                <li><span class="check">✓</span> Staff management</li>
+                <li><span class="check">✓</span> Automated email reminders</li>
+                <li><span class="check">✓</span> AI receipt scanning</li>
+                <li><span class="check">✓</span> Diet & routine builder</li>
+                <li><span class="check">✓</span> Excel import/export</li>
+            </ul>
+            <button id="btn-pro" class="card-btn btn-primary-gradient" onclick="initPayment('pro')">Upgrade to Pro</button>
+        </div>
+
+        <!-- Elite Plan -->
+        <div class="pricing-card" id="card-elite">
+            <div id="badge-elite" class="badge" style="display: none;"></div>
+            <div class="card-icon">👑</div>
+            <div class="card-title">Elite Dashboard</div>
+            <div class="card-desc">Premium multi-branch command center for gym chains.</div>
+            <div class="price-block">
+                <span class="price-currency">₹</span><span class="price-amount">2,499</span><span class="price-period">/month</span>
+            </div>
+            <ul class="feature-list">
+                <li><span class="check">✓</span> Everything in Pro</li>
+                <li><span class="check">✓</span> Unlimited branches</li>
+                <li><span class="check">✓</span> Cross-branch analytics</li>
+                <li><span class="check">✓</span> Branch manager roles</li>
+                <li><span class="check">✓</span> Master attendance portal</li>
+                <li><span class="check">✓</span> Priority support</li>
+            </ul>
+            <button id="btn-elite" class="card-btn btn-outline" onclick="initPayment('elite')">Upgrade to Elite</button>
+        </div>
+    </div>
+    </main>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        const currentTier = localStorage.getItem('tier') || 'starter';
+
+        // [TRIAL-NOTIFICATION] Alert if redirected due to expiration
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('reason') === 'trial_expired') {
+            showToast('⚠️ Your free trial and grace period have expired. Upgrade now to unlock all features.', 'error');
+        }
+
+        if (!token || localStorage.getItem('role') !== 'owner') {
+            window.location.href = 'login.html';
+        }
+
+        // ============================================
+        // [JS-HIGHLIGHT] Mark the current active plan
+        // ============================================
+        const card = document.getElementById(`card-${currentTier}`);
+        const badge = document.getElementById(`badge-${currentTier}`);
+        const btn = document.getElementById(`btn-${currentTier}`);
+
+        if (card) card.classList.add('active-plan');
+        if (badge) {
+            badge.classList.add('active');
+            badge.style.display = 'block';
+            badge.innerText = 'CURRENT PLAN';
+        }
+        if (btn) {
+            btn.classList.remove('btn-outline', 'btn-primary-gradient');
+            btn.classList.add('btn-active');
+            btn.innerText = '✓ Current Plan';
+        }
+
+        // If on Pro, show recommended badge only if NOT current
+        if (currentTier !== 'pro') {
+            document.getElementById('badge-pro').style.display = 'block';
+        }
+
+        // Disable downgrade buttons (tiers below current)
+        const tierOrder = ['starter', 'pro', 'elite'];
+        const currentIndex = tierOrder.indexOf(currentTier);
+        tierOrder.forEach((tier, idx) => {
+            if (idx < currentIndex) {
+                const downBtn = document.getElementById(`btn-${tier}`);
+                if (downBtn) {
+                    downBtn.classList.remove('btn-outline', 'btn-primary-gradient');
+                    downBtn.classList.add('btn-outline');
+                    downBtn.innerText = `Switch to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+                    downBtn.setAttribute('onclick', `downgradeToTier('${tier}')`);
+                    downBtn.style.borderColor = '#f59e0b';
+                    downBtn.style.color = '#f59e0b';
+                }
+            }
+        });
+
+        // ============================================
+        // [JS-DOWNGRADE] Switch to a lower tier
+        // ============================================
+        async function downgradeToTier(tier) {
+            const tierNames = { starter: 'Starter (₹500/mo)', pro: 'Pro (₹999/mo)', elite: 'Elite (₹2,499/mo)' };
+            
+            if (!confirm(`⚠️ Are you sure you want to downgrade to ${tierNames[tier]}?\n\nYou will lose access to higher-tier features immediately.`)) {
+                return;
+            }
+
+            const clickedBtn = document.getElementById(`btn-${tier}`);
+            clickedBtn.disabled = true;
+            clickedBtn.innerText = 'Switching...';
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/downgrade`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ tier })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Downgrade failed');
+                }
+
+                const result = await res.json();
+                localStorage.setItem('tier', result.tier);
+                showToast(`✅ ${result.message}`, 'success');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
+            } catch (error) {
+                console.error('[DOWNGRADE]', error);
+                showToast(error.message, 'error');
+                clickedBtn.disabled = false;
+                clickedBtn.innerText = `Switch to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+            }
+        }
+
+        // ============================================
+        // [JS-PAYMENT] Razorpay Payment Flow
+        // ============================================
+        async function initPayment(tier) {
+            if (tier === currentTier) return;
+
+            const clickedBtn = document.getElementById(`btn-${tier}`);
+            clickedBtn.disabled = true;
+            clickedBtn.innerText = 'Processing...';
+
+            try {
+                // Step 1: Create Razorpay order on backend
+                const orderRes = await fetch(`${CONFIG.API_BASE_URL}/api/gym/create-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ tier })
+                });
+
+                if (!orderRes.ok) {
+                    const err = await orderRes.json();
+                    throw new Error(err.detail || 'Could not create order');
+                }
+
+                const orderData = await orderRes.json();
+
+                // Step 2: Fetch Razorpay public key
+                const keyRes = await fetch(`${CONFIG.API_BASE_URL}/api/gym/razorpay-key`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const keyData = await keyRes.json();
+
+                // Step 3: Open Razorpay Checkout
+                const options = {
+                    key: keyData.key_id,
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    name: 'GymFlow',
+                    description: orderData.tier_name,
+                    order_id: orderData.order_id,
+                    prefill: {
+                        name: orderData.gym_name,
+                        email: orderData.gym_email
+                    },
+                    theme: {
+                        color: '#6366f1'
+                    },
+                    handler: async function (response) {
+                        // Step 4: Verify payment on backend
+                        try {
+                            const verifyRes = await fetch(`${CONFIG.API_BASE_URL}/api/gym/verify-payment`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    tier: tier
+                                })
+                            });
+
+                            if (!verifyRes.ok) {
+                                const err = await verifyRes.json();
+                                throw new Error(err.detail || 'Verification failed');
+                            }
+
+                            const result = await verifyRes.json();
+                            localStorage.setItem('tier', result.tier);
+                            showToast(`🎉 ${result.message}`, 'success');
+                            
+                            setTimeout(() => {
+                                window.location.href = 'dashboard.html';
+                            }, 1500);
+                        } catch (verifyErr) {
+                            showToast('Payment received but verification failed. Contact support.', 'error');
+                            console.error('[VERIFY]', verifyErr);
+                        }
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            clickedBtn.disabled = false;
+                            clickedBtn.innerText = `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+                            showToast('Payment cancelled', 'warning');
+                        }
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function (response) {
+                    showToast('Payment failed: ' + response.error.description, 'error');
+                    clickedBtn.disabled = false;
+                    clickedBtn.innerText = `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+                });
+                rzp.open();
+
+            } catch (error) {
+                console.error('[PAYMENT]', error);
+                showToast(error.message, 'error');
+                clickedBtn.disabled = false;
+                clickedBtn.innerText = `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+            }
+        }
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    </script>
+</body>
+
+</html>

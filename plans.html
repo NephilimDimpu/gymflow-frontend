@@ -1,0 +1,374 @@
+<!-- ============================================
+     [SCREEN-4] Plans Management
+     Copy this to: frontend/plans.html
+     Create and manage membership plans
+     ============================================ -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plans - Gym SaaS</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link">
+                    <span>🏠</span> Dashboard
+                </a>
+                <a href="members.html" class="nav-link">
+                    <span>👥</span> Members
+                </a>
+                <a href="plans.html" class="nav-link active">
+                    <span>📋</span> Plans
+                </a>
+                <a href="staff.html" class="nav-link">
+                    <span>🛡️</span> Staff
+                </a>
+                <a href="branches.html" class="nav-link">
+                    <span>📍</span> Branches
+                </a>
+                <a href="attendance.html" class="nav-link">
+                    <span>🕘</span> Attendance
+                </a>
+                <a href="routines.html" class="nav-link">
+                    <span>📋</span> Routines
+                </a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link">
+                        <span>⚙️</span> Settings
+                    </a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+                <div>
+                    <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">Membership Plans</h1>
+                    <p id="context-info" style="font-size: 14px; color: var(--text-muted);">Define your offerings and share checkout links with members.</p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="exportPlansExcel()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                        <span style="margin-right: 6px;">⬇️</span> Export Excel
+                    </button>
+                    <button class="btn btn-primary" onclick="showCreateModal()">
+                        + Create Plan
+                    </button>
+                </div>
+            </header>
+
+            <!-- Plans Grid -->
+            <div id="plans-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
+                <!-- Plans load here -->
+            </div>
+
+            <!-- [EMPTY-STATE] -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <span class="empty-icon">📋</span>
+                <h2 class="empty-title">No plans created yet</h2>
+                <p class="empty-subtitle">Create a plan (Monthly, Yearly, etc.) to start accepting member registrations and payments.</p>
+                <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
+                    <button class="btn btn-primary" onclick="showCreateModal()">+ Create Your First Plan</button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loading-overlay" class="spinner-overlay" style="display: none;">
+                <div class="glass-spinner"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="create-modal" class="modal" style="display: none;">
+        <div class="modal-content glass-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="margin: 0;">New Membership Plan</h2>
+                <button onclick="hideCreateModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">×</button>
+            </div>
+            <form id="create-plan-form">
+                <div class="form-group">
+                    <label class="form-label" style="color: #fff;">Plan Name</label>
+                    <input type="text" id="plan-name" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. Platinum Annual" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" style="color: #fff;">Duration (Days)</label>
+                        <input type="number" id="plan-duration" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" value="30" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #fff;">Price (₹)</label>
+                        <input type="number" id="plan-price" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="999" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">Create Plan</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal" style="display: none;">
+        <div class="modal-content glass-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="margin: 0;">Edit Plan</h2>
+                <button onclick="hideEditModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">×</button>
+            </div>
+            <form id="edit-plan-form">
+                <input type="hidden" id="edit-plan-id">
+                <div class="form-group">
+                    <label class="form-label" style="color: #fff;">Plan Name</label>
+                    <input type="text" id="edit-plan-name" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" style="color: #fff;">Duration (Days)</label>
+                        <input type="number" id="edit-plan-duration" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #fff;">Price (₹)</label>
+                        <input type="number" id="edit-plan-price" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content { width: 100%; max-width: 440px; }
+        
+        .plan-card {
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .payment-link-box {
+            background: rgba(0,0,0,0.3); padding: 12px; border-radius: 12px;
+            font-size: 12px; font-family: 'JetBrains Mono', monospace; color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.05); word-break: break-all;
+        }
+    </style>
+
+    <!-- [JAVASCRIPT] Plans logic -->
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) window.location.href = 'login.html';
+
+        let allPlans = [];
+
+        async function loadPlans() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Fetch failed');
+                allPlans = await response.json();
+                displayPlans();
+            } catch (error) {
+                showToast("Failed to load plans", "error");
+            } finally {
+                overlay.style.display = 'none';
+            }
+        }
+
+        function displayPlans() {
+            const grid = document.getElementById('plans-grid');
+            const emptyState = document.getElementById('empty-state');
+
+            if (allPlans.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            grid.innerHTML = allPlans.map(plan => {
+                const realLink = `${window.location.protocol}//${window.location.host}/pay.html?id=${plan.payment_link_id}`;
+                
+                return `
+                    <div class="glass-panel plan-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 20px; color: #fff;">${plan.name}</h3>
+                                <div style="color: var(--accent, #22c55e); font-weight: 800; font-size: 24px; margin-top: 4px;">₹${plan.price.toLocaleString()}</div>
+                            </div>
+                            <div style="display: flex; gap: 4px;">
+                                <button onclick="showEditModal(${plan.id}, '${plan.name.replace(/'/g, "\\'")}', ${plan.duration_days}, ${plan.price})" style="background: rgba(255,255,255,0.05); border: none; border-radius: 8px; padding: 8px; cursor: pointer; color: #94a3b8;">✏️</button>
+                                <button onclick="deletePlan(${plan.id})" style="background: rgba(239, 68, 68, 0.1); border: none; border-radius: 8px; padding: 8px; cursor: pointer; color: #f87171;">🗑️</button>
+                            </div>
+                        </div>
+
+                        <div style="font-size: 14px; color: #94a3b8;">
+                            Valid for <strong>${plan.duration_days} days</strong>
+                        </div>
+
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                            <label style="font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; display: block; margin-bottom: 8px;">Direct Join Link</label>
+                            <div class="payment-link-box">${realLink}</div>
+                            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="copyLink('${realLink}')">📋 Copy</button>
+                                <button class="btn" style="flex: 1; font-size: 12px; background: #25d36622; color: #25d366; border: 1px solid #25d36644;" onclick="shareWhatsApp('${realLink}', '${plan.name}')">📲 Share</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showCreateModal() { document.getElementById('create-modal').style.display = 'flex'; }
+        function hideCreateModal() { document.getElementById('create-modal').style.display = 'none'; }
+        function showEditModal(id, name, duration, price) {
+            document.getElementById('edit-plan-id').value = id;
+            document.getElementById('edit-plan-name').value = name;
+            document.getElementById('edit-plan-duration').value = duration;
+            document.getElementById('edit-plan-price').value = price;
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+        function hideEditModal() { document.getElementById('edit-modal').style.display = 'none'; }
+
+        document.getElementById('create-plan-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('plan-name').value,
+                duration_days: parseInt(document.getElementById('plan-duration').value),
+                price: parseFloat(document.getElementById('plan-price').value)
+            };
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    window.showToast("Plan created!", "success");
+                    hideCreateModal();
+                    loadPlans();
+                }
+            } catch (err) { window.showToast("Failed to create", "error"); }
+        });
+
+        document.getElementById('edit-plan-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-plan-id').value;
+            const payload = {
+                name: document.getElementById('edit-plan-name').value,
+                duration_days: parseInt(document.getElementById('edit-plan-duration').value),
+                price: parseFloat(document.getElementById('edit-plan-price').value)
+            };
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    window.showToast("Plan updated!", "success");
+                    hideEditModal();
+                    loadPlans();
+                }
+            } catch (err) { window.showToast("Failed to update", "error"); }
+        });
+
+        async function deletePlan(id) {
+            if (!confirm('Delete this plan?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    window.showToast("Plan deleted", "success");
+                    loadPlans();
+                }
+            } catch (err) { window.showToast("Error deleting", "error"); }
+        }
+
+        function copyLink(link) {
+            navigator.clipboard.writeText(link).then(() => window.showToast("Link copied!", "success"));
+        }
+
+        function shareWhatsApp(link, name) {
+            const msg = encodeURIComponent(`Register for our ${name} plan here: ${link}`);
+            window.open(`https://wa.me/?text=${msg}`, '_blank');
+        }
+
+        function exportPlansExcel() {
+            const tier = localStorage.getItem('tier') || 'starter';
+            if (tier !== 'elite') {
+                if(confirm("Elite Upgrade Required: Unlock Excel Exports with our Elite tier!")) {
+                    window.location.href = 'upgrade-plan.html';
+                }
+                return;
+            }
+            
+            // Format data for SheetJS
+            const excelData = allPlans.map(p => ({
+                'Plan Name': p.name,
+                'Duration (Days)': p.duration_days,
+                'Price (₹)': p.price,
+                'System ID': p.id,
+                'Payment Link ID': p.payment_link_id
+            }));
+
+            // Create workbook and worksheet
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Membership Plans");
+
+            // Trigger download
+            XLSX.writeFile(wb, "GymFlow_Plans_Export.xlsx");
+        }
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+        loadPlans();
+
+        (function() {
+            const tier = localStorage.getItem('tier') || 'starter';
+            if (tier !== 'elite') {
+                const btn = document.getElementById('export-btn');
+                btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                btn.innerHTML = '✨ Unlock Elite Excel Export';
+            }
+        })();
+    </script>
+</body>
+
+
+    <!-- ============================================
+         UPGRADE PATH:
+         - Add plan editing/deletion
+         - Add plan analytics (how many members per plan)
+         - Add custom discount codes per plan
+         - Add plan features/benefits description
+         - Add trial period option
+         - Add family/group plans
+         - Add plan comparison view
+         ============================================ -->
+</body>
+
+</html>

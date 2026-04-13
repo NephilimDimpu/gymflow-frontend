@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gym Routine</title>
+    <script src="assets/config.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e1a; color: #f1f5f9;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+        }
+
+        .header {
+            width: 100%; padding: 24px 20px; text-align: center;
+            background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 24px;
+        }
+        .gym-logo { font-size: 32px; margin-bottom: 4px; }
+        .gym-name { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2px; }
+        .branch-name { font-size: 13px; color: #6366f1; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+        .content-container {
+            width: 100%; max-width: 600px; padding: 0 20px 40px;
+            display: flex; flex-direction: column; align-items: center; gap: 16px;
+        }
+        
+        .board-card {
+            width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; overflow: hidden;
+        }
+        
+        .board-header {
+            padding: 16px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        
+        .board-label { font-size: 14px; font-weight: 700; color: #e2e8f0; }
+        .board-time { font-size: 11px; color: #64748b; }
+
+        .board-image-wrapper {
+            width: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+
+        .board-image {
+            width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-height: 600px; object-fit: contain;
+        }
+
+        .loading-state, .error-state {
+            padding: 40px 20px; text-align: center; color: #64748b;
+        }
+        .error-state { color: #f87171; }
+
+        .powered-by {
+            font-size: 11px; color: #334155; margin-top: auto; padding: 20px; text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="gym-logo">💪</div>
+        <div class="gym-name" id="gym-name">Gym Routine</div>
+        <div class="branch-name" id="branch-name"></div>
+    </div>
+
+    <div class="content-container" id="content-container">
+        <div class="loading-state">Loading latest schedule...</div>
+    </div>
+
+    <div class="powered-by">Powered by GymFlow</div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const branchId = params.get('branch');
+        const container = document.getElementById('content-container');
+
+        async function loadRoutine() {
+            if (!branchId) {
+                container.innerHTML = '<div class="error-state">❌ Invalid Link. Branch not specified.</div>';
+                return;
+            }
+
+            try {
+                // Call public endpoint
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/public/routine-board/${branchId}`);
+                
+                if (res.status === 404 || res.status === 500) {
+                    container.innerHTML = '<div class="error-state">❌ Server Error: The routine system is currently offline or updating. Please try again later.</div>';
+                    return;
+                }
+
+                if (!res.ok || res.status === 204) {
+                    container.innerHTML = '<div class="loading-state" style="color:#94a3b8;">📅 No routine uploaded for this branch yet.</div>';
+                    return;
+                }
+
+                const data = await res.json();
+                
+                if (data && data.image_data) {
+                    document.getElementById('branch-name').textContent = data.branch_name;
+                    container.innerHTML = `
+                        <div class="board-card">
+                            <div class="board-header">
+                                <span class="board-label">${data.label || 'Schedule'}</span>
+                                <span class="board-time">${data.uploaded_at ? new Date(data.uploaded_at).toLocaleString() : ''}</span>
+                            </div>
+                            <div class="board-image-wrapper">
+                                <img src="${data.image_data}" class="board-image" alt="Routine Board">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<div class="loading-state" style="color:#94a3b8;">📅 No routine uploaded for this branch yet.</div>';
+                }
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div class="error-state">❌ Failed to connect to server.</div>';
+            }
+        }
+
+        loadRoutine();
+    </script>
+</body>
+</html>

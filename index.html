@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GymFlow | The Smart OS For Modern Fitness</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/theme.js"></script>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* Ambient Background Mesh */
+        .ambient-bg {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .ambient-bg::before, .ambient-bg::after {
+            content: '';
+            position: absolute;
+            width: 1200px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.15;
+            top: -200px;
+            animation: pulse 15s infinite alternate ease-in-out;
+        }
+
+        .ambient-bg::before {
+            background: linear-gradient(to right, #4f46e5, #ec4899);
+            left: -300px;
+        }
+
+        .ambient-bg::after {
+            background: linear-gradient(to right, #06b6d4, #3b82f6);
+            right: -300px;
+            animation-delay: -7s;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.15; }
+            100% { transform: scale(1.1); opacity: 0.25; }
+        }
+
+        /* Navigation */
+        .navbar {
+            background: rgba(5, 5, 5, 0.8);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .navbar-brand svg {
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+        }
+
+        .btn-solid {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-solid:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+            filter: brightness(1.1);
+        }
+
+        /* Hero */
+        .hero {
+            position: relative;
+            z-index: 10;
+            padding: 120px 5% 60px;
+            text-align: center;
+        }
+        
+        .pill {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero h1 {
+            font-size: 64px;
+            font-weight: 800;
+            color: var(--text-main);
+            max-width: 900px;
+            margin: 0 auto 24px auto;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: #d4d4d8;
+            max-width: 650px;
+            margin: 0 auto 40px auto;
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        .hero-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .hero-actions .btn-solid {
+            padding: 14px 28px;
+            font-size: 16px;
+        }
+
+        .hero-actions .btn-outline {
+            padding: 14px 28px;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-actions .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Dashboard Preview */
+        .dashboard-preview {
+            max-width: 1100px;
+            margin: 60px auto 0 auto;
+            border-radius: 20px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.15);
+            animation: floatUp 1s ease-out forwards;
+        }
+
+        .dashboard-preview img {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            display: block;
+        }
+
+        @keyframes floatUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Value Prop specific */
+        .pain-point-section {
+            background: var(--bg-color);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 80px 5%;
+            text-align: center;
+            position: relative;
+        }
+
+        .pain-point-section h2 {
+            font-size: 32px;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.3;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .pain-point-section span {
+            background: linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            GymFlow
+        </a>
+        <div class="nav-links">
+            <a href="pricing.html">Pricing</a>
+            <a href="login.html">Sign In</a>
+            <a href="signup.html" class="btn-solid">Start Free Trial</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="pill">GymFlow OS 1.0 is now live ✨</div>
+        <h1>Stop chasing payments.<br><span>Start growing your gym.</span></h1>
+        <p>The sleekest management software built to automate renewals, track active members, and ditch the messy spreadsheets forever.</p>
+        
+        <div class="hero-actions">
+            <a href="signup.html" class="btn-solid">Get Started Free</a>
+            <a href="customer-login.html" class="btn-outline">Member Login</a>
+        </div>
+        <span style="font-size: 13px; color: var(--text-muted); display: block;">No credit card required. Setup takes 2 minutes.</span>
+
+        <!-- Dashboard UI screenshot -->
+        <div class="dashboard-preview">
+            <img src="assets/hero_dashboard.png" alt="GymFlow Dashboard Preview" onerror="this.src='https://placehold.co/1100x600/1e293b/fff?text=Dashboard+Screenshot'" />
+        </div>
+    </header>
+
+    <section class="pain-point-section">
+        <h2>"GymFlow eliminated my missed renewals and took my admin work from <span>10 hours a week to zero."</span></h2>
+    </section>
+
+    <!-- Footer -->
+    <footer style="padding: 60px 5%; text-align: center; color: var(--text-muted); border-top: 1px solid var(--border); background: var(--bg-color); position: relative; z-index: 10;">
+        <div style="font-size: 20px; font-weight: 700; color: white; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#6366f1;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            GymFlow
+        </div>
+        <p style="margin-bottom: 30px;">The ambient OS for forward-thinking fitness studios.</p>
+        <p style="font-size: 13px;">© 2026 GymFlow Inc. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

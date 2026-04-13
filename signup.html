@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - GymFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #050505;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(255, 255, 255, 0.2);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        /* Ambient glowing background mesh */
+        .ambient-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .ambient-bg::before, .ambient-bg::after {
+            content: '';
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .ambient-bg::before {
+            background: linear-gradient(to right, #4f46e5, #ec4899);
+            top: -200px;
+            left: -200px;
+        }
+
+        .ambient-bg::after {
+            background: linear-gradient(to right, #06b6d4, #3b82f6);
+            bottom: -200px;
+            right: -200px;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(100px, 50px); }
+        }
+
+        /* The Glass Card */
+        .auth-card {
+            background: var(--surface);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 480px;
+            z-index: 10;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        }
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .auth-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0));
+            border: 1px solid var(--borderHighlight);
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+            font-size: 24px;
+        }
+
+        .auth-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Inputs */
+        .input-group {
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .modern-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .modern-input::placeholder {
+            color: #52525b;
+        }
+
+        .modern-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            background: var(--text-main);
+            color: #000;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(255, 255, 255, 0.15);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* Role Toggles for Login */
+        .role-toggles {
+            display: flex;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .role-btn.active {
+            background: var(--surface-hover);
+            color: var(--text-main);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .footer-link a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        #error-message {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+    </style>
+
+</head>
+<body>
+    <div class="ambient-bg"></div>
+    
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">✦</div>
+            <h1>Create an account</h1>
+            <p>Start managing your fitness business beautifully.</p>
+        </div>
+
+        <div id="error-message"></div>
+
+        <form id="signup-form">
+            <div class="input-group">
+                <label for="gym-name">Gym Name</label>
+                <input type="text" id="gym-name" class="modern-input" placeholder="e.g. Pulse Fitness" required>
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label for="owner-name">Owner Name</label>
+                    <input type="text" id="owner-name" class="modern-input" placeholder="First Last" required>
+                </div>
+                <div class="input-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" class="modern-input" placeholder="+1 (555) 000-0000" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="email">Business Email</label>
+                <input type="email" id="email" class="modern-input" placeholder="owner@gym.com" required autocomplete="email">
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="modern-input" placeholder="••••••••" required minlength="8" autocomplete="new-password">
+                </div>
+                <div class="input-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" class="modern-input" placeholder="••••••••" required minlength="8" autocomplete="new-password">
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="signup-btn">Continue</button>
+
+            <p class="footer-link">
+                Already have an account? <a href="login.html">Sign in</a>
+            </p>
+        </form>
+    </div>
+
+    <script>
+        // ============================================
+        // [JS-CHECK-AUTH] Redirect if already logged in
+        // ============================================
+        const existingToken = localStorage.getItem('auth_token');
+        if (existingToken) {
+            const r = localStorage.getItem('role') || 'owner';
+            if (r === 'owner') // window.location.href = 'dashboard.html';
+                setTimeout(() => window.location.href = 'dashboard.html', 1500);
+            else if (r === 'manager') window.location.href = 'branch-dashboard.html';
+            else window.location.href = 'staff-dashboard.html';
+        }
+
+
+
+        // ============================================
+        // [JS-SIGNUP] Handle signup form submission
+        // ============================================
+        document.getElementById('signup-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // Extract selected plan from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const planTier = urlParams.get('plan') || 'starter';
+
+            // [GET-VALUES] Get form values
+            const gymName = document.getElementById('gym-name').value.trim();
+            const ownerName = document.getElementById('owner-name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // [VALIDATION] Validate form
+
+            if (!gymName || gymName.length < 2) {
+                showError('Please enter a valid gym name');
+                return;
+            }
+            if (!ownerName || ownerName.length < 2) {
+                showError('Please enter a valid owner name');
+                return;
+            }
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+            if (!phone || phone.length < 10 || !/^\+?[1-9]\d{1,14}$/.test(phone)) {
+                showError('Please enter a valid phone number');
+                return;
+            }
+            if (!password || password.length < 8) {
+                showError('Password must be at least 8 characters');
+                return;
+            }
+
+
+            if (password.length < 8) {
+                showError('Password must be at least 8 characters');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            // [UI-LOADING] Show loading state
+            const signupBtn = document.getElementById('signup-btn');
+            signupBtn.disabled = true;
+            signupBtn.textContent = 'Creating account...';
+            hideError();
+
+            try {
+                // [API-CALL] Submit signup request
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: gymName,
+                        owner_name: ownerName,
+                        email: email,
+                        phone: phone,
+                        password: password,
+                        tier: planTier
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Signup failed');
+                }
+
+                const data = await response.json();
+
+                // [SUCCESS] Store token and redirect
+                localStorage.setItem('auth_token', data.access_token);
+                localStorage.setItem('gym_id', data.gym_id);
+                localStorage.setItem('user_type', 'gym');
+                localStorage.setItem('role', 'owner');
+                if (data.tier) {
+                    localStorage.setItem('tier', data.tier);
+                }
+
+                // Show success message
+                showToast('🎉 Account created successfully! Welcome to GymFlow!', 'success');
+
+                // window.location.href = 'dashboard.html';
+                setTimeout(() => window.location.href = 'dashboard.html', 1500);
+
+            } catch (error) {
+                console.error('[SIGNUP-ERROR]', error);
+                showError(error.message || 'Signup failed. Please try again.');
+
+                // [UI-RESET] Reset button state
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Create Account';
+            }
+        });
+
+        // ============================================
+        // [JS-ERROR-DISPLAY] Error message helpers
+        // ============================================
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+
+            // Scroll to top to show error
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

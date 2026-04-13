@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff - GymFlow</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <style>
+        .staff-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .staff-table th,
+        .staff-table td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .staff-table th {
+            background: #f8f9fa;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .staff-table td {
+            font-size: 14px;
+        }
+
+        .staff-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .role-manager {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .role-staff {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .status-active {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .status-inactive {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1e293b;
+            padding: 32px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            color: #f1f5f9;
+        }
+
+        .modal h2 {
+            margin-bottom: 24px;
+            color: #f1f5f9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+    </style>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link">
+                    <span>🏠</span> Dashboard
+                </a>
+                <a href="members.html" class="nav-link">
+                    <span>👥</span> Members
+                </a>
+                <a href="plans.html" class="nav-link">
+                    <span>📋</span> Plans
+                </a>
+                <a href="staff.html" class="nav-link active">
+                    <span>🛡️</span> Staff
+                </a>
+                <a href="branches.html" class="nav-link">
+                    <span>📍</span> Branches
+                </a>
+                <a href="attendance.html" class="nav-link">
+                    <span>🕘</span> Attendance
+                </a>
+                <a href="routines.html" class="nav-link">
+                    <span>📋</span> Routines
+                </a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link">
+                        <span>⚙️</span> Settings
+                    </a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+                <div>
+                    <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">Staff Management</h1>
+                    <p style="font-size: 14px; color: var(--text-muted);">Manage branch managers and gym trainers across all locations.</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddModal()">+ Add Staff Member</button>
+            </header>
+
+            <div id="staff-container">
+                <div class="glass-panel" style="padding: 0; overflow: hidden; display: none;" id="staff-table-wrapper">
+                    <table class="glass-table" id="staff-table">
+                        <thead>
+                            <tr>
+                                <th>Staff Member</th>
+                                <th>Branch</th>
+                                <th>Role</th>
+                                <th>Contact</th>
+                                <th>Status</th>
+                                <th>Today's Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- [EMPTY-STATE] -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <span class="empty-icon">🛡️</span>
+                <h2 class="empty-title">No staff assigned</h2>
+                <p class="empty-subtitle">Add managers to help you run specific branches or staff to handle member check-ins and registrations.</p>
+                <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
+                    <button class="btn btn-primary" onclick="openAddModal()">+ Add First Staff</button>
+                    <a href="branches.html" class="btn btn-secondary">Manage Branches</a>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loading-overlay" class="spinner-overlay" style="display: none;">
+                <div class="glass-spinner"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-backdrop" id="staff-modal">
+        <div class="modal glass-panel" style="max-width: 500px; padding: 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 id="modal-title" style="margin: 0; font-size: 24px;">Add Staff Member</h2>
+                <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">×</button>
+            </div>
+
+            <form id="staff-form">
+                <input type="hidden" id="edit-id">
+                
+                <div class="form-group">
+                    <label class="form-label" style="color: #fff;">Name</label>
+                    <input type="text" id="staff-name" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Full name" required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group" id="email-group">
+                        <label class="form-label" style="color: #fff;">Email</label>
+                        <input type="email" id="staff-email" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="staff@example.com" required>
+                    </div>
+                    <div class="form-group" id="password-group">
+                        <label class="form-label" style="color: #fff;">Password</label>
+                        <input type="password" id="staff-password" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="••••••••" required minlength="6">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="color: #fff;">Phone</label>
+                    <input type="text" id="staff-phone" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="9876543210">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" style="color: #fff;">Assign Branch</label>
+                        <select id="staff-branch" class="form-select" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                            <option value="">Select branch...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #fff;">Access Level</label>
+                        <select id="staff-role" class="form-select" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                            <option value="staff">Staff</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="color: #fff;">Role Title <span style="font-size: 11px; color: #64748b;">(e.g. Coach, Trainer, Front Desk)</span></label>
+                    <input type="text" id="staff-custom-role" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Coach, Trainer, Front Desk...">
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary" id="save-btn" style="flex: 2;">Save Staff Member</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .role-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+        }
+        .role-manager { background: rgba(59, 130, 246, 0.1); color: #60a5fa; }
+        .role-staff { background: rgba(139, 92, 246, 0.1); color: #a78bfa; }
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
+        }
+        .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; }
+        .active-pill { color: #4ade80; }
+        .active-pill::before { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
+        .inactive-pill { color: #f87171; }
+        .inactive-pill::before { background: #f87171; }
+
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-backdrop.active { display: flex; }
+    </style>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        const userType = localStorage.getItem('user_type');
+        if (!token) window.location.href = 'login.html';
+        if (userType === 'staff') window.location.href = 'dashboard.html';
+
+        let allBranches = [];
+
+        async function loadBranches() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/branches`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    allBranches = await res.json();
+                    const select = document.getElementById('staff-branch');
+                    select.innerHTML = '<option value="">Select branch...</option>' +
+                        allBranches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+                }
+            } catch (err) { console.error('[BRANCHES-LOAD]', err); }
+        }
+
+        async function loadStaff() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('Fetch failed');
+                const staffList = await res.json();
+
+                const tableWrapper = document.getElementById('staff-table-wrapper');
+                const empty = document.getElementById('empty-state');
+                const tbody = document.getElementById('staff-body');
+
+                if (staffList.length === 0) {
+                    tableWrapper.style.display = 'none';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                tableWrapper.style.display = 'block';
+                empty.style.display = 'none';
+
+                tbody.innerHTML = staffList.map(s => `
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600; color: #fff;">${s.name}</div>
+                            <div style="font-size: 12px; color: #64748b;">${s.email}</div>
+                        </td>
+                        <td style="color: #94a3b8;">${s.branch_name}</td>
+                        <td>
+                            <span class="role-badge role-${s.role}">${s.custom_role || s.role}</span>
+                            ${s.custom_role ? `<span style="font-size: 10px; color: #475569; display: block; margin-top: 2px;">${s.role} access</span>` : ''}
+                        </td>
+                        <td style="color: #94a3b8;">${s.phone || '-'}</td>
+                        <td>
+                            <span class="status-pill ${s.is_active ? 'active-pill' : 'inactive-pill'}">
+                                ${s.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td>
+                            ${getAttendanceHtml(s)}
+                        </td>
+                        <td style="text-align: right;">
+                            <button class="btn" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; padding: 6px 10px; font-size: 12px; margin-right: 4px;" data-name="${s.name}" data-branch="${s.branch_name}" data-email="${s.email}" onclick="copyInvite(this.dataset.name, this.dataset.branch, this.dataset.email)">📋 Invite</button>
+                            <button class="btn" style="background: rgba(255,255,255,0.05); color: #fff; padding: 6px 10px; font-size: 12px;" onclick="openEditModal(${s.id}, '${s.name}', '${s.phone || ''}', ${s.branch_id}, '${s.role}', ${s.is_active}, '${s.custom_role || ''}')">Edit</button>
+                            <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: #f87171; padding: 6px 10px; font-size: 12px; margin-left: 4px;" onclick="deactivateStaff(${s.id}, '${s.name}')">Remove</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) { 
+                showToast("Failed to load staff", "error");
+            } finally {
+                overlay.style.display = 'none';
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').textContent = 'Add Staff Member';
+            document.getElementById('edit-id').value = '';
+            document.getElementById('staff-name').value = '';
+            document.getElementById('staff-email').value = '';
+            document.getElementById('staff-phone').value = '';
+            document.getElementById('staff-password').value = '';
+            document.getElementById('staff-branch').value = '';
+            document.getElementById('staff-role').value = 'staff';
+            document.getElementById('staff-custom-role').value = '';
+            document.getElementById('email-group').style.display = 'block';
+            document.getElementById('password-group').style.display = 'block';
+            document.getElementById('staff-email').required = true;
+            document.getElementById('staff-password').required = true;
+            document.getElementById('staff-modal').classList.add('active');
+        }
+
+        function openEditModal(id, name, phone, branchId, role, isActive, customRole) {
+            document.getElementById('modal-title').textContent = 'Edit Staff Member';
+            document.getElementById('edit-id').value = id;
+            document.getElementById('staff-name').value = name;
+            document.getElementById('staff-phone').value = phone;
+            document.getElementById('staff-branch').value = branchId;
+            document.getElementById('staff-role').value = role;
+            document.getElementById('staff-custom-role').value = customRole || '';
+            document.getElementById('email-group').style.display = 'none';
+            document.getElementById('password-group').style.display = 'none';
+            document.getElementById('staff-email').required = false;
+            document.getElementById('staff-password').required = false;
+            document.getElementById('staff-modal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('staff-modal').classList.remove('active'); }
+
+        document.getElementById('staff-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const btn = document.getElementById('save-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                if (id) {
+                    const data = {
+                        name: document.getElementById('staff-name').value,
+                        phone: document.getElementById('staff-phone').value || null,
+                        branch_id: parseInt(document.getElementById('staff-branch').value),
+                        role: document.getElementById('staff-role').value,
+                        custom_role: document.getElementById('staff-custom-role').value || null
+                    };
+                    const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(data)
+                    });
+                    if (!res.ok) throw new Error('Update failed');
+                } else {
+                    const data = {
+                        name: document.getElementById('staff-name').value,
+                        email: document.getElementById('staff-email').value,
+                        phone: document.getElementById('staff-phone').value || null,
+                        password: document.getElementById('staff-password').value,
+                        branch_id: parseInt(document.getElementById('staff-branch').value),
+                        role: document.getElementById('staff-role').value,
+                        custom_role: document.getElementById('staff-custom-role').value || null
+                    };
+                    const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(data)
+                    });
+                    if (!res.ok) throw new Error('Create failed');
+                }
+                closeModal();
+                loadStaff();
+                showToast("Staff updated successfully", "success");
+            } catch (err) { showToast(err.message, 'error'); } 
+            finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Staff Member';
+            }
+        });
+
+        async function deactivateStaff(id, name) {
+            if (!confirm(`Remove staff "${name}"? They will no longer be able to log in.`)) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('Delete failed');
+                loadStaff();
+                showToast("Staff member removed", "success");
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        function copyInvite(name, branchName, email) {
+            const gymName = localStorage.getItem('gym_name') || 'GymFlow';
+            
+            // Assuming frontend URL logic (e.g. localhost:5500/login.html or custom domain)
+            const originBase = window.location.origin;
+            const pathSegments = window.location.pathname.split('/');
+            pathSegments.pop(); // Remove staff.html
+            const baseUrl = originBase + pathSegments.join('/');
+            
+            const loginUrl = baseUrl + '/login.html';
+            const msg = `Welcome to ${gymName}, ${name}! You've been assigned as Staff at ${branchName}.\n\nLogin here: ${loginUrl}\nEmail: ${email}\n\nPlease ask the owner for your initial password.`;
+            
+            navigator.clipboard.writeText(msg).then(() => {
+                showToast("Invite message copied to clipboard!", "success");
+            }).catch(err => {
+                showToast("Failed to copy invite. You can manually copy the link.", "error");
+            });
+        }
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+        function getAttendanceHtml(s) {
+            if (!s.attendance_today || !s.attendance_today.status) {
+                return `<button class="btn btn-primary" style="padding: 4px 10px; font-size: 11px; background: #059669; border: none;" onclick="adminCheckIn(${s.id}, '${s.name}')">Check In</button>
+                        <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Absent today</div>`;
+            } else if (s.attendance_today.status === 'checked_in') {
+                return `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #d97706; border: none; color: #fff;" onclick="adminCheckOut(${s.id}, '${s.name}')">Check Out</button>
+                        <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">In: ${s.attendance_today.check_in}</div>`;
+            } else {
+                return `<span class="role-badge" style="background: rgba(255,255,255,0.05); color: #cbd5e1;">Completed</span>
+                        <div style="font-size: 10px; color: #64748b; margin-top: 4px;">In: ${s.attendance_today.check_in} | Out: ${s.attendance_today.check_out}</div>`;
+            }
+        }
+
+        async function adminCheckIn(staffId, staffName) {
+            if (!confirm(`Force Check-In for ${staffName} right now?`)) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/attendance/admin-check-in/${staffId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Check-in failed');
+                }
+                showToast(`Checked in ${staffName} successfully`, 'success');
+                loadStaff();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function adminCheckOut(staffId, staffName) {
+            if (!confirm(`Force Check-Out for ${staffName} right now?`)) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/attendance/admin-check-out/${staffId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Check-out failed');
+                }
+                showToast(`Checked out ${staffName} successfully`, 'success');
+                loadStaff();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        loadBranches();
+        loadStaff();
+    </script>
+</body>
+
+
+</html>

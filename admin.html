@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Super Admin | GymFlow</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <style>
+        .admin-header {
+            background: #111827;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-container {
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .gym-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-collapse: collapse;
+        }
+
+        .gym-table th,
+        .gym-table td {
+            text-align: left;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .gym-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+        }
+    </style>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body style="background: #f3f4f6;">
+
+    <div id="login-overlay"
+        style="position: fixed; inset: 0; background: #f3f4f6; display: flex; align-items: center; justify-content: center; z-index: 50;">
+        <div
+            style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center;">
+            <h2 style="margin-bottom: 24px;">SaaS Admin Logic</h2>
+            <input type="password" id="admin-pass" class="form-control" placeholder="Master Password"
+                style="margin-bottom: 16px;">
+            <button class="btn btn-primary" style="width: 100%;" onclick="loginAdmin()">Enter Dashboard</button>
+            <p id="admin-error" style="color: red; margin-top: 10px; display: none;">Invalid Password</p>
+        </div>
+    </div>
+
+    <div class="admin-header">
+        <div style="font-size: 20px; font-weight: bold;">👑 SaaS Super Admin</div>
+        <div>
+            <span id="total-gyms" style="margin-right: 20px;">0 Tenants</span>
+            <button class="btn btn-secondary" onclick="location.reload()">Lock</button>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <h2 style="margin-bottom: 24px;">Registered Tenants (Gyms)</h2>
+
+        <table class="gym-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Gym Name</th>
+                    <th>Owner</th>
+                    <th>Contact</th>
+                    <th>Tier</th>
+                    <th>Total Members</th>
+                    <th>Revenue Processed</th>
+                    <th>Joined</th>
+                </tr>
+            </thead>
+            <tbody id="gym-list">
+                <!-- Gyms inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let adminKey = "";
+
+        async function loginAdmin() {
+            const pass = document.getElementById('admin-pass').value;
+            adminKey = pass;
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/admin/gyms`, {
+                    headers: {
+                        'x-admin-key': adminKey
+                    }
+                });
+
+                if (!response.ok) {
+                    document.getElementById('admin-error').style.display = 'block';
+                    return;
+                }
+
+                const gyms = await response.json();
+
+                // Hide login
+                document.getElementById('login-overlay').style.display = 'none';
+
+                // Render table
+                document.getElementById('total-gyms').textContent = `${gyms.length} Tenants Active`;
+
+                const list = document.getElementById('gym-list');
+                list.innerHTML = gyms.map(gym => `
+                    <tr>
+                        <td style="color: #6b7280;">#${gym.id}</td>
+                        <td style="font-weight: 600;">${gym.name}</td>
+                        <td>${gym.owner}</td>
+                        <td style="font-size: 14px; color: #6b7280;">
+                            ${gym.email}<br>${gym.phone}
+                        </td>
+                        <td><span class="badge badge-active">${gym.tier.toUpperCase()}</span></td>
+                        <td><strong>${gym.member_count}</strong></td>
+                        <td style="color: #10b981; font-weight: bold;">₹${gym.total_revenue_processed.toLocaleString()}</td>
+                        <td style="color: #6b7280; font-size: 14px;">${gym.joined_date}</td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('admin-error').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+
+</html>

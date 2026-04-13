@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Gym SaaS</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link">
+                    <span>🏠</span> Dashboard
+                </a>
+                <a href="members.html" class="nav-link">
+                    <span>👥</span> Members
+                </a>
+                <a href="plans.html" class="nav-link">
+                    <span>📋</span> Plans
+                </a>
+                <a href="staff.html" class="nav-link">
+                    <span>🛡️</span> Staff
+                </a>
+                <a href="branches.html" class="nav-link">
+                    <span>📍</span> Branches
+                </a>
+                <a href="attendance.html" class="nav-link">
+                    <span>🕘</span> Attendance
+                </a>
+                <a href="routines.html" class="nav-link">
+                    <span>📋</span> Routines
+                </a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link active">
+                        <span>⚙️</span> Settings
+                    </a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="margin-bottom: 40px;">
+                <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">Gym Settings</h1>
+                <p style="font-size: 14px; color: var(--text-muted);">Configure your gym's branding, contact information, and payment settings.</p>
+            </header>
+
+            <div style="max-width: 800px;">
+                <form id="settings-form">
+                    <!-- Profile Section -->
+                    <div class="glass-panel" style="padding: 32px; margin-bottom: 32px;">
+                        <h2 style="font-size: 20px; margin-bottom: 24px;">🏢 Gym Profile</h2>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                            <div class="form-group">
+                                <label class="form-label" style="color: #fff;">Gym Name</label>
+                                <input type="text" id="name" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="color: #fff;">Owner Name</label>
+                                <input type="text" id="owner_name" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px;">
+                            <div class="form-group">
+                                <label class="form-label" style="color: #fff;">Public Email</label>
+                                <input type="email" id="email" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="color: #fff;">Phone Number</label>
+                                <input type="tel" id="phone" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Section -->
+                    <div class="glass-panel" style="padding: 32px; margin-bottom: 32px;">
+                        <h2 style="font-size: 20px; margin-bottom: 24px;">💳 Payment Information</h2>
+                        
+                        <div class="form-group">
+                            <label class="form-label" style="color: #fff;">UPI ID / VPA</label>
+                            <input type="text" id="upi_id" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. fitnessgym@okaxis">
+                            <p style="font-size: 12px; color: #64748b; margin-top: 8px;">
+                                This ID will be used for all membership payments. Please double-check for typos.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Security Section -->
+                    <div class="glass-panel" style="padding: 32px; margin-bottom: 40px;">
+                        <h2 style="font-size: 20px; margin-bottom: 24px;">🛡️ Security</h2>
+                        
+                        <div class="form-group">
+                            <label class="form-label" style="color: #fff;">Update Password</label>
+                            <input type="password" id="password" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Enter new password (optional)">
+                            <p style="font-size: 12px; color: #64748b; margin-top: 8px;">Leave blank if you don't want to change it.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 16px;">
+                        <button type="submit" class="btn btn-primary" style="padding: 16px 32px; font-weight: 700;">Save All Settings</button>
+                        <button type="button" class="btn btn-secondary" onclick="goBackToDashboard()" style="padding: 16px 24px;">Discard Changes</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) window.location.href = 'login.html';
+
+        function goBackToDashboard() {
+            const role = localStorage.getItem('role') || 'owner';
+            if (role === 'manager') window.location.href = 'branch-dashboard.html';
+            else if (role === 'staff') window.location.href = 'staff-dashboard.html';
+            else if (role === 'customer') window.location.href = 'customer-dashboard.html';
+            else window.location.href = 'dashboard.html';
+        }
+
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/settings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('name').value = data.name || '';
+                    document.getElementById('owner_name').value = data.owner_name || '';
+                    document.getElementById('email').value = data.email || '';
+                    document.getElementById('phone').value = data.phone || '';
+                    document.getElementById('upi_id').value = data.upi_id || '';
+                }
+            } catch (error) { console.error('[SETTINGS-LOAD-ERROR]', error); }
+        }
+
+        document.getElementById('settings-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            const bodyData = {
+                name: document.getElementById('name').value,
+                owner_name: document.getElementById('owner_name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                upi_id: document.getElementById('upi_id').value
+            };
+
+            const password = document.getElementById('password').value;
+            if (password) bodyData.password = password;
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+
+                if (res.ok) {
+                    showToast("Settings updated successfully!", "success");
+                    document.getElementById('password').value = '';
+                } else {
+                    const errorData = await res.json();
+                    throw new Error(errorData.detail || 'Update failed');
+                }
+            } catch (error) { showToast(error.message, "error"); }
+            finally {
+                btn.disabled = false;
+                btn.textContent = 'Save All Settings';
+            }
+        });
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        loadSettings();
+    </script>
+</body>
+
+
+</html>

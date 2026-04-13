@@ -1,0 +1,409 @@
+<!-- ============================================
+     [SCREEN] Bulk Import Members
+     Copy this to: frontend/import-members.html
+     Import members via CSV or Screenshot OCR
+     ============================================ -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Members - Gym SaaS</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <!-- Use PapaParse for parsing CSVs securely in the browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            padding: 40px;
+            text-align: center;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+        }
+
+        .upload-area:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .parsed-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .parsed-data-table th,
+        .parsed-data-table td {
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px;
+            text-align: left;
+            color: #fff;
+        }
+
+        .parsed-data-table th {
+            background: rgba(0,0,0,0.2);
+        }
+
+        .error-text {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav>
+                <a href="#" class="nav-link" onclick="goBackToDashboard()">
+                    <span>←</span> Back to Dashboard
+                </a>
+                <a href="members.html" class="nav-link active">
+                    <span>👥</span> Members
+                </a>
+                <a href="plans.html" class="nav-link">
+                    <span>📋</span> Plans
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div style="max-width: 800px;">
+        <h1 style="margin: 30px 0 20px;">Import Members</h1>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('csv')">CSV Import</div>
+            <div class="tab" onclick="switchTab('ocr')">Image/Receipt OCR</div>
+        </div>
+
+        <!-- CSV IMPORT TAB -->
+        <div id="tab-csv" class="tab-content active">
+            <div class="glass-panel" style="padding: 30px;">
+                <p style="color: #6b7280; margin-bottom: 20px;">
+                    Upload a CSV file containing members. The columns must be exactly: <strong>name, phone, email,
+                        plan_id, payment_received (true/false)</strong>.
+                </p>
+                <div class="upload-area" onclick="document.getElementById('csv-file').click()">
+                    <h3 style="margin-bottom: 8px;">Click to select CSV file</h3>
+                    <p style="color: #6b7280; font-size: 14px;">or drag and drop here</p>
+                </div>
+                <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSVSelect(event)">
+
+                <div id="csv-preview" style="display: none; margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px;">Preview</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="parsed-data-table" id="csv-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Plan ID</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="submitCSVImport()">
+                        Confirm & Import
+                    </button>
+                    <div id="csv-errors" class="error-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IMAGE/OCR IMPORT TAB -->
+        <div id="tab-ocr" class="tab-content">
+            <div class="glass-panel" style="padding: 30px;">
+                <p style="color: #6b7280; margin-bottom: 20px;">
+                    Upload a screenshot or photo of a receipt/note. Our system will extract the details.
+                </p>
+                <div class="upload-area" onclick="document.getElementById('image-file').click()">
+                    <h3 style="margin-bottom: 8px;">Click to select Image</h3>
+                    <p style="color: #6b7280; font-size: 14px;">JPG, PNG</p>
+                </div>
+                <input type="file" id="image-file" accept="image/*" style="display: none;"
+                    onchange="handleImageSelect(event)">
+
+                <div id="ocr-loading" style="display: none; text-align: center; padding: 30px;">
+                    <p>⏳ Extracting text, please wait...</p>
+                </div>
+
+                <div id="ocr-result"
+                    style="display: none; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                    <h3 style="margin-bottom: 15px;">Extracted Information</h3>
+
+                    <form id="ocr-add-member-form">
+                        <div class="form-group">
+                            <label class="form-label" for="ocr-name">Full Name</label>
+                            <input type="text" id="ocr-name" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="ocr-phone">Phone</label>
+                            <input type="text" id="ocr-phone" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="ocr-email">Email (Optional)</label>
+                            <input type="email" id="ocr-email" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="ocr-plan">Membership Plan *</label>
+                            <select id="ocr-plan" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                                <option value="">Select a plan...</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" style="width: 100%;" onclick="submitOCRMember()">
+                            Add Member
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- [JS-ROUTING] Dynamic Back Button Logic -->
+    <script>
+        function goBackToDashboard() {
+            const role = localStorage.getItem('role') || 'owner';
+            if (role === 'manager') window.location.href = 'branch-dashboard.html';
+            else if (role === 'staff') window.location.href = 'staff-dashboard.html';
+            else if (role === 'customer') window.location.href = 'customer-dashboard.html';
+            else window.location.href = 'dashboard.html';
+        }
+    </script>
+    
+    <!-- [JAVASCRIPT] Page logic -->
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) window.location.href = 'login.html';
+
+        let csvDataToImport = [];
+        let availablePlans = [];
+
+        async function init() {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    availablePlans = await response.json();
+                    const planSelect = document.getElementById('ocr-plan');
+                    availablePlans.forEach(plan => {
+                        const option = document.createElement('option');
+                        option.value = plan.id;
+                        option.textContent = `${plan.name} - ₹${plan.price}`;
+                        planSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load plans', error);
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        }
+
+        // --- CSV Logic ---
+        function handleCSVSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('csv-errors').textContent = '';
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function (results) {
+                    csvDataToImport = results.data;
+                    renderCSVPreview();
+                },
+                error: function (err) {
+                    document.getElementById('csv-errors').textContent = "Failed to parse CSV: " + err.message;
+                }
+            });
+        }
+
+        function renderCSVPreview() {
+            const tbody = document.querySelector('#csv-table tbody');
+            tbody.innerHTML = '';
+
+            csvDataToImport.slice(0, 5).forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.name || '-'}</td>
+                    <td>${row.phone || '-'}</td>
+                    <td>${row.email || '-'}</td>
+                    <td>${row.plan_id || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (csvDataToImport.length > 5) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="4" style="text-align: center; color: #6b7280;">...and ${csvDataToImport.length - 5} more rows</td>`;
+                tbody.appendChild(tr);
+            }
+
+            document.getElementById('csv-preview').style.display = 'block';
+        }
+
+        async function submitCSVImport() {
+            try {
+                // Map the string fields to appropriate types
+                const formattedMembers = csvDataToImport.map(row => ({
+                    name: row.name,
+                    phone: row.phone,
+                    email: row.email || null,
+                    plan_id: parseInt(row.plan_id),
+                    payment_received: row.payment_received === 'true' || row.payment_received === '1'
+                }));
+
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ members: formattedMembers })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.detail || 'Import failed');
+
+                let msg = `✅ ${data.message}`;
+                if (data.errors && data.errors.length > 0) {
+                    msg += `\n\nErrors encountered:\n${data.errors.join('\n')}`;
+                }
+                showToast(msg, data.errors && data.errors.length > 0 ? 'warning' : 'success');
+
+                if (data.added_count > 0) {
+                    window.location.href = 'members.html';
+                }
+
+            } catch (error) {
+                document.getElementById('csv-errors').textContent = error.message;
+            }
+        }
+
+        // --- Image OCR Logic ---
+        async function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('ocr-result').style.display = 'none';
+            document.getElementById('ocr-loading').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/extract-text`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Extraction failed');
+
+                // Fill form
+                document.getElementById('ocr-name').value = data.parsed.name || '';
+                document.getElementById('ocr-phone').value = data.parsed.phone || '';
+                document.getElementById('ocr-email').value = data.parsed.email || '';
+
+                document.getElementById('ocr-loading').style.display = 'none';
+                document.getElementById('ocr-result').style.display = 'block';
+
+            } catch (error) {
+                showToast(`❌ Failed to extract text: ${error.message}`, 'error');
+                document.getElementById('ocr-loading').style.display = 'none';
+            }
+        }
+
+        async function submitOCRMember() {
+            const name = document.getElementById('ocr-name').value;
+            const phone = document.getElementById('ocr-phone').value;
+            const email = document.getElementById('ocr-email').value;
+            const plan_id = document.getElementById('ocr-plan').value;
+
+            if (!name || !phone || !plan_id) {
+                showToast('Please fill the required fields (Name, Phone, Plan)', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/members`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name, phone, email: email || null,
+                        plan_id: parseInt(plan_id),
+                        payment_received: true
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Creation failed');
+
+                showToast('✅ Member added successfully from OCR!', 'success');
+                window.location.href = 'members.html';
+
+            } catch (error) {
+                showToast(`❌ Failed to add member: ${error.message}`, 'error');
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

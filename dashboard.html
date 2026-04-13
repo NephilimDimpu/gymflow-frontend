@@ -1,0 +1,551 @@
+<!-- ============================================
+     [SCREEN-1] Dashboard Screen
+     Copy this to: frontend/dashboard.html
+     Main screen showing key metrics
+     ============================================ -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gym SaaS</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link active">
+                    <span>🏠</span> Dashboard
+                </a>
+                <a href="members.html" class="nav-link">
+                    <span>👥</span> Members
+                </a>
+                <a href="plans.html" class="nav-link">
+                    <span>📋</span> Plans
+                </a>
+                <a href="staff.html" class="nav-link">
+                    <span>🛡️</span> Staff
+                </a>
+                <a href="branches.html" class="nav-link">
+                    <span>📍</span> Branches
+                </a>
+                <a href="attendance.html" class="nav-link">
+                    <span>🕘</span> Attendance
+                </a>
+                <a href="routines.html" class="nav-link">
+                    <span>📋</span> Routines
+                </a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link">
+                        <span>⚙️</span> Settings
+                    </a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+                <div>
+                    <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">Dashboard</h1>
+                    <p id="context-info" style="font-size: 14px; color: var(--text-muted);">
+                        <span id="gym-name">Loading...</span> • Today: <span id="current-date"></span>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <select id="branch-filter" class="form-select" style="display: none; width: auto; min-width: 200px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" onchange="loadDashboard()">
+                        <option value="">All Branches</option>
+                    </select>
+                </div>
+            </header>
+
+            <!-- [DYNAMIC-BANNERS] Context-aware upgrade prompts -->
+            <div id="dynamic-banner" style="margin-bottom: 30px;"></div>
+
+        <!-- [STATS-GRID] Key metrics cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="active-count">-</div>
+                <div class="stat-label">👤 Active Members</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-number" id="expiring-count">-</div>
+                <div class="stat-label">⚠️ Expiring Soon</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-number" id="pending-count">-</div>
+                <div class="stat-label">💰 Pending Payment</div>
+            </div>
+
+            <div class="stat-card" style="border-top: 3px solid #10b981;">
+                <div class="stat-number" id="monthly-revenue" style="color: #10b981;">-</div>
+                <div class="stat-label">📈 Monthly Revenue</div>
+            </div>
+
+            <div class="stat-card" style="border-top: 3px solid #3b82f6;">
+                <div class="stat-number" id="total-revenue" style="color: #3b82f6;">-</div>
+                <div class="stat-label">🏆 Total Revenue</div>
+            </div>
+        </div>
+
+        <!-- [QUICK-ACTIONS] Action buttons -->
+        <div style="display: flex; gap: 12px; margin-bottom: 30px;">
+            <button class="btn btn-primary" onclick="location.href='add-member.html'">
+                + Add Member
+            </button>
+            <button class="btn btn-secondary" onclick="location.href='members.html'">
+                View All Members
+            </button>
+            <button class="btn btn-secondary feature-pro-only" onclick="location.href='import-members.html'">
+                Import Members
+            </button>
+            <button class="btn btn-secondary feature-pro-only" onclick="location.href='plans.html'">
+                Manage Plans
+            </button>
+            <button class="btn btn-secondary" onclick="location.href='settings.html'">
+                ⚙️ Settings
+            </button>
+        </div>
+
+        <!-- [REVENUE-CHART] Monthly Revenue Graph -->
+        <div class="glass-panel"
+            style="margin-bottom: 30px;">
+            <h2 style="margin-bottom: 20px;">Revenue Trend (6 Months)</h2>
+            <canvas id="revenueChart" height="80"></canvas>
+        </div>
+
+        <!-- [RECENT-MEMBERS] Recent member list -->
+        <div class="glass-panel">
+            <h2 style="margin-bottom: 20px;">Recent Members</h2>
+            <div id="recent-members">
+                <p style="color: #6b7280;">Loading...</p>
+            </div>
+        </div>
+        </div>
+
+        <!-- [STAFF-ATTENDANCE] Quick link to dedicated portal -->
+        <div class="glass-panel" style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 style="margin: 0 0 4px 0;">🕘 Staff & Member Attendance</h2>
+                <p style="font-size: 13px; color: #64748b; margin: 0;">Track check-ins, shifts, and attendance across all branches.</p>
+            </div>
+            <a href="attendance.html" class="btn btn-primary" style="padding: 10px 20px; font-size: 13px; text-decoration: none;">View Portal →</a>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading-overlay" class="spinner-overlay" style="display: none;">
+            <div class="glass-spinner"></div>
+        </div>
+
+        </main>
+    </div>
+
+    <!-- [JAVASCRIPT] Page logic -->
+    <script>
+        const token = localStorage.getItem('auth_token');
+        const userRole = localStorage.getItem('role') || 'owner';
+        const userBranchId = localStorage.getItem('branch_id');
+        const userBranchName = localStorage.getItem('branch_name');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        const userTier = localStorage.getItem('tier') || 'starter';
+
+        // ============================================
+        // [DYNAMIC-BANNERS] Setup dashboard upgrade pitches
+        // ============================================
+        function applyBanners(tier) {
+            const bannerContainer = document.getElementById('dynamic-banner');
+            if (userRole !== 'owner') {
+                bannerContainer.style.display = 'none';
+                return;
+            }
+
+            if (tier === 'pro') {
+                bannerContainer.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #fef08a, #facc15); border-radius: 12px; padding: 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.2);">
+                        <div>
+                            <h3 style="margin:0 0 8px 0; color: #854d0e; font-size: 20px;">🏢 Ready to grow your franchise?</h3>
+                            <p style="margin:0; color: #713f12;">Upgrade to Elite for Multi-Branch Management and Advanced OCR Recepits.</p>
+                        </div>
+                        <button class="btn" style="background: #a16207; color: white; border: none; padding: 10px 20px; font-weight: 600;" onclick="location.href='upgrade-plan.html'">Unlock Elite</button>
+                    </div>
+                `;
+            }
+            else if (tier === 'elite') {
+                bannerContainer.style.display = 'none';
+            }
+            else {
+                // Starter
+                bannerContainer.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #e0e7ff, #c7d2fe); border-radius: 12px; padding: 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);">
+                        <div>
+                            <h3 style="margin:0 0 8px 0; color: #4338ca; font-size: 20px;">⭐ Automate your busywork!</h3>
+                            <p style="margin:0; color: #3730a3;">Upgrade to Pro to unlock Staff Management and Automated Email Reminders.</p>
+                        </div>
+                        <button class="btn" style="background: #4f46e5; color: white; border: none; padding: 10px 20px; font-weight: 600;" onclick="location.href='upgrade-plan.html'">Unlock Pro</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Apply banners immediately
+        applyBanners(userTier);
+
+        function handleNavClick(target) {
+            if (target === 'staff' && userTier === 'starter') {
+                showToast('⭐ Upgrade to Pro to unlock Staff Management!', 'error');
+                window.location.href = 'upgrade-plan.html';
+                return;
+            }
+            if (target === 'branches' && userTier !== 'elite') {
+                showToast('⭐ Upgrade to Elite to unlock Multi-Branch Management!', 'error');
+                window.location.href = 'upgrade-plan.html';
+                return;
+            }
+            window.location.href = target + '.html';
+        }
+
+        // Redirect non-owners to their dashboards - strictly for initial load
+        if (userRole === 'manager' && !window.location.href.includes('branch-dashboard')) {
+            window.location.href = 'branch-dashboard.html';
+        } else if (userRole === 'staff' && !window.location.href.includes('staff-dashboard')) {
+            window.location.href = 'staff-dashboard.html';
+        } else if (userRole === 'customer' && !window.location.href.includes('customer-dashboard')) {
+            window.location.href = 'customer-dashboard.html';
+        }
+
+        // ============================================
+        // [TRIAL-SYSTEM] Handle trial & grace periods
+        // ============================================
+        function renderTrialBanner(gym) {
+            if (gym.subscription_status === 'active' || !gym.trial_ends_at) return;
+
+            const bannerContainer = document.getElementById('dynamic-banner');
+            const now = new Date();
+            const trialEnd = new Date(gym.trial_ends_at);
+            const graceEnd = new Date(trialEnd.getTime() + (24 * 60 * 60 * 1000));
+
+            if (now > graceEnd) {
+                // Feature lockout redirect
+                window.location.href = 'upgrade-plan.html?reason=trial_expired';
+                return;
+            }
+
+            if (now > trialEnd) {
+                // GRACE PERIOD (24h Nag)
+                const hoursLeft = Math.ceil((graceEnd - now) / (1000 * 60 * 60));
+                bannerContainer.innerHTML = `
+                    <div class="grace-banner">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span style="font-size: 30px;">⚠️</span>
+                            <div class="banner-content">
+                                <h4>URGENT: Trial Expired</h4>
+                                <p>Your 24-hour grace period is ending. You have <span class="banner-timer">${hoursLeft} hours</span> left before all features are locked.</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="location.href='upgrade-plan.html'" style="background: #92400e; border: none;">Renew Now</button>
+                    </div>
+                `;
+            } else {
+                // ACTIVE TRIAL
+                const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+                bannerContainer.innerHTML = `
+                    <div class="trial-banner">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 24px;">🚀</span>
+                            <div class="banner-content">
+                                <h4>Free Trial Active</h4>
+                                <p>You have <span class="banner-timer">${daysLeft} days</span> left in your trial. Upgrade now to get 10% off your first month!</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="location.href='upgrade-plan.html'" style="padding: 8px 16px; font-size: 13px;">View Plans</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function initDashboard() {
+            try {
+                // Instantly show the cached name to prevent "Loading..." flash
+                const cachedName = localStorage.getItem('gym_name');
+                if (cachedName && userRole === 'owner') {
+                    const cachedTier = localStorage.getItem('tier');
+                    let tierHtml = '';
+                    if (cachedTier) {
+                        tierHtml = ` <span class="tier-badge badge-${cachedTier}">${cachedTier.toUpperCase()}</span>`;
+                    }
+                    document.getElementById('gym-name').innerHTML = `${cachedName}${tierHtml}`;
+                }
+
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/settings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.status === 402) {
+                    window.location.href = 'upgrade-plan.html?reason=trial_expired';
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error('Failed to load gym info');
+                }
+                const gym = await res.json();
+                
+                let tierHtml = '';
+                if (gym.tier) {
+                    tierHtml = ` <span class="tier-badge badge-${gym.tier}">${gym.tier.toUpperCase()}</span>`;
+                }
+                document.getElementById('gym-name').innerHTML = `${gym.name || 'Your Gym'}${tierHtml}`;
+                localStorage.setItem('gym_name', gym.name || 'Your Gym');
+                if (gym.tier) localStorage.setItem('tier', gym.tier);
+
+                // Check trial status
+                renderTrialBanner(gym);
+
+                // Load stats and other data...
+                if (userRole === 'owner' && userTier === 'elite') {
+                    await loadBranchFilter();
+                }
+                loadDashboard();
+            } catch (err) {
+                console.error(err);
+                if (err.message.includes('401')) window.location.href = 'login.html';
+                
+                // Ensure stats at least attempt to load if settings fetch fails
+                loadDashboard();
+            }
+        }
+
+        initDashboard();
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+        // Show context info for staff
+        if (userRole === 'staff') {
+            const staffName = localStorage.getItem('staff_name') || 'Staff';
+            const gymName = localStorage.getItem('gym_name') || '';
+            document.getElementById('gym-name').textContent = `${staffName} • ${userBranchName || 'Branch'}`;
+            document.getElementById('context-info').innerHTML = `<strong>🏢 ${userBranchName || 'Your Branch'}</strong> • Today: <span id="current-date"></span>`;
+        }
+
+        // [JS-DATE] Show current date
+        document.getElementById('current-date').textContent =
+            new Date().toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+
+        async function loadBranchFilter() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/branches`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const branches = await res.json();
+                    if (branches.length > 0) {
+                        const select = document.getElementById('branch-filter');
+                        select.style.display = 'block';
+                        select.innerHTML = '<option value="">All Branches</option>' +
+                            branches.map(b => `<option value="${b.id}">${b.name} (${b.member_count} members)</option>`).join('');
+                        
+                        // Handle Deep Linking from Branches page
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const initialBranch = urlParams.get('branch_id');
+                        if (initialBranch) {
+                            select.value = initialBranch;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('[BRANCH-FILTER]', err);
+            }
+        }
+
+        // ============================================
+        // [JS-FETCH-STATS] Load dashboard statistics
+        // ============================================
+        async function loadDashboard() {
+            document.getElementById('loading-overlay').style.display = 'flex';
+            try {
+                // Build URL with optional branch filter
+                let url = `${CONFIG.API_BASE_URL}/api/dashboard`;
+                const branchFilter = document.getElementById('branch-filter');
+                if (branchFilter && branchFilter.value) {
+                    url += `?branch_id=${branchFilter.value}`;
+                }
+
+                const statsRes = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!statsRes.ok) throw new Error('Failed to load stats');
+
+                const stats = await statsRes.json();
+
+                // Update stats
+                document.getElementById('active-count').textContent = stats.active_members;
+                document.getElementById('expiring-count').textContent = stats.expiring_soon;
+                document.getElementById('pending-count').textContent = stats.pending_payment;
+                document.getElementById('monthly-revenue').textContent = `₹${stats.monthly_revenue.toLocaleString()}`;
+                document.getElementById('total-revenue').textContent = `₹${stats.total_revenue.toLocaleString()}`;
+                
+                document.getElementById('loading-overlay').style.display = 'none';
+
+                // Draw Revenue Chart
+                if (stats.recent_revenue && stats.recent_revenue.length > 0) {
+                    renderRevenueChart(stats.recent_revenue);
+                }
+
+                // Fetch recent members (with branch filter)
+                let membersUrl = `${CONFIG.API_BASE_URL}/api/members?limit=5`;
+                if (branchFilter && branchFilter.value) {
+                    membersUrl += `&branch_id=${branchFilter.value}`;
+                }
+                const membersRes = await fetch(membersUrl, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!membersRes.ok) throw new Error('Failed to load members');
+
+                const members = await membersRes.json();
+                displayRecentMembers(members);
+
+            } catch (error) {
+                console.error('[DASHBOARD-ERROR]', error);
+                showToast('Failed to load dashboard. Please refresh.', 'error');
+            }
+        }
+
+        // ============================================
+        // [JS-DISPLAY-MEMBERS] Render member list
+        // ============================================
+        function displayRecentMembers(members) {
+            const container = document.getElementById('recent-members');
+
+            if (!members || members.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 40px 0;">
+                        <span class="empty-icon">👥</span>
+                        <h2 class="empty-title">No members yet</h2>
+                        <p class="empty-subtitle">Add your first member to see them listed here.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = members.slice(0, 5).map(member => `
+                <div class="member-card">
+                    <div class="member-info">
+                        <h3>${member.name}</h3>
+                        <p>${member.phone} • ${member.current_plan || 'No active plan'}</p>
+                        ${member.expiry_date ? `<p>Expires: ${member.expiry_date}</p>` : ''}
+                    </div>
+                    <span class="badge badge-${getStatusClass(member.status)}">
+                        ${member.status}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // [JS-HELPER] Get CSS class for status
+        function getStatusClass(status) {
+            const map = {
+                'active': 'active',
+                'expiring_soon': 'expiring',
+                'expired': 'expired',
+                'pending_payment': 'pending'
+            };
+            return map[status] || 'active';
+        }
+
+        // ============================================
+        // [JS-CHART] Render the revenue chart
+        // ============================================
+        let revenueChartInstance = null;
+
+        function renderRevenueChart(revenueData) {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+
+            const labels = revenueData.map(d => d.month);
+            const dataTotals = revenueData.map(d => d.amount);
+
+            if (revenueChartInstance) {
+                revenueChartInstance.destroy();
+            }
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Revenue (₹)',
+                        data: dataTotals,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#10b981',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) { return '₹' + value.toLocaleString(); }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================
+        // [JS-LOGOUT] Logout function
+        // ============================================
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+    </script>
+
+    <!-- ============================================
+         UPGRADE PATH:
+         - Add real-time updates (WebSocket)
+         - Add charts for trends
+         - Add quick actions (send reminder, mark paid)
+         - Add search functionality
+         ============================================ -->
+</body>
+
+</html>

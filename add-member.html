@@ -1,0 +1,437 @@
+<!-- ============================================
+     [SCREEN-3] Add Member Form
+     Copy this to: frontend/add-member.html
+     Form to add new member with plan selection
+     ============================================ -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Member - Gym SaaS</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">💪 GymFlow</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link">
+                    <span>🏠</span> Dashboard
+                </a>
+                <a href="members.html" class="nav-link active">
+                    <span>👥</span> Members
+                </a>
+                <a href="plans.html" class="nav-link">
+                    <span>📋</span> Plans
+                </a>
+                <a href="staff.html" class="nav-link">
+                    <span>🛡️</span> Staff
+                </a>
+                <a href="branches.html" class="nav-link">
+                    <span>📍</span> Branches
+                </a>
+                <a href="attendance.html" class="nav-link">
+                    <span>🕘</span> Attendance
+                </a>
+                <a href="routines.html" class="nav-link">
+                    <span>📋</span> Routines
+                </a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link">
+                        <span>⚙️</span> Settings
+                    </a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div style="max-width: 600px;">
+        <h1 style="margin: 30px 0 20px;">Add New Member</h1>
+        <p style="color: #6b7280; margin-bottom: 30px;">
+            Fill in the details to add a new gym member
+        </p>
+
+        <!-- [FORM] Member creation form -->
+        <form id="add-member-form"
+            class="glass-panel" style="padding: 30px;">
+
+            <!-- [FORM-GROUP-NAME] Member name -->
+            <div class="form-group">
+                <label class="form-label" for="name">
+                    Full Name *
+                </label>
+                <input type="text" id="name" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Enter member's full name" required>
+            </div>
+
+            <!-- [FORM-GROUP-PHONE] Phone number -->
+            <div class="form-group">
+                <label class="form-label" for="phone">
+                    Phone Number (with country code) *
+                </label>
+                <input type="tel" id="phone" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="+919876543210" required
+                    pattern="^\+?[1-9]\d{1,14}$">
+                <small style="color: #6b7280; font-size: 12px;">
+                    Include country code (e.g., +91 for India)
+                </small>
+            </div>
+
+            <!-- [FORM-GROUP-EMAIL] Email (optional) -->
+            <div class="form-group">
+                <label class="form-label" for="email">
+                    Email (Optional)
+                </label>
+                <input type="email" id="email" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="member@example.com">
+            </div>
+
+            <!-- [FORM-GROUP-PLAN] Plan selection -->
+            <div class="form-group">
+                <label class="form-label" for="plan">
+                    Membership Plan *
+                </label>
+                <select id="plan" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                    <option value="">Select a plan...</option>
+                    <!-- Plans will be loaded dynamically -->
+                </select>
+                <div id="plan-details"
+                    style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 6px; display: none;">
+                    <p style="font-size: 14px; color: var(--text-muted);">
+                        <strong>Duration:</strong> <span id="plan-duration">-</span> days<br>
+                        <strong>Price:</strong> ₹<span id="plan-price">-</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- [FORM-GROUP-BRANCH] Branch assignment (owner only) -->
+            <div class="form-group" id="branch-group" style="display: none;">
+                <label class="form-label" for="branch">
+                    Assign to Branch (Optional)
+                </label>
+                <select id="branch" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                    <option value="">No branch (main gym)</option>
+                </select>
+            </div>
+
+            <!-- [FORM-GROUP-PAYMENT] Payment status -->
+            <div class="form-group">
+                <label class="form-label">
+                    Payment Status *
+                </label>
+                <div style="display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="payment_status" value="paid" id="status-paid" checked
+                            style="margin-right: 8px;">
+                        <span>✅ Paid</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="payment_status" value="pending" id="status-pending"
+                            style="margin-right: 8px;">
+                        <span>⏳ Pending</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- [FORM-ACTIONS] Submit and cancel buttons -->
+            <div style="display: flex; gap: 12px; margin-top: 30px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">
+                    Add Member
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="history.back()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+
+        <!-- [LOADING-OVERLAY] Show during form submission -->
+        <div id="loading-overlay"
+            style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 30px; border-radius: 12px; text-align: center;">
+                <p style="font-size: 18px; margin-bottom: 12px;">Adding member...</p>
+                <p style="color: #6b7280;">Please wait</p>
+            </div>
+        </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- [JS-ROUTING] Dynamic Back Button Logic -->
+    <script>
+        function goBackToDashboard() {
+            const role = localStorage.getItem('role') || 'owner';
+            if (role === 'manager') window.location.href = 'branch-dashboard.html';
+            else if (role === 'staff') window.location.href = 'staff-dashboard.html';
+            else if (role === 'customer') window.location.href = 'customer-dashboard.html';
+            else window.location.href = 'dashboard.html';
+        }
+    </script>
+
+    <!-- [JAVASCRIPT] Form logic -->
+    <script>
+        // ============================================
+        // [JS-AUTH] Authentication check
+        // ============================================
+        const token = localStorage.getItem('auth_token');
+        const userRole = localStorage.getItem('role') || 'owner';
+        const userBranchId = localStorage.getItem('branch_id');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // [JS-STATE] Store loaded plans
+        let availablePlans = [];
+
+        // Load branches for owner
+        if (userRole === 'owner') {
+            loadBranches();
+        }
+
+        async function loadBranches() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/branches`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const branches = await res.json();
+                    if (branches.length > 0) {
+                        const group = document.getElementById('branch-group');
+                        const select = document.getElementById('branch');
+                        group.style.display = 'block';
+                        select.innerHTML = '<option value="">No branch (main gym)</option>' +
+                            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+                    }
+                }
+            } catch (err) {
+                console.error('[BRANCHES-LOAD]', err);
+            }
+        }
+
+        // ============================================
+        // [JS-LOAD-PLANS] Fetch available plans
+        // ============================================
+        async function loadPlans() {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load plans');
+
+                availablePlans = await response.json();
+
+                if (availablePlans.length === 0) {
+                    showToast('⚠️ No plans available. Please create a plan first.', 'error');
+                    setTimeout(() => window.location.href = 'plans.html', 1500);
+                    // window.location.href = 'plans.html';
+                    return;
+                }
+
+                displayPlans();
+
+            } catch (error) {
+                console.error('[PLANS-ERROR]', error);
+                showToast('Failed to load plans. Please refresh the page.', 'error');
+            }
+        }
+
+        // ============================================
+        // [JS-DISPLAY-PLANS] Populate plan dropdown
+        // ============================================
+        function displayPlans() {
+            const planSelect = document.getElementById('plan');
+
+            availablePlans.forEach(plan => {
+                const option = document.createElement('option');
+                option.value = plan.id;
+                option.textContent = `${plan.name} - ₹${plan.price} (${plan.duration_days} days)`;
+                planSelect.appendChild(option);
+            });
+        }
+
+        // ============================================
+        // [JS-PLAN-CHANGE] Show plan details on selection
+        // ============================================
+        document.getElementById('plan').addEventListener('change', function (e) {
+            const planId = parseInt(e.target.value);
+            const planDetails = document.getElementById('plan-details');
+
+            if (!planId) {
+                planDetails.style.display = 'none';
+                return;
+            }
+
+            const selectedPlan = availablePlans.find(p => p.id === planId);
+
+            if (selectedPlan) {
+                document.getElementById('plan-duration').textContent = selectedPlan.duration_days;
+                document.getElementById('plan-price').textContent = selectedPlan.price;
+                planDetails.style.display = 'block';
+            }
+        });
+
+        // ============================================
+        // [JS-FORM-SUBMIT] Handle form submission
+        // ============================================
+        document.getElementById('add-member-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // [VALIDATION] Validate form
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const planId = parseInt(document.getElementById('plan').value);
+            const paymentStatus = document.querySelector('input[name="payment_status"]:checked').value;
+
+
+            if (!name || name.length < 2) {
+                showToast('Please enter a valid name (at least 2 characters)', 'error');
+                return;
+            }
+            if (!phone || phone.length < 10 || !/^\+?[1-9]\d{1,14}$/.test(phone)) {
+                showToast('Please enter a valid phone number', 'error');
+                return;
+            }
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showToast('Please enter a valid email address', 'error');
+                return;
+            }
+            if (!planId) {
+                showToast('Please select a membership plan', 'error');
+                return;
+            }
+
+
+            // Show loading overlay
+            document.getElementById('loading-overlay').style.display = 'flex';
+
+            try {
+                // [API-CALL] Submit member data
+                const isEdit = !!editMemberId;
+                const url = isEdit
+                    ? `${CONFIG.API_BASE_URL}/api/members/${editMemberId}`
+                    : `${CONFIG.API_BASE_URL}/api/members`;
+
+                const response = await fetch(url, {
+                    method: isEdit ? 'PUT' : 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        phone: phone,
+                        email: email || null,
+                        plan_id: planId,
+                        payment_received: paymentStatus === 'paid',
+                        branch_id: document.getElementById('branch').value ? parseInt(document.getElementById('branch').value) : null
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to save member');
+                }
+
+                const result = await response.json();
+
+                // [SUCCESS] Show success message and redirect
+                if (isEdit) {
+                    showToast('✅ Member updated successfully!', 'success');
+                } else {
+                    showToast('✅ Member added successfully! Welcome email notification sent.', 'success');
+                }
+
+                // window.location.href = 'members.html';
+                setTimeout(() => window.location.href = 'members.html', 1500);
+
+            } catch (error) {
+                console.error('[ADD-MEMBER-ERROR]', error);
+                showToast('❌ Failed to add member: ' + error.message, 'error');
+                document.getElementById('loading-overlay').style.display = 'none';
+            }
+        });
+
+        // ============================================
+        // [JS-INIT] Initialize page
+        // ============================================
+        let editMemberId = null;
+
+        async function initPage() {
+            await loadPlans();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            editMemberId = urlParams.get('edit');
+
+            if (editMemberId) {
+                // Setup edit mode UI
+                document.querySelector('h1').textContent = 'Edit Member';
+                document.querySelector('button[type="submit"]').textContent = 'Update Member';
+
+                // Fetch member data
+                try {
+                    const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/${editMemberId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) throw new Error('Failed to load member details');
+
+                    const member = await response.json();
+
+                    // Pre-fill form
+                    document.getElementById('name').value = member.name || '';
+                    document.getElementById('phone').value = member.phone || '';
+                    document.getElementById('email').value = member.email || '';
+
+                    if (member.latest_membership && member.latest_membership.plan_id) {
+                        const planSelect = document.getElementById('plan');
+                        planSelect.value = member.latest_membership.plan_id;
+                        // trigger change event to update right side UI
+                        planSelect.dispatchEvent(new Event('change'));
+
+                        if (member.latest_membership.payment_status === 'paid') {
+                            document.getElementById('status-paid').checked = true;
+                        } else {
+                            document.getElementById('status-pending').checked = true;
+                        }
+                    }
+                } catch (error) {
+                    console.error('[LOAD-MEMBER-ERROR]', error);
+                    showToast('Error loading member details. Returning to member list.', 'error');
+                    setTimeout(() => window.location.href = 'members.html', 1500);
+                    // window.location.href = 'members.html';
+                setTimeout(() => window.location.href = 'members.html', 1500);
+                }
+            }
+        }
+
+        initPage();
+    </script>
+
+    <!-- ============================================
+         UPGRADE PATH:
+         - Add photo upload for member
+         - Add custom fields (address, emergency contact)
+         - Add payment gateway integration for instant payment
+         - Add barcode/QR code generation for member card
+         - Add batch import (CSV upload)
+         - Add duplicate detection (warn if phone exists)
+         ============================================ -->
+</body>
+
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pay Membership — GymFlow</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <style>
+        :root {
+            --accent: #22c55e; /* Fintech Green */
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background: #050505;
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* Ambient Background */
+        .ambient-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #14532d 0%, #050505 100%);
+            opacity: 0.6;
+        }
+
+        #loading {
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            font-size: 12px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pay-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--surface-border);
+            padding: 48px;
+            border-radius: 32px;
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .gym-badge {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .amount-display {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 16px 0;
+            letter-spacing: -2px;
+        }
+
+        .qr-wrapper {
+            background: white;
+            padding: 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 32px 0;
+            position: relative;
+            box-shadow: 0 0 40px rgba(34, 197, 94, 0.2);
+        }
+
+        .qr-wrapper::before {
+            content: 'SCAN TO PAY';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 10px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .qr-image {
+            width: 200px;
+            height: 200px;
+            display: block;
+        }
+
+        .instruction {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .btn-confirm {
+            background: #f8fafc;
+            color: #050505;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-weight: 700;
+            width: 100%;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-confirm:hover {
+            transform: scale(0.98);
+            background: #fff;
+        }
+
+        #success-section, #setup-error {
+            display: none;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            display: block;
+            animation: bounceIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg"></div>
+
+    <div id="loading">SECURE CHECKOUT...</div>
+
+    <div class="pay-card" id="pay-container" style="display: none;">
+        <span class="gym-badge" id="gym-name">GYM NAME</span>
+        <p style="color: var(--text-muted); font-size: 14px; margin: 0;">Membership renewal for <strong id="member-name" style="color: #fff;">Member</strong></p>
+
+        <div class="amount-display" id="amount-display">₹0</div>
+
+        <div id="qr-section">
+            <div class="qr-wrapper">
+                <img id="qr-image" class="qr-image" src="" alt="UPI QR">
+            </div>
+
+            <p class="instruction">
+                Scan this QR with any UPI app<br>
+                (GPay, PhonePe, or Paytm) to pay securely.
+            </p>
+
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 32px; letter-spacing: 1px;">
+                UPI ID: <span id="upi-id-display" style="color: #fff;"></span>
+            </div>
+
+            <button class="btn-confirm" onclick="confirmPayment()" id="confirm-btn">
+                I Have Paid
+            </button>
+        </div>
+
+        <div id="success-section" style="display: none;">
+            <span class="success-icon">✅</span>
+            <h3 style="margin-top: 0; font-size: 24px;">Under Review</h3>
+            <p style="color: var(--text-muted); font-size: 15px; line-height: 1.6;">
+                Your payment has been sent for verification. Your membership will be updated as soon as the gym owner approves the transaction.
+            </p>
+            <button class="btn-confirm" style="margin-top: 24px; background: var(--surface); color: #fff; border: 1px solid var(--surface-border);" onclick="window.location.href='customer-dashboard.html'">
+                Return to Dashboard
+            </button>
+        </div>
+
+        <div id="setup-error" style="display: none; text-align: center;">
+            <span style="font-size: 48px; display: block; margin-bottom: 20px;">⚠️</span>
+            <h3 style="color: #f87171;">Unconfigured</h3>
+            <p style="color: var(--text-muted); line-height: 1.6; font-size: 14px;">This gym hasn't set up their UPI details yet. Please complete your payment at the front desk. You can still access your dashboard in the meantime.</p>
+            <button class="btn-confirm" style="margin-top: 24px;" onclick="window.location.href='customer-dashboard.html'">Go to Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const memberId = urlParams.get('id');
+
+        async function loadPaymentDetails() {
+            if (!memberId) {
+                window.location.href = 'customer-login.html';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/public/pay/${memberId}`);
+                if (!res.ok) throw new Error('Not found');
+
+                const data = await res.json();
+
+                if (data.payment_status === 'paid' || data.payment_status === 'pending') {
+                    document.getElementById('qr-section').style.display = 'none';
+                    document.getElementById('success-section').style.display = 'block';
+                }
+
+                document.getElementById('gym-name').textContent = data.gym_name.toUpperCase();
+                document.getElementById('member-name').textContent = data.member_name;
+                document.getElementById('amount-display').textContent = `₹${data.amount.toLocaleString()}`;
+
+                if (!data.upi_id) {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('setup-error').style.display = 'block';
+                    document.getElementById('pay-container').style.display = 'block';
+                    document.getElementById('qr-section').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('upi-id-display').textContent = data.upi_id;
+
+                const upiString = `upi://pay?pa=${data.upi_id}&pn=${encodeURIComponent(data.gym_name)}&am=${data.amount}&cu=INR`;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiString)}`;
+                document.getElementById('qr-image').src = qrUrl;
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('pay-container').style.display = 'block';
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading').textContent = "ERROR: LINK EXPIRED";
+            }
+        }
+
+        async function confirmPayment() {
+            const btn = document.getElementById('confirm-btn');
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/public/pay/${memberId}/confirm`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error('Failed to confirm');
+
+                window.showToast("Payment confirmation sent!", "success");
+                document.getElementById('qr-section').style.display = 'none';
+                document.getElementById('success-section').style.display = 'block';
+
+            } catch (error) {
+                window.showToast("Couldn't process confirmation. Try again.", "error");
+                btn.disabled = false;
+                btn.textContent = 'I Have Paid';
+            }
+        }
+
+        loadPaymentDetails();
+    </script>
+</body>
+</html>
