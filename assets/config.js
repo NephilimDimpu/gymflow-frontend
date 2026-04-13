@@ -9,7 +9,7 @@ const CONFIG = {
     API_BASE_URL: 'https://gymflow-backend-rho.vercel.app',
 
     // Frontend port (for references like payment links)
-    FRONTEND_URL: 'http://localhost:3333'
+    FRONTEND_URL: 'https://gymflow-frontend-six.vercel.app'
 };
 
 // ============================================
