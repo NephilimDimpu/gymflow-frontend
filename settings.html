@@ -106,9 +106,17 @@
                         <h2 style="font-size: 20px; margin-bottom: 24px;">🛡️ Security</h2>
                         
                         <div class="form-group">
-                            <label class="form-label" style="color: #fff;">Update Password</label>
-                            <input type="password" id="password" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Enter new password (optional)">
-                            <p style="font-size: 12px; color: #64748b; margin-top: 8px;">Leave blank if you don't want to change it.</p>
+                            <label class="form-label" style="color: #fff;">Current Password</label>
+                            <input type="password" id="current_password" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Required only if changing password">
+                        </div>
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label class="form-label" style="color: #fff;">New Password</label>
+                            <input type="password" id="password" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Enter new password (optional)" minlength="8">
+                            <p style="font-size: 12px; color: #64748b; margin-top: 8px;">Leave blank if you don't want to change it. Minimum 8 characters.</p>
+                        </div>
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label class="form-label" style="color: #fff;">Confirm New Password</label>
+                            <input type="password" id="confirm_password" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Re-enter new password" minlength="8">
                         </div>
                     </div>
 
@@ -165,7 +173,30 @@
             };
 
             const password = document.getElementById('password').value;
-            if (password) bodyData.password = password;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const currentPassword = document.getElementById('current_password').value;
+            if (password) {
+                if (password.length < 8) {
+                    showToast("New password must be at least 8 characters", "warning");
+                    btn.disabled = false;
+                    btn.textContent = 'Save All Settings';
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    showToast("New passwords do not match", "warning");
+                    btn.disabled = false;
+                    btn.textContent = 'Save All Settings';
+                    return;
+                }
+                if (!currentPassword) {
+                    showToast("Enter your current password to change it", "warning");
+                    btn.disabled = false;
+                    btn.textContent = 'Save All Settings';
+                    return;
+                }
+                bodyData.password = password;
+                bodyData.current_password = currentPassword;
+            }
 
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/settings`, {
@@ -180,6 +211,8 @@
                 if (res.ok) {
                     showToast("Settings updated successfully!", "success");
                     document.getElementById('password').value = '';
+                    document.getElementById('confirm_password').value = '';
+                    document.getElementById('current_password').value = '';
                 } else {
                     const errorData = await res.json();
                     throw new Error(errorData.detail || 'Update failed');
