@@ -72,7 +72,7 @@
             <div id="view-board" style="display: none;">
                 <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px; flex-wrap: wrap;">
                     <select id="board-branch" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff; width: auto; min-width: 200px;" onchange="loadBoard()">
-                        <option value="">Select Branch...</option>
+                        <option value="0">🌐 All Branches (Gym-wide)</option>
                     </select>
                     <label class="btn btn-primary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
                         📷 Upload Board Photo
@@ -83,7 +83,7 @@
                     </button>
                 </div>
                 <div id="board-display" style="min-height: 200px; background: rgba(255,255,255,0.02); border: 2px dashed rgba(255,255,255,0.08); border-radius: 14px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                    <p style="color: #475569; font-size: 14px;">Select a branch and upload a routine board photo</p>
+                    <p style="color: #475569; font-size: 14px;">Upload a photo of your whiteboard or schedule</p>
                 </div>
             </div>
 
@@ -566,15 +566,13 @@
                     sel.innerHTML += `<option value="${branchSel.options[i].value}">${branchSel.options[i].text}</option>`;
                 }
             }
+            // Trigger load for default "All Branches" selection
+            loadBoard();
         }
 
         async function loadBoard() {
-            const branchId = document.getElementById('board-branch').value;
+            const branchId = document.getElementById('board-branch').value || '0';
             const display = document.getElementById('board-display');
-            if (!branchId) {
-                display.innerHTML = '<p style="color: #475569; font-size: 14px;">Select a branch to view or upload a routine board</p>';
-                return;
-            }
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/routine-board/${branchId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -609,12 +607,8 @@
         async function uploadBoard(input) {
             const file = input.files[0];
             if (!file) return;
-            const branchId = document.getElementById('board-branch').value;
-            if (!branchId) {
-                showToast('Please select a branch first', 'error');
-                input.value = '';
-                return;
-            }
+            // "0" means gym-wide (All Branches); specific value means branch-specific board
+            const branchId = document.getElementById('board-branch').value || '0';
 
             // Read file as base64
             const reader = new FileReader();
@@ -645,8 +639,7 @@
         }
 
         function copyMemberRoutineLink() {
-            const branchId = document.getElementById('board-branch').value;
-            if (!branchId) return;
+            const branchId = document.getElementById('board-branch').value || '0';
             const url = `${CONFIG.FRONTEND_URL}/member-routine.html?branch=${branchId}`;
             navigator.clipboard.writeText(url).then(() => {
                 showToast('Member routine link copied to clipboard!', 'success');

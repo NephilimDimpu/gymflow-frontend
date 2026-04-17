@@ -12,6 +12,14 @@
     // Set data attribute for hard CSS visual toggles once DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
         document.body.setAttribute('data-tier', userTier);
+        
+        // Hide Branches navigation link for non-Elite users to avoid UI clutter
+        if (userTier !== 'elite') {
+            const branchLinks = document.querySelectorAll('a[href="branches.html"]');
+            branchLinks.forEach(link => {
+                link.style.display = 'none';
+            });
+        }
     });
 
     if (userTier === 'pro') {
