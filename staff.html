@@ -182,6 +182,23 @@
                 <button class="btn btn-primary" onclick="openAddModal()">+ Add Staff Member</button>
             </header>
 
+            <!-- [NO-BRANCHES-WARNING] Shown when gym has 0 branches -->
+            <div id="no-branch-warning" class="glass-panel" style="display: none; padding: 24px; margin-bottom: 24px; background: linear-gradient(135deg, rgba(251,191,36,0.1), rgba(245,158,11,0.1)); border: 1px solid rgba(251,191,36,0.3);">
+                <div style="display: flex; align-items: start; gap: 16px;">
+                    <span style="font-size: 32px;">📍</span>
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 6px 0; color: #fbbf24; font-size: 16px;">Create your first branch to add staff</h3>
+                        <p style="margin: 0 0 12px 0; color: #cbd5e1; font-size: 13px; line-height: 1.6;">
+                            Staff members (trainers, coaches, front desk) are assigned to a specific branch.
+                            Even if your gym has only one location, you'll need to create 1 branch (e.g., <strong>"Main Gym"</strong>) first.
+                        </p>
+                        <a href="branches.html" class="btn btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); display: inline-block;">
+                            → Go to Branches & Create One
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <div id="staff-container">
                 <div class="glass-panel" style="padding: 0; overflow: hidden; display: none;" id="staff-table-wrapper">
                     <table class="glass-table" id="staff-table">
@@ -339,6 +356,12 @@
                     const select = document.getElementById('staff-branch');
                     select.innerHTML = '<option value="">Select branch...</option>' +
                         allBranches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+                    // [UX-FIX] Show warning banner if no branches exist
+                    const warning = document.getElementById('no-branch-warning');
+                    if (warning) {
+                        warning.style.display = allBranches.length === 0 ? 'block' : 'none';
+                    }
                 }
             } catch (err) { console.error('[BRANCHES-LOAD]', err); }
         }
@@ -400,14 +423,41 @@
             }
         }
 
-        function openAddModal() {
+        async function openAddModal() {
+            // [UX-FIX] Ensure branches exist before opening Staff modal
+            if (allBranches.length === 0) {
+                // Try reloading branches first (in case they were created recently)
+                await loadBranches();
+            }
+
+            if (allBranches.length === 0) {
+                // No branches exist — guide the user to create one first
+                const confirmed = confirm(
+                    "📍 No branches found!\n\n" +
+                    "Staff members need to be assigned to a branch. " +
+                    "Would you like to create your first branch now?\n\n" +
+                    "Tip: Even a single-location gym needs 1 branch (e.g., 'Main Gym')."
+                );
+                if (confirmed) {
+                    window.location.href = 'branches.html';
+                }
+                return;
+            }
+
             document.getElementById('modal-title').textContent = 'Add Staff Member';
             document.getElementById('edit-id').value = '';
             document.getElementById('staff-name').value = '';
             document.getElementById('staff-email').value = '';
             document.getElementById('staff-phone').value = '';
             document.getElementById('staff-password').value = '';
-            document.getElementById('staff-branch').value = '';
+
+            // [UX-FIX] Auto-select branch if only one exists (common case for Pro plan users)
+            if (allBranches.length === 1) {
+                document.getElementById('staff-branch').value = allBranches[0].id;
+            } else {
+                document.getElementById('staff-branch').value = '';
+            }
+
             document.getElementById('staff-role').value = 'staff';
             document.getElementById('staff-custom-role').value = '';
             document.getElementById('email-group').style.display = 'block';
