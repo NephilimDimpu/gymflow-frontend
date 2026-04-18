@@ -229,7 +229,10 @@
 
     <header class="pricing-header">
         <h1>Choose Your Plan</h1>
-        <p>Unlock powerful features and scale your gym business.</p>
+        <p>Pick the right toolkit for your gym's size & ambitions. Upgrade or downgrade anytime.</p>
+        <div style="margin-top: 20px; padding: 16px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); border-radius: 12px; font-size: 13px; color: #cbd5e1;">
+            <strong>💡 Quick guide:</strong> Solo trainers → <strong>Starter</strong> | Growing gyms → <strong>Pro</strong> (most popular) | Gym chains & franchises → <strong>Elite</strong>
+        </div>
     </header>
 
     <div class="pricing-container">
@@ -238,16 +241,18 @@
             <div id="badge-starter" class="badge" style="display: none;"></div>
             <div class="card-icon">🚀</div>
             <div class="card-title">Starter</div>
-            <div class="card-desc">Essential tools for independent coaches and small gyms.</div>
+            <div class="card-desc">Perfect for solo trainers and small gyms just getting started.</div>
             <div class="price-block">
                 <span class="price-currency">₹</span><span class="price-amount">500</span><span class="price-period">/month</span>
             </div>
             <ul class="feature-list">
-                <li><span class="check">✓</span> Unlimited members</li>
-                <li><span class="check">✓</span> Membership tracking</li>
-                <li><span class="check">✓</span> Payment receipts</li>
-                <li><span class="check">✓</span> QR Check-in</li>
-                <li><span class="check">✓</span> Member portal</li>
+                <li><span class="check">✓</span> Unlimited member profiles</li>
+                <li><span class="check">✓</span> Membership & expiry tracking</li>
+                <li><span class="check">✓</span> Automated payment receipts</li>
+                <li><span class="check">✓</span> QR code check-in system</li>
+                <li><span class="check">✓</span> Member mobile app access</li>
+                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Staff management</li>
+                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Email automation</li>
             </ul>
             <button id="btn-starter" class="card-btn btn-outline" onclick="initPayment('starter')">Select Starter</button>
         </div>
@@ -257,17 +262,19 @@
             <div id="badge-pro" class="badge recommended-badge" style="display: none;">RECOMMENDED</div>
             <div class="card-icon">⚡</div>
             <div class="card-title">Pro Automation</div>
-            <div class="card-desc">The powerhouse engine for fast-growing gyms.</div>
+            <div class="card-desc">Scale your gym with automation & staff coordination. Most popular choice.</div>
             <div class="price-block">
                 <span class="price-currency">₹</span><span class="price-amount">999</span><span class="price-period">/month</span>
             </div>
             <ul class="feature-list">
                 <li><span class="check">✓</span> Everything in Starter</li>
-                <li><span class="check">✓</span> Staff management</li>
-                <li><span class="check">✓</span> Automated email reminders</li>
-                <li><span class="check">✓</span> AI receipt scanning</li>
-                <li><span class="check">✓</span> Diet & routine builder</li>
-                <li><span class="check">✓</span> Excel import/export</li>
+                <li><span class="check">✓</span> <strong>Staff management & roles</strong></li>
+                <li><span class="check">✓</span> <strong>Automated email reminders</strong> for renewals</li>
+                <li><span class="check">✓</span> <strong>AI receipt scanning</strong> from photos</li>
+                <li><span class="check">✓</span> <strong>Class schedule builder</strong> (calendar, table, board)</li>
+                <li><span class="check">✓</span> <strong>Excel import/export</strong> for bulk operations</li>
+                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Multi-branch management</li>
+                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Cross-branch analytics</li>
             </ul>
             <button id="btn-pro" class="card-btn btn-primary-gradient" onclick="initPayment('pro')">Upgrade to Pro</button>
         </div>
@@ -277,19 +284,113 @@
             <div id="badge-elite" class="badge" style="display: none;"></div>
             <div class="card-icon">👑</div>
             <div class="card-title">Elite Dashboard</div>
-            <div class="card-desc">Premium multi-branch command center for gym chains.</div>
+            <div class="card-desc">Command center for multi-branch gym chains & franchises.</div>
             <div class="price-block">
                 <span class="price-currency">₹</span><span class="price-amount">2,499</span><span class="price-period">/month</span>
             </div>
             <ul class="feature-list">
                 <li><span class="check">✓</span> Everything in Pro</li>
-                <li><span class="check">✓</span> Unlimited branches</li>
-                <li><span class="check">✓</span> Cross-branch analytics</li>
-                <li><span class="check">✓</span> Branch manager roles</li>
-                <li><span class="check">✓</span> Master attendance portal</li>
-                <li><span class="check">✓</span> Priority support</li>
+                <li><span class="check">✓</span> <strong>Unlimited branches</strong> (no per-branch limits)</li>
+                <li><span class="check">✓</span> <strong>Cross-branch analytics</strong> & insights dashboard</li>
+                <li><span class="check">✓</span> <strong>Branch manager roles</strong> with permissions</li>
+                <li><span class="check">✓</span> <strong>Master attendance portal</strong> (all branches)</li>
+                <li><span class="check">✓</span> <strong>Priority support</strong> (24/7)</li>
+                <li><span class="check">✓</span> <strong>Bulk member operations</strong> across branches</li>
+                <li><span class="check">✓</span> <strong>Advanced reporting</strong> & custom exports</li>
             </ul>
             <button id="btn-elite" class="card-btn btn-outline" onclick="initPayment('elite')">Upgrade to Elite</button>
+        </div>
+    </div>
+
+    <!-- Feature Comparison Table -->
+    <div style="max-width: 1100px; margin: 80px auto 60px; padding: 0 20px;">
+        <h2 style="text-align: center; font-size: 28px; font-weight: 800; margin-bottom: 40px; color: #f1f5f9;">Detailed Feature Comparison</h2>
+
+        <div style="overflow-x: auto; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; background: rgba(255,255,255,0.01);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06);">
+                        <th style="padding: 16px; text-align: left; color: #94a3b8; font-weight: 600;">Feature</th>
+                        <th style="padding: 16px; text-align: center; color: #fff; font-weight: 700;">🚀 Starter<br><span style="font-size: 11px; color: #94a3b8; font-weight: 400;">₹500/mo</span></th>
+                        <th style="padding: 16px; text-align: center; color: #fff; font-weight: 700;">⚡ Pro<br><span style="font-size: 11px; color: #4ade80; font-weight: 400;">Most Popular</span></th>
+                        <th style="padding: 16px; text-align: center; color: #fff; font-weight: 700;">👑 Elite<br><span style="font-size: 11px; color: #fbbf24; font-weight: 400;">₹2,499/mo</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;">Unlimited Members</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;">QR Check-in</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Staff Management</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Email Automation</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>AI Receipt Scanning</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Class Schedule Builder</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Excel Import/Export</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Unlimited Branches</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Cross-Branch Analytics</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Branch Manager Roles</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Priority Support</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 40px; padding: 24px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 12px; text-align: center;">
+            <p style="margin: 0; color: #cbd5e1; font-size: 13px;">
+                <strong>Can't decide?</strong> Start with <strong>Pro</strong> — 99% of growing gyms choose this. Upgrade to Elite later when you expand to multiple branches.
+            </p>
         </div>
     </div>
     </main>

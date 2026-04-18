@@ -76,6 +76,31 @@
                 </div>
             </header>
 
+            <!-- Your Current Plan Card -->
+            <div id="tier-card" class="glass-panel" style="margin-bottom: 40px; padding: 24px; border: 1px solid rgba(255,255,255,0.1); background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <span id="tier-icon" style="font-size: 32px;">🚀</span>
+                            <div>
+                                <h2 id="tier-name" style="margin: 0; font-size: 24px; font-weight: 800; color: #fff;">Starter Plan</h2>
+                                <p id="tier-price" style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">₹500/month</p>
+                            </div>
+                        </div>
+                        <p id="tier-desc" style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;"></p>
+                        <button class="btn btn-primary" onclick="window.location.href='upgrade-plan.html'" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                            View All Plans
+                        </button>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0 0 12px 0; font-size: 13px; text-transform: uppercase; color: #64748b; letter-spacing: 1px;">Your Tier Features</h3>
+                        <ul id="tier-features" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Features populate here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
             <!-- Plans Grid -->
             <div id="plans-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
                 <!-- Plans load here -->
@@ -176,6 +201,80 @@
 
         let allPlans = [];
 
+        // ============================================
+        // [TIER-FEATURES] Define what each tier has
+        // ============================================
+        const tierFeatures = {
+            starter: {
+                icon: '🚀',
+                name: 'Starter Plan',
+                price: '₹500/month',
+                desc: 'Essential tools for independent coaches and small gyms.',
+                features: [
+                    { name: 'Unlimited members', locked: false },
+                    { name: 'Membership tracking', locked: false },
+                    { name: 'Payment receipts', locked: false },
+                    { name: 'QR Check-in', locked: false },
+                    { name: 'Member portal', locked: false }
+                ]
+            },
+            pro: {
+                icon: '⚡',
+                name: 'Pro Automation',
+                price: '₹999/month',
+                desc: 'The powerhouse engine for fast-growing gyms.',
+                features: [
+                    { name: 'Everything in Starter', locked: false },
+                    { name: 'Staff management', locked: false },
+                    { name: 'Automated email reminders', locked: false },
+                    { name: 'AI receipt scanning', locked: false },
+                    { name: 'Class schedule & routine builder', locked: false },
+                    { name: 'Excel import/export', locked: false }
+                ]
+            },
+            elite: {
+                icon: '👑',
+                name: 'Elite Dashboard',
+                price: '₹2,499/month',
+                desc: 'Premium multi-branch command center for gym chains.',
+                features: [
+                    { name: 'Everything in Pro', locked: false },
+                    { name: 'Unlimited branches', locked: false },
+                    { name: 'Cross-branch analytics', locked: false },
+                    { name: 'Branch manager roles', locked: false },
+                    { name: 'Master attendance portal', locked: false },
+                    { name: 'Priority support', locked: false }
+                ]
+            }
+        };
+
+        function displayTierCard() {
+            const currentTier = localStorage.getItem('tier') || 'starter';
+            const tierData = tierFeatures[currentTier];
+
+            if (!tierData) return;
+
+            const tierCard = document.getElementById('tier-card');
+            const tierIcon = document.getElementById('tier-icon');
+            const tierName = document.getElementById('tier-name');
+            const tierPrice = document.getElementById('tier-price');
+            const tierDesc = document.getElementById('tier-desc');
+            const tierFeaturesList = document.getElementById('tier-features');
+
+            tierIcon.textContent = tierData.icon;
+            tierName.textContent = tierData.name;
+            tierPrice.textContent = tierData.price;
+            tierDesc.textContent = tierData.desc;
+
+            tierFeaturesList.innerHTML = tierData.features
+                .map(f => `<li style="font-size: 13px; color: #cbd5e1; display: flex; align-items: center; gap: 8px;">
+                    <span style="color: #4ade80; font-weight: 700;">✓</span> ${f.name}
+                </li>`)
+                .join('');
+
+            tierCard.style.display = 'block';
+        }
+
         async function loadPlans() {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = 'flex';
@@ -185,6 +284,7 @@
                 });
                 if (!response.ok) throw new Error('Fetch failed');
                 allPlans = await response.json();
+                displayTierCard();
                 displayPlans();
             } catch (error) {
                 showToast("Failed to load plans", "error");
@@ -318,11 +418,14 @@
 
         function exportPlansExcel() {
             const tier = localStorage.getItem('tier') || 'starter';
-            if (tier !== 'elite') {
-                if(confirm("Elite Upgrade Required: Unlock Excel Exports with our Elite tier!")) {
+            if (tier === 'starter') {
+                if(confirm("📊 Excel Export is a PRO feature!\n\nUpgrade to Pro or Elite to unlock this capability.")) {
                     window.location.href = 'upgrade-plan.html';
                 }
                 return;
+            }
+            if (tier === 'pro') {
+                // Pro has this, so allow export
             }
             
             // Format data for SheetJS
