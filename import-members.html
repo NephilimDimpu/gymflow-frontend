@@ -293,8 +293,40 @@
         }
 
         async function submitCSVImport() {
+            const errorsDiv = document.getElementById('csv-errors');
+            errorsDiv.textContent = '';
+
+            // [VALIDATION] Pre-check CSV columns before sending to backend
+            if (!csvDataToImport || csvDataToImport.length === 0) {
+                errorsDiv.innerHTML = '⚠️ No data to import. Please select a CSV file first.';
+                return;
+            }
+
+            const firstRow = csvDataToImport[0];
+            const requiredCols = ['name', 'phone', 'plan_id'];
+            const missingCols = requiredCols.filter(col => !(col in firstRow));
+            if (missingCols.length > 0) {
+                errorsDiv.innerHTML = `❌ <strong>Missing columns:</strong> ${missingCols.join(', ')}<br>
+                    Your CSV must have these exact lowercase column headers:<br>
+                    <code>name, phone, email, plan_id, payment_received</code>`;
+                return;
+            }
+
+            // [VALIDATION] Check rows for invalid data
+            const rowErrors = [];
+            csvDataToImport.forEach((row, i) => {
+                if (!row.name) rowErrors.push(`Row ${i + 1}: Missing name`);
+                if (!row.phone) rowErrors.push(`Row ${i + 1}: Missing phone`);
+                if (!row.plan_id || isNaN(parseInt(row.plan_id))) {
+                    rowErrors.push(`Row ${i + 1}: Invalid plan_id "${row.plan_id}"`);
+                }
+            });
+            if (rowErrors.length > 0) {
+                errorsDiv.innerHTML = '❌ <strong>Row errors:</strong><br>' + rowErrors.slice(0, 5).join('<br>');
+                return;
+            }
+
             try {
-                // Map the string fields to appropriate types
                 const formattedMembers = csvDataToImport.map(row => ({
                     name: row.name,
                     phone: row.phone,
@@ -314,7 +346,18 @@
 
                 const data = await response.json();
 
-                if (!response.ok) throw new Error(data.detail || 'Import failed');
+                if (!response.ok) {
+                    // [FIX] Handle FastAPI validation errors (which are arrays of objects)
+                    let errorMsg = 'Import failed';
+                    if (Array.isArray(data.detail)) {
+                        errorMsg = data.detail.map(e => `${e.loc?.join('.') || 'field'}: ${e.msg}`).join(' | ');
+                    } else if (typeof data.detail === 'string') {
+                        errorMsg = data.detail;
+                    } else if (data.detail) {
+                        errorMsg = JSON.stringify(data.detail);
+                    }
+                    throw new Error(errorMsg);
+                }
 
                 let msg = `✅ ${data.message}`;
                 if (data.errors && data.errors.length > 0) {
@@ -327,7 +370,7 @@
                 }
 
             } catch (error) {
-                document.getElementById('csv-errors').textContent = error.message;
+                errorsDiv.innerHTML = `❌ ${error.message}`;
             }
         }
 
@@ -335,6 +378,13 @@
         async function handleImageSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
+
+            // [VALIDATION] Check file size (Vercel has a 4.5MB body limit)
+            if (file.size > 4 * 1024 * 1024) {
+                showToast('❌ Image too large (>4MB). Please compress it or use a smaller photo.', 'error');
+                event.target.value = '';
+                return;
+            }
 
             document.getElementById('ocr-result').style.display = 'none';
             document.getElementById('ocr-loading').style.display = 'block';
@@ -349,8 +399,25 @@
                     body: formData
                 });
 
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'Extraction failed');
+                // [FIX] Handle non-JSON responses (e.g. Vercel timeout returns HTML)
+                let data;
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(`Server returned non-JSON response (${response.status}): ${text.slice(0, 100)}`);
+                }
+
+                if (!response.ok) {
+                    let errorMsg = 'Extraction failed';
+                    if (typeof data.detail === 'string') {
+                        errorMsg = data.detail;
+                    } else if (Array.isArray(data.detail)) {
+                        errorMsg = data.detail.map(e => e.msg || JSON.stringify(e)).join(' | ');
+                    }
+                    throw new Error(errorMsg);
+                }
 
                 // Fill form
                 document.getElementById('ocr-name').value = data.parsed.name || '';
@@ -361,7 +428,12 @@
                 document.getElementById('ocr-result').style.display = 'block';
 
             } catch (error) {
-                showToast(`❌ Failed to extract text: ${error.message}`, 'error');
+                let helpMsg = error.message;
+                if (helpMsg === 'Failed to fetch' || helpMsg.includes('NetworkError')) {
+                    helpMsg = 'Network error — likely the backend is unreachable. Check: (1) Vercel deployment is live, (2) GEMINI_API_KEY env var is set in Vercel backend settings, (3) Image isn\'t too large.';
+                }
+                showToast(`❌ ${helpMsg}`, 'error');
+                console.error('[OCR-ERROR]', error);
                 document.getElementById('ocr-loading').style.display = 'none';
             }
         }
