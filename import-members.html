@@ -117,8 +117,13 @@
         <div id="tab-csv" class="tab-content active">
             <div class="glass-panel" style="padding: 30px;">
                 <p style="color: #6b7280; margin-bottom: 20px;">
-                    Upload a CSV file containing members. The columns must be exactly: <strong>name, phone, email,
-                        plan_id, payment_received (true/false)</strong>.
+                    Upload a CSV file containing members. Required columns: <strong>name, phone</strong>.
+                    Optional columns: <strong>email, plan_name</strong> (e.g. "Monthly") <em>or</em> <strong>plan_id</strong>,
+                    <strong>payment_received</strong> (true/false).<br>
+                    <span style="color:#9ca3af; font-size:13px;">💡 Tip: Using <code>plan_name</code> is easier — just type the plan name exactly as it appears on your Plans page.</span>
+                </p>
+                <p style="margin-bottom: 15px;">
+                    <a href="sample-members.csv" download style="color:#60a5fa; font-size:14px;">⬇️ Download sample CSV</a>
                 </p>
                 <div class="upload-area" onclick="document.getElementById('csv-file').click()">
                     <h3 style="margin-bottom: 8px;">Click to select CSV file</h3>
@@ -135,7 +140,7 @@
                                     <th>Name</th>
                                     <th>Phone</th>
                                     <th>Email</th>
-                                    <th>Plan ID</th>
+                                    <th>Plan</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -278,7 +283,7 @@
                     <td>${row.name || '-'}</td>
                     <td>${row.phone || '-'}</td>
                     <td>${row.email || '-'}</td>
-                    <td>${row.plan_id || '-'}</td>
+                    <td>${row.plan_name || row.plan_id || '-'}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -303,23 +308,28 @@
             }
 
             const firstRow = csvDataToImport[0];
-            const requiredCols = ['name', 'phone', 'plan_id'];
+            const requiredCols = ['name', 'phone'];
             const missingCols = requiredCols.filter(col => !(col in firstRow));
             if (missingCols.length > 0) {
                 errorsDiv.innerHTML = `❌ <strong>Missing columns:</strong> ${missingCols.join(', ')}<br>
-                    Your CSV must have these exact lowercase column headers:<br>
-                    <code>name, phone, email, plan_id, payment_received</code>`;
+                    Your CSV must have (at minimum) these lowercase column headers:<br>
+                    <code>name, phone</code> &nbsp;— plus either <code>plan_name</code> or <code>plan_id</code>.`;
+                return;
+            }
+
+            const hasPlanCol = ('plan_name' in firstRow) || ('plan_id' in firstRow);
+            if (!hasPlanCol) {
+                errorsDiv.innerHTML = `❌ CSV must include a <code>plan_name</code> or <code>plan_id</code> column.`;
                 return;
             }
 
             // [VALIDATION] Check rows for invalid data
             const rowErrors = [];
             csvDataToImport.forEach((row, i) => {
-                if (!row.name) rowErrors.push(`Row ${i + 1}: Missing name`);
-                if (!row.phone) rowErrors.push(`Row ${i + 1}: Missing phone`);
-                if (!row.plan_id || isNaN(parseInt(row.plan_id))) {
-                    rowErrors.push(`Row ${i + 1}: Invalid plan_id "${row.plan_id}"`);
-                }
+                if (!row.name || !row.name.trim()) rowErrors.push(`Row ${i + 1}: Missing name`);
+                if (!row.phone || !String(row.phone).trim()) rowErrors.push(`Row ${i + 1}: Missing phone`);
+                const hasPlan = (row.plan_name && row.plan_name.trim()) || (row.plan_id && !isNaN(parseInt(row.plan_id)));
+                if (!hasPlan) rowErrors.push(`Row ${i + 1}: Missing plan_name or plan_id`);
             });
             if (rowErrors.length > 0) {
                 errorsDiv.innerHTML = '❌ <strong>Row errors:</strong><br>' + rowErrors.slice(0, 5).join('<br>');
@@ -327,13 +337,17 @@
             }
 
             try {
-                const formattedMembers = csvDataToImport.map(row => ({
-                    name: row.name,
-                    phone: row.phone,
-                    email: row.email || null,
-                    plan_id: parseInt(row.plan_id),
-                    payment_received: row.payment_received === 'true' || row.payment_received === '1'
-                }));
+                const formattedMembers = csvDataToImport.map(row => {
+                    const m = {
+                        name: (row.name || '').trim(),
+                        phone: String(row.phone || '').trim(),
+                        email: row.email ? row.email.trim() : null,
+                        payment_received: String(row.payment_received).toLowerCase() === 'true' || row.payment_received === '1'
+                    };
+                    if (row.plan_id && !isNaN(parseInt(row.plan_id))) m.plan_id = parseInt(row.plan_id);
+                    if (row.plan_name && row.plan_name.trim()) m.plan_name = row.plan_name.trim();
+                    return m;
+                });
 
                 const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk`, {
                     method: 'POST',
