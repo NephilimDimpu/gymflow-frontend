@@ -191,7 +191,18 @@
                 </button>
             </div>
 
-            <!-- ============ STAFF PANEL ============ -->
+            <!-- ============ STAFF PANEL (Elite only) ============ -->
+            <!-- Upgrade nudge shown to Starter/Pro users -->
+            <div id="staff-upgrade-nudge" style="display:none; padding: 48px 24px; text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 12px;">🛡️</div>
+                <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Staff Attendance Tracking</h3>
+                <p style="color: var(--text-muted); font-size: 14px; max-width: 420px; margin: 0 auto 24px;">
+                    Adding and tracking staff requires the <strong>Pro</strong> or <strong>Elite</strong> plan.<br><br>
+                    Your <strong>member check-ins are tracked automatically</strong> — switch to the Members tab to see them.
+                </p>
+                <a href="upgrade-plan.html" class="btn btn-primary" style="padding: 12px 28px; font-weight: 700;">⭐ Upgrade</a>
+            </div>
+
             <div class="att-panel active" id="panel-staff">
                 <div class="filter-bar">
                     <select id="staff-branch-filter" onchange="loadStaffAttendance()">
@@ -264,10 +275,26 @@
     <script>
         const token = localStorage.getItem('auth_token');
         const userRole = localStorage.getItem('role') || 'owner';
-        
+        const gymTier = localStorage.getItem('tier') || 'starter';
+
         if (!token) window.location.href = 'login.html';
         if (userRole === 'staff' || userRole === 'customer') {
             window.location.href = userRole === 'staff' ? 'staff-dashboard.html' : 'customer-dashboard.html';
+        }
+
+        // [TIER-GATE] Staff attendance requires staff management (Pro + Elite only)
+        // Starter has no staff management, so hide the Staff tab and show upgrade nudge
+        const hasStaffAccess = gymTier === 'pro' || gymTier === 'elite';
+        if (!hasStaffAccess) {
+            // Hide Staff tab button
+            document.getElementById('tab-staff').style.display = 'none';
+            // Show upgrade nudge instead of the staff table
+            document.getElementById('staff-upgrade-nudge').style.display = 'block';
+            document.getElementById('panel-staff').style.display = 'none';
+            // Default active tab to Members
+            document.getElementById('tab-members').classList.add('active');
+            document.getElementById('panel-members').classList.add('active');
+            document.getElementById('tab-staff').classList.remove('active');
         }
 
         // ============================================
@@ -311,8 +338,14 @@
         // [JS-TAB-SWITCH]
         // ============================================
         function switchTab(tab) {
+            // Block Staff tab for non-Elite users
+            if (tab === 'staff' && !hasStaffAccess) {
+                document.getElementById('staff-upgrade-nudge').style.display = 'block';
+                return;
+            }
             document.querySelectorAll('.att-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.att-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('staff-upgrade-nudge').style.display = 'none';
             document.getElementById(`tab-${tab}`).classList.add('active');
             document.getElementById(`panel-${tab}`).classList.add('active');
         }
