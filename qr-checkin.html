@@ -129,7 +129,11 @@
 
                 if (!res.ok) {
                     const err = await res.json();
-                    showResult('error', '❌', 'Not Found', err.detail || 'No member found.', '');
+                    if (res.status === 403) {
+                        showResult('error', '🔒', 'Check-in Unavailable', err.detail || 'This gym\'s plan does not include QR check-in.', '');
+                    } else {
+                        showResult('error', '❌', 'Not Found', err.detail || 'No member found.', '');
+                    }
                     return;
                 }
 

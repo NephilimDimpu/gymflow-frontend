@@ -326,21 +326,11 @@
         if (!token) window.location.href = 'login.html';
         if (userType === 'staff') window.location.href = 'dashboard.html';
 
-        // [TIER-GATE] Staff management = Pro/Elite only
+        // [TIER-GATE] Staff management = Elite only (requires branches)
         const gymTier = localStorage.getItem('tier') || 'starter';
-        if (gymTier === 'starter') {
+        const isTierGated = gymTier !== 'elite';
+        if (isTierGated) {
             document.getElementById('tier-gate-banner').style.display = 'block';
-            document.getElementById('tier-gate-banner').innerHTML = `
-                <div style="font-size: 48px; margin-bottom: 16px;">🛡️</div>
-                <h2 style="font-size: 28px; font-weight: 700; margin-bottom: 12px;">Staff Management</h2>
-                <p style="color: var(--text-muted); font-size: 15px; max-width: 480px; margin: 0 auto 32px;">
-                    Manage branch managers and trainers across your locations. <br>
-                    This feature is available on the <strong>Pro Plan</strong> and above.
-                </p>
-                <a href="upgrade-plan.html" class="btn btn-primary" style="padding: 14px 36px; font-size: 16px; font-weight: 700;">
-                    ⭐ Upgrade to Pro
-                </a>
-            `;
             document.getElementById('staff-main-content').style.display = 'none';
         }
 
@@ -616,8 +606,10 @@
             }
         }
 
-        loadBranches();
-        loadStaff();
+        if (!isTierGated) {
+            loadBranches();
+            loadStaff();
+        }
     </script>
 </body>
 

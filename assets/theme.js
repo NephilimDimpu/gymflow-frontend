@@ -13,12 +13,29 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.body.setAttribute('data-tier', userTier);
         
-        // Hide Branches navigation link for non-Elite users to avoid UI clutter
-        if (userTier !== 'elite') {
-            const branchLinks = document.querySelectorAll('a[href="branches.html"]');
-            branchLinks.forEach(link => {
-                link.style.display = 'none';
+        // [TIER-NAV-HIDING — Option A]
+        const hideSelectors = (selectors) => {
+            selectors.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => { el.style.display = 'none'; });
             });
+        };
+
+        // Elite-only features: Branches + Staff management
+        if (userTier !== 'elite') {
+            hideSelectors([
+                'a[href="branches.html"]',
+                'a[href="staff.html"]'
+            ]);
+        }
+
+        // Pro+Elite features: Attendance, Kiosk, QR check-in
+        // Starter has no attendance at all
+        if (userTier === 'starter' || !userTier) {
+            hideSelectors([
+                'a[href="attendance.html"]',
+                'a[href="kiosk.html"]',
+                'a[href="qr-checkin.html"]'
+            ]);
         }
     });
 

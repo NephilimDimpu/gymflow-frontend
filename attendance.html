@@ -174,6 +174,20 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- [TIER-GATE-STARTER] Attendance fully locked on Starter -->
+            <div id="starter-gate" style="display:none; text-align:center; padding: 80px 40px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🕘</div>
+                <h2 style="font-size: 28px; font-weight: 700; margin-bottom: 12px;">Attendance Tracking</h2>
+                <p style="color: var(--text-muted); font-size: 15px; max-width: 480px; margin: 0 auto 32px;">
+                    Track member check-ins (kiosk &amp; QR) on the <strong>Pro plan</strong>.<br>
+                    Add staff attendance tracking with the <strong>Elite plan</strong>.
+                </p>
+                <a href="upgrade-plan.html" class="btn btn-primary" style="padding: 14px 36px; font-size: 16px; font-weight: 700;">
+                    ⭐ Upgrade to Pro
+                </a>
+            </div>
+
+            <div id="attendance-main">
             <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
                 <div>
                     <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">🕘 Attendance</h1>
@@ -197,7 +211,7 @@
                 <div style="font-size: 40px; margin-bottom: 12px;">🛡️</div>
                 <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Staff Attendance Tracking</h3>
                 <p style="color: var(--text-muted); font-size: 14px; max-width: 420px; margin: 0 auto 24px;">
-                    Adding and tracking staff requires the <strong>Pro</strong> or <strong>Elite</strong> plan.<br><br>
+                    Adding and tracking staff requires the <strong>Elite</strong> plan.<br><br>
                     Your <strong>member check-ins are tracked automatically</strong> — switch to the Members tab to see them.
                 </p>
                 <a href="upgrade-plan.html" class="btn btn-primary" style="padding: 12px 28px; font-weight: 700;">⭐ Upgrade</a>
@@ -269,6 +283,7 @@
             <div id="loading-overlay" class="spinner-overlay" style="display: none;">
                 <div class="glass-spinner"></div>
             </div>
+            </div><!-- end #attendance-main -->
         </main>
     </div>
 
@@ -282,19 +297,24 @@
             window.location.href = userRole === 'staff' ? 'staff-dashboard.html' : 'customer-dashboard.html';
         }
 
-        // [TIER-GATE] Staff attendance requires staff management (Pro + Elite only)
-        // Starter has no staff management, so hide the Staff tab and show upgrade nudge
-        const hasStaffAccess = gymTier === 'pro' || gymTier === 'elite';
-        if (!hasStaffAccess) {
-            // Hide Staff tab button
+        // [TIER-GATE — Option A]
+        //   Starter: no attendance at all — full-page block
+        //   Pro:     member attendance only (hide Staff tab)
+        //   Elite:   both tabs
+        const hasMemberAttendance = gymTier === 'pro' || gymTier === 'elite';
+        const hasStaffAccess = gymTier === 'elite';
+
+        if (!hasMemberAttendance) {
+            document.getElementById('starter-gate').style.display = 'block';
+            document.getElementById('attendance-main').style.display = 'none';
+        } else if (!hasStaffAccess) {
+            // Pro: hide Staff tab, default to Members
             document.getElementById('tab-staff').style.display = 'none';
-            // Show upgrade nudge instead of the staff table
             document.getElementById('staff-upgrade-nudge').style.display = 'block';
-            document.getElementById('panel-staff').style.display = 'none';
-            // Default active tab to Members
+            document.getElementById('panel-staff').classList.remove('active');
+            document.getElementById('tab-staff').classList.remove('active');
             document.getElementById('tab-members').classList.add('active');
             document.getElementById('panel-members').classList.add('active');
-            document.getElementById('tab-staff').classList.remove('active');
         }
 
         // ============================================
@@ -538,8 +558,9 @@
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
         async function initAttendance() {
+            if (!hasMemberAttendance) return; // Starter — page is fully gated
             await loadBranches();
-            loadStaffAttendance();
+            if (hasStaffAccess) loadStaffAttendance();
             loadMemberAttendance();
         }
         initAttendance();
