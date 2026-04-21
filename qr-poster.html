@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Check-In Poster - GymFlow</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    <!-- QR rendering lib (tiny, ~20kb) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        .poster-wrap { max-width: 880px; margin: 0 auto; }
+        .controls {
+            display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+        }
+        .controls label { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+        .controls select {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; min-width: 220px;
+        }
+
+        .poster {
+            background: #ffffff; color: #0f172a;
+            border-radius: 20px; padding: 56px 48px; text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            aspect-ratio: 3 / 4; max-width: 680px; margin: 0 auto;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+        }
+        .poster h1 { font-size: 48px; font-weight: 900; letter-spacing: -1.5px; color: #0f172a; margin: 0; }
+        .poster .tagline { font-size: 20px; color: #64748b; margin-top: 8px; font-weight: 500; }
+        .poster .gym-name { font-size: 32px; font-weight: 800; color: #0f172a; margin-top: 8px; }
+        .poster .branch-name {
+            display: inline-block; background: #0f172a; color: #fff;
+            padding: 8px 20px; border-radius: 999px; font-size: 14px; font-weight: 700;
+            letter-spacing: 1px; text-transform: uppercase; margin-top: 12px;
+        }
+        .qr-canvas {
+            background: #fff; padding: 20px; border-radius: 12px;
+            display: inline-block; border: 4px solid #0f172a;
+        }
+        #qrcode img, #qrcode canvas { display: block; margin: 0 auto; }
+        .poster .instructions {
+            text-align: left; background: #f1f5f9; padding: 20px 28px; border-radius: 12px;
+            width: 100%; max-width: 420px;
+        }
+        .poster .instructions ol { margin: 0; padding-left: 22px; font-size: 15px; color: #334155; line-height: 1.8; }
+        .poster .url-small {
+            font-size: 11px; color: #94a3b8; word-break: break-all; margin-top: 12px;
+            font-family: 'Consolas', monospace;
+        }
+
+        /* Print: poster only, everything else hidden */
+        @media print {
+            body { background: #fff !important; }
+            .sidebar, .controls, #page-header, .print-hide { display: none !important; }
+            .main-content { padding: 0 !important; }
+            .poster {
+                box-shadow: none; max-width: 100%; width: 100%;
+                page-break-inside: avoid; border-radius: 0;
+            }
+        }
+
+        .staff-qr-teaser {
+            margin-top: 40px; padding: 24px;
+            background: linear-gradient(135deg, rgba(251,191,36,0.08), rgba(245,158,11,0.08));
+            border: 1px dashed rgba(251,191,36,0.3); border-radius: 12px; text-align: center;
+        }
+        .staff-qr-teaser h3 { color: #fbbf24; font-size: 16px; margin: 0 0 6px 0; }
+        .staff-qr-teaser p { color: var(--text-muted); font-size: 13px; margin: 0; }
+    </style>
+</head>
+<body>
+<div class="main-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo">💪 GymFlow</div>
+        <nav id="sidebar-nav">
+            <a href="dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
+            <a href="members.html" class="nav-link"><span>👥</span> Members</a>
+            <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
+            <a href="staff.html" class="nav-link"><span>🛡️</span> Staff</a>
+            <a href="branches.html" class="nav-link"><span>📍</span> Branches</a>
+            <a href="attendance.html" class="nav-link active"><span>🕘</span> Attendance</a>
+            <a href="routines.html" class="nav-link"><span>📋</span> Routines</a>
+            <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                <a href="settings.html" class="nav-link"><span>⚙️</span> Settings</a>
+                <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;"><span>⭐</span> Upgrade</a>
+                <a href="#" class="nav-link" onclick="logout()"><span>🚪</span> Logout</a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="poster-wrap">
+            <header id="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <div>
+                    <h1 style="font-size: 28px; letter-spacing: -1px; margin-bottom: 4px;">🖨️ Member Check-In QR Poster</h1>
+                    <p style="font-size: 13px; color: var(--text-muted);">Print this poster and display it at your gym entrance. Members scan to check in.</p>
+                </div>
+                <div style="display: flex; gap: 10px;" class="print-hide">
+                    <button class="btn btn-secondary" onclick="copyLink()">🔗 Copy Link</button>
+                    <button class="btn btn-primary" onclick="window.print()">🖨️ Print</button>
+                </div>
+            </header>
+
+            <!-- Starter tier-gate -->
+            <div id="tier-gate" style="display:none; text-align:center; padding: 80px 40px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
+                <h2 style="font-size: 26px; font-weight: 700; margin-bottom: 12px;">QR Check-In Not Available</h2>
+                <p style="color: var(--text-muted); font-size: 15px; max-width: 480px; margin: 0 auto 32px;">
+                    Member QR check-in requires the <strong>Pro plan</strong> or above.
+                </p>
+                <a href="upgrade-plan.html" class="btn btn-primary" style="padding: 14px 36px; font-weight: 700;">⭐ Upgrade to Pro</a>
+            </div>
+
+            <!-- Branch picker (Elite only; Pro auto-selects their one branch) -->
+            <div id="branch-controls" class="controls print-hide" style="display:none;">
+                <label>Branch:</label>
+                <select id="branch-select" onchange="renderPoster()"></select>
+                <span style="font-size: 12px; color: var(--text-muted); margin-left: auto;">
+                    💡 Add or rename branches on the <a href="branches.html" style="color: #60a5fa;">Branches</a> page.
+                </span>
+            </div>
+
+            <!-- The poster -->
+            <div id="poster" class="poster" style="display:none;">
+                <div>
+                    <h1>SCAN TO CHECK IN</h1>
+                    <div class="tagline">Welcome — you're almost in 💪</div>
+                    <div class="gym-name" id="p-gym-name">Your Gym</div>
+                    <div class="branch-name" id="p-branch-name">BRANCH</div>
+                </div>
+
+                <div class="qr-canvas">
+                    <div id="qrcode"></div>
+                </div>
+
+                <div>
+                    <div class="instructions">
+                        <ol>
+                            <li>Open your phone's camera</li>
+                            <li>Point it at this QR code</li>
+                            <li>Tap the link &amp; enter your phone number</li>
+                        </ol>
+                    </div>
+                    <div class="url-small" id="p-url">—</div>
+                </div>
+            </div>
+
+            <!-- Staff QR teaser (Elite only) -->
+            <div id="staff-teaser" class="staff-qr-teaser print-hide" style="display:none;">
+                <h3>🛡️ Staff QR Check-In — Coming Soon</h3>
+                <p>A separate QR poster for staff shift check-ins is on the roadmap. For now, staff check in from their own dashboard after logging in.</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const token = localStorage.getItem('auth_token');
+    const userType = localStorage.getItem('user_type');
+    const gymTier = localStorage.getItem('tier') || 'starter';
+    const userRole = localStorage.getItem('role') || 'owner';
+
+    if (!token) window.location.href = 'login.html';
+    if (userType === 'staff') window.location.href = 'dashboard.html';
+
+    // [TIER-GATE] Member attendance requires Pro or Elite
+    const hasMemberAttendance = gymTier === 'pro' || gymTier === 'elite';
+    if (!hasMemberAttendance) {
+        document.getElementById('tier-gate').style.display = 'block';
+        document.getElementById('page-header').style.display = 'none';
+    }
+
+    let allBranches = [];
+    let currentQRCode = null;
+
+    async function init() {
+        if (!hasMemberAttendance) return;
+
+        try {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/branches`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Could not load branches');
+            allBranches = await res.json();
+        } catch (err) {
+            showToast('Failed to load branches', 'error');
+            return;
+        }
+
+        if (allBranches.length === 0) {
+            showToast('No branches found. Create a default branch first.', 'error');
+            return;
+        }
+
+        const select = document.getElementById('branch-select');
+        select.innerHTML = allBranches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+        // Elite: show branch picker + staff QR teaser
+        // Pro: auto-select single branch, hide picker (they only have one)
+        if (gymTier === 'elite') {
+            document.getElementById('branch-controls').style.display = 'flex';
+            document.getElementById('staff-teaser').style.display = 'block';
+        }
+
+        // Deep link: ?branch=id pre-selects that branch
+        const urlBranchId = new URLSearchParams(window.location.search).get('branch');
+        if (urlBranchId && allBranches.some(b => String(b.id) === urlBranchId)) {
+            select.value = urlBranchId;
+        }
+
+        // Managers: scope to their assigned branch
+        const managerBranchId = localStorage.getItem('branch_id');
+        if (userRole === 'manager' && managerBranchId) {
+            select.value = managerBranchId;
+            document.getElementById('branch-controls').style.display = 'none';
+        }
+
+        renderPoster();
+    }
+
+    async function renderPoster() {
+        const branchId = document.getElementById('branch-select').value || allBranches[0]?.id;
+        if (!branchId) return;
+
+        try {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin/qr-data/${branchId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to load QR data');
+            }
+            const data = await res.json();
+
+            document.getElementById('p-gym-name').textContent = data.gym_name;
+            document.getElementById('p-branch-name').textContent = data.branch_name;
+            document.getElementById('p-url').textContent = data.checkin_url;
+
+            // Render QR
+            const qrWrap = document.getElementById('qrcode');
+            qrWrap.innerHTML = '';
+            currentQRCode = new QRCode(qrWrap, {
+                text: data.checkin_url,
+                width: 280,
+                height: 280,
+                colorDark: '#0f172a',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('poster').style.display = 'flex';
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    }
+
+    function copyLink() {
+        const url = document.getElementById('p-url').textContent;
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('Check-in link copied to clipboard!', 'success');
+        }).catch(() => {
+            prompt('Copy this link:', url);
+        });
+    }
+
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    init();
+</script>
+</body>
+</html>

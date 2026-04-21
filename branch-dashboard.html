@@ -460,13 +460,8 @@
         }
 
         function copyQRLink() {
-            const branchId = localStorage.getItem('branch_id') || '';
-            const url = `${CONFIG.FRONTEND_URL}/qr-checkin.html?branch=${branchId}`;
-            navigator.clipboard.writeText(url).then(() => {
-                showToast('QR check-in link copied to clipboard!', 'success');
-            }).catch(() => {
-                prompt('Copy this link:', url);
-            });
+            // Route to the printable QR poster page (auto-scoped to manager's branch)
+            window.location.href = 'qr-poster.html';
         }
 
         loadGymTraffic();

@@ -34,7 +34,8 @@
             hideSelectors([
                 'a[href="attendance.html"]',
                 'a[href="kiosk.html"]',
-                'a[href="qr-checkin.html"]'
+                'a[href="qr-checkin.html"]',
+                'a[href="qr-poster.html"]'
             ]);
         }
     });

@@ -345,9 +345,14 @@
                         </div>
                         ` : ''}
 
-                        <button class="btn btn-secondary" style="width: 100%; margin-top: 16px; background: rgba(255,255,255,0.05);" onclick="window.location.href='dashboard.html?branch_id=${b.id}'">
-                            📊 View Branch Dashboard
-                        </button>
+                        <div style="display: flex; gap: 8px; margin-top: 16px;">
+                            <button class="btn btn-secondary" style="flex: 1; background: rgba(255,255,255,0.05);" onclick="window.location.href='dashboard.html?branch_id=${b.id}'">
+                                📊 Dashboard
+                            </button>
+                            <button class="btn btn-secondary" style="flex: 1; background: rgba(59,130,246,0.1); color: #60a5fa;" onclick="window.location.href='qr-poster.html?branch=${b.id}'">
+                                🖨️ QR Poster
+                            </button>
+                        </div>
                     </div>
                 `).join('');
             } catch (err) { 
