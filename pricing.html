@@ -399,8 +399,23 @@
             text-align: center;
             margin-top: auto;
         }
+        /* [LANDING-PAGE-LOCK] Force light-theme typography — public page must NOT
+           inherit the authenticated user's dark-theme palette from theme.js. */
+        .card-title {
+            color: #0f172a !important;
+            -webkit-text-fill-color: #0f172a !important;
+            background: none !important;
+        }
+        .card-desc { color: #64748b !important; }
+        .card-price { color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; }
+        .feature-list li { color: #475569 !important; }
+        .premium-feature { color: #0f172a !important; }
+        .faq-title { color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; }
+        .faq-question { color: #0f172a !important; }
     </style>
-    <script src="assets/theme.js"></script>
+    <!-- NOTE: theme.js intentionally NOT loaded here. This is a public landing
+         page — it must render in its own light palette regardless of which
+         tier the visitor's account uses. -->
 </head>
 
 <body>
@@ -502,22 +517,27 @@
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Member Check-in (Kiosk &amp; QR)</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
                     </svg> Automated Email Reminders</li>
                 <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg> Advanced Analytics Dashboard</li>
-                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg> Sub-Admin Roles (Staff)</li>
-                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
                     </svg> AI Bulk Receipt Scanner (OCR)</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Class Schedule Builder</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Excel Import/Export</li>
             </ul>
         </div>
 
@@ -541,7 +561,12 @@
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg> Multi-Branch Master Dashboard</li>
+                    </svg> Staff Management &amp; Roles</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Multi-Branch Management</li>
                 <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
@@ -551,7 +576,12 @@
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg> API Access</li>
+                    </svg> Branch Manager Roles</li>
+                <li class="premium-feature"><svg class="check-icon" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg> Priority Support (24/7)</li>
             </ul>
         </div>
 
