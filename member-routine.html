@@ -76,17 +76,22 @@
     <script>
         const params = new URLSearchParams(window.location.search);
         const branchId = params.get('branch');
+        const gymId = params.get('gym');
         const container = document.getElementById('content-container');
 
         async function loadRoutine() {
-            if (!branchId) {
-                container.innerHTML = '<div class="error-state">❌ Invalid Link. Branch not specified.</div>';
+            if (!branchId && !gymId) {
+                container.innerHTML = '<div class="error-state">❌ Invalid Link. No gym or branch specified.</div>';
                 return;
             }
 
+            // Pro (gym-wide): ?gym={id}  ·  Elite (branch-specific): ?branch={id}
+            const endpoint = gymId
+                ? `${CONFIG.API_BASE_URL}/api/public/routine-board/gym/${gymId}`
+                : `${CONFIG.API_BASE_URL}/api/public/routine-board/${branchId}`;
+
             try {
-                // Call public endpoint
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/public/routine-board/${branchId}`);
+                const res = await fetch(endpoint);
                 
                 if (res.status === 404 || res.status === 500) {
                     container.innerHTML = '<div class="error-state">❌ Server Error: The routine system is currently offline or updating. Please try again later.</div>';
@@ -94,7 +99,7 @@
                 }
 
                 if (!res.ok || res.status === 204) {
-                    container.innerHTML = '<div class="loading-state" style="color:#94a3b8;">📅 No routine uploaded for this branch yet.</div>';
+                    container.innerHTML = '<div class="loading-state" style="color:#94a3b8;">📅 No routine uploaded yet. Check back soon!</div>';
                     return;
                 }
 
@@ -114,7 +119,7 @@
                         </div>
                     `;
                 } else {
-                    container.innerHTML = '<div class="loading-state" style="color:#94a3b8;">📅 No routine uploaded for this branch yet.</div>';
+                    container.innerHTML = '<div class="loading-state" style="color:#94a3b8;">📅 No routine uploaded yet. Check back soon!</div>';
                 }
             } catch (err) {
                 console.error(err);

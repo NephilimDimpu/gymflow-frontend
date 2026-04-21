@@ -640,7 +640,15 @@
 
         function copyMemberRoutineLink() {
             const branchId = document.getElementById('board-branch').value || '0';
-            const url = `${CONFIG.FRONTEND_URL}/member-routine.html?branch=${branchId}`;
+            // branch_id=0 = gym-wide (Pro). Share a gym-scoped link so the viewer
+            // can resolve it without needing a real branch.
+            let url;
+            if (branchId === '0') {
+                const gymId = localStorage.getItem('gym_id') || '';
+                url = `${CONFIG.FRONTEND_URL}/member-routine.html?gym=${gymId}`;
+            } else {
+                url = `${CONFIG.FRONTEND_URL}/member-routine.html?branch=${branchId}`;
+            }
             navigator.clipboard.writeText(url).then(() => {
                 showToast('Member routine link copied to clipboard!', 'success');
             }).catch(() => {
