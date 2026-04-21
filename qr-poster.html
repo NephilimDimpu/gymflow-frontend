@@ -30,13 +30,32 @@
             aspect-ratio: 3 / 4; max-width: 680px; margin: 0 auto;
             display: flex; flex-direction: column; align-items: center; justify-content: space-between;
         }
-        .poster h1 { font-size: 48px; font-weight: 900; letter-spacing: -1.5px; color: #0f172a; margin: 0; }
-        .poster .tagline { font-size: 20px; color: #64748b; margin-top: 8px; font-weight: 500; }
-        .poster .gym-name { font-size: 32px; font-weight: 800; color: #0f172a; margin-top: 8px; }
+        .poster h1.poster-title {
+            font-size: 48px !important;
+            font-weight: 900 !important;
+            letter-spacing: -1.5px !important;
+            color: #0f172a !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            background-image: none !important;
+            -webkit-text-fill-color: #0f172a !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            text-shadow: none !important;
+            line-height: 1.1 !important;
+            display: block !important;
+        }
+        .poster .tagline { font-size: 20px !important; color: #64748b !important; margin-top: 8px !important; font-weight: 500 !important; }
+        .poster .gym-name { font-size: 32px !important; font-weight: 800 !important; color: #0f172a !important; margin-top: 8px !important; }
         .poster .branch-name {
-            display: inline-block; background: #0f172a; color: #fff;
-            padding: 8px 20px; border-radius: 999px; font-size: 14px; font-weight: 700;
-            letter-spacing: 1px; text-transform: uppercase; margin-top: 12px;
+            display: inline-block !important;
+            background: #0f172a !important;
+            color: #fff !important;
+            -webkit-text-fill-color: #fff !important;
+            padding: 8px 20px !important; border-radius: 999px !important;
+            font-size: 14px !important; font-weight: 700 !important;
+            letter-spacing: 1px !important; text-transform: uppercase !important;
+            margin-top: 12px !important;
         }
         .qr-canvas {
             background: #fff; padding: 20px; border-radius: 12px;
@@ -128,7 +147,7 @@
             <!-- The poster -->
             <div id="poster" class="poster" style="display:none;">
                 <div>
-                    <h1>SCAN TO CHECK IN</h1>
+                    <h1 class="poster-title">SCAN TO CHECK IN</h1>
                     <div class="tagline">Welcome — you're almost in 💪</div>
                     <div class="gym-name" id="p-gym-name">Your Gym</div>
                     <div class="branch-name" id="p-branch-name">BRANCH</div>
