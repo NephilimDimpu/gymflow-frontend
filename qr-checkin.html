@@ -101,6 +101,7 @@
     <script>
         const params = new URLSearchParams(window.location.search);
         const branchId = params.get('branch');
+        const gymId = params.get('gym');
         const input = document.getElementById('phone-input');
         const btn = document.getElementById('checkin-btn');
 
@@ -124,7 +125,11 @@
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, branch_id: branchId ? parseInt(branchId) : null })
+                    body: JSON.stringify({
+                        phone,
+                        branch_id: branchId ? parseInt(branchId) : null,
+                        gym_id: gymId ? parseInt(gymId) : null
+                    })
                 });
 
                 if (!res.ok) {

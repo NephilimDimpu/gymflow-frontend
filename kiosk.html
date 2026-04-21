@@ -137,6 +137,7 @@
     <script>
         let phone = '';
         const branchId = new URLSearchParams(window.location.search).get('branch') || localStorage.getItem('branch_id');
+        const gymId = new URLSearchParams(window.location.search).get('gym') || localStorage.getItem('gym_id');
         const display = document.getElementById('phone-display');
         const btn = document.getElementById('checkin-btn');
 
@@ -169,7 +170,11 @@
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, branch_id: branchId ? parseInt(branchId) : null })
+                    body: JSON.stringify({
+                        phone,
+                        branch_id: branchId ? parseInt(branchId) : null,
+                        gym_id: gymId ? parseInt(gymId) : null
+                    })
                 });
 
                 if (!res.ok) {

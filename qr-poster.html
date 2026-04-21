@@ -181,6 +181,13 @@
     async function init() {
         if (!hasMemberAttendance) return;
 
+        // [PRO] Gym-wide QR — no branch concept at all
+        if (gymTier === 'pro') {
+            renderGymPoster();
+            return;
+        }
+
+        // [ELITE / MANAGER] Branch-scoped QR
         try {
             const res = await fetch(`${CONFIG.API_BASE_URL}/api/branches`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -193,19 +200,15 @@
         }
 
         if (allBranches.length === 0) {
-            showToast('No branches found. Create a default branch first.', 'error');
+            showToast('No branches yet. Add one on the Branches page first.', 'error');
             return;
         }
 
         const select = document.getElementById('branch-select');
         select.innerHTML = allBranches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
 
-        // Elite: show branch picker + staff QR teaser
-        // Pro: auto-select single branch, hide picker (they only have one)
-        if (gymTier === 'elite') {
-            document.getElementById('branch-controls').style.display = 'flex';
-            document.getElementById('staff-teaser').style.display = 'block';
-        }
+        document.getElementById('branch-controls').style.display = 'flex';
+        document.getElementById('staff-teaser').style.display = 'block';
 
         // Deep link: ?branch=id pre-selects that branch
         const urlBranchId = new URLSearchParams(window.location.search).get('branch');
@@ -213,7 +216,7 @@
             select.value = urlBranchId;
         }
 
-        // Managers: scope to their assigned branch
+        // Managers: scope to their assigned branch, hide picker
         const managerBranchId = localStorage.getItem('branch_id');
         if (userRole === 'manager' && managerBranchId) {
             select.value = managerBranchId;
@@ -221,6 +224,23 @@
         }
 
         renderPoster();
+    }
+
+    async function renderGymPoster() {
+        // Pro tier: one gym-wide QR, no branch dropdown
+        try {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin/gym-qr-data`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to load QR data');
+            }
+            const data = await res.json();
+            drawPoster(data);
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
     }
 
     async function renderPoster() {
@@ -236,27 +256,29 @@
                 throw new Error(err.detail || 'Failed to load QR data');
             }
             const data = await res.json();
-
-            document.getElementById('p-gym-name').textContent = data.gym_name;
-            document.getElementById('p-branch-name').textContent = data.branch_name;
-            document.getElementById('p-url').textContent = data.checkin_url;
-
-            // Render QR
-            const qrWrap = document.getElementById('qrcode');
-            qrWrap.innerHTML = '';
-            currentQRCode = new QRCode(qrWrap, {
-                text: data.checkin_url,
-                width: 280,
-                height: 280,
-                colorDark: '#0f172a',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-
-            document.getElementById('poster').style.display = 'flex';
+            drawPoster(data);
         } catch (err) {
             showToast(err.message, 'error');
         }
+    }
+
+    function drawPoster(data) {
+        document.getElementById('p-gym-name').textContent = data.gym_name;
+        document.getElementById('p-branch-name').textContent = data.branch_name;
+        document.getElementById('p-url').textContent = data.checkin_url;
+
+        const qrWrap = document.getElementById('qrcode');
+        qrWrap.innerHTML = '';
+        currentQRCode = new QRCode(qrWrap, {
+            text: data.checkin_url,
+            width: 280,
+            height: 280,
+            colorDark: '#0f172a',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        document.getElementById('poster').style.display = 'flex';
     }
 
     function copyLink() {
