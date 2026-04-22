@@ -106,6 +106,56 @@
             </div>
         </div>
 
+        <!-- [ATTENDANCE-KPI] Minimalist attendance counter (hidden for Starter tier) -->
+        <div id="attendance-kpi-section" style="display: none; margin-bottom: 30px;">
+            <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin: 0 0 16px;">
+                Member Check-Ins
+            </h3>
+            <div class="stats-grid">
+                <div class="stat-card" style="border-top: 3px solid #a855f7;">
+                    <div class="stat-number" id="att-today" style="color: #a855f7;">\u2013</div>
+                    <div class="stat-label">\ud83d\udcc5 Today</div>
+                </div>
+                <div class="stat-card" style="border-top: 3px solid #a855f7;">
+                    <div class="stat-number" id="att-month" style="color: #a855f7;">\u2013</div>
+                    <div class="stat-label">\ud83d\uddd3\ufe0f This Month</div>
+                </div>
+                <div class="stat-card" style="border-top: 3px solid #a855f7;">
+                    <div class="stat-number" id="att-year" style="color: #a855f7;">\u2013</div>
+                    <div class="stat-label">\ud83d\udcca This Year</div>
+                </div>
+                <!-- Elite-only: staff totals -->
+                <div class="stat-card elite-only" style="display: none; border-top: 3px solid #f59e0b;">
+                    <div class="stat-number" id="att-staff-today" style="color: #f59e0b;">\u2013</div>
+                    <div class="stat-label">\ud83d\udc65 Staff Today</div>
+                </div>
+                <div class="stat-card elite-only" style="display: none; border-top: 3px solid #f59e0b;">
+                    <div class="stat-number" id="att-staff-month" style="color: #f59e0b;">\u2013</div>
+                    <div class="stat-label">\ud83d\udc65 Staff This Month</div>
+                </div>
+            </div>
+
+            <!-- Elite-only: per-branch breakdown -->
+            <div id="att-per-branch" style="display: none; margin-top: 20px;">
+                <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 0 0 12px;">
+                    Per-Branch Breakdown
+                </h4>
+                <div class="glass-panel" style="padding: 0; overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: rgba(255,255,255,0.03); text-align: left;">
+                                <th style="padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Branch</th>
+                                <th style="padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Today</th>
+                                <th style="padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Month</th>
+                                <th style="padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Year</th>
+                            </tr>
+                        </thead>
+                        <tbody id="att-per-branch-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- [QUICK-ACTIONS] Action buttons -->
         <div style="display: flex; gap: 12px; margin-bottom: 30px;">
             <button class="btn btn-primary" onclick="location.href='add-member.html'">
@@ -435,10 +485,51 @@
                 const members = await membersRes.json();
                 displayRecentMembers(members);
 
+                // Attendance KPI strip \u2014 loads independently, silently hidden on 403 (Starter tier)
+                loadAttendanceKPI();
+
             } catch (error) {
                 console.error('[DASHBOARD-ERROR]', error);
                 showToast('Failed to load dashboard. Please refresh.', 'error');
             }
+        }
+
+        // ============================================
+        // [JS-ATTENDANCE-KPI] Load minimalist attendance counters.
+        // Silently hides the section on 403 (Starter tier doesn't have member_attendance).
+        // Shows staff totals + per-branch breakdown only for Elite.
+        // ============================================
+        async function loadAttendanceKPI() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/attendance/summary/gym`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;  // 403 on Starter \u2014 keep section hidden
+                const d = await res.json();
+                document.getElementById('att-today').textContent = d.today ?? 0;
+                document.getElementById('att-month').textContent = d.this_month ?? 0;
+                document.getElementById('att-year').textContent = d.this_year ?? 0;
+                document.getElementById('attendance-kpi-section').style.display = 'block';
+
+                // Elite-only extras
+                if (d.staff_today !== null && d.staff_today !== undefined) {
+                    document.querySelectorAll('.elite-only').forEach(el => el.style.display = '');
+                    document.getElementById('att-staff-today').textContent = d.staff_today;
+                    document.getElementById('att-staff-month').textContent = d.staff_this_month ?? 0;
+                }
+                if (Array.isArray(d.per_branch) && d.per_branch.length > 0) {
+                    const tbody = document.getElementById('att-per-branch-tbody');
+                    tbody.innerHTML = d.per_branch.map(b => `
+                        <tr style="border-top: 1px solid rgba(255,255,255,0.04);">
+                            <td style="padding: 12px 16px; font-weight: 600;">${b.branch_name}</td>
+                            <td style="padding: 12px 16px; text-align: right;">${b.today}</td>
+                            <td style="padding: 12px 16px; text-align: right;">${b.month}</td>
+                            <td style="padding: 12px 16px; text-align: right;">${b.year}</td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('att-per-branch').style.display = 'block';
+                }
+            } catch (e) { /* silent \u2014 non-critical */ }
         }
 
         // ============================================

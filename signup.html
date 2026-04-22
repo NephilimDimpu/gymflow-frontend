@@ -405,7 +405,10 @@
                         email: email,
                         phone: phone,
                         password: password,
-                        tier: planTier
+                        tier: planTier,
+                        // Auto-detect browser tz so reminders fire at local 9 AM from day one.
+                        // Owner can change this later in Settings.
+                        timezone: (Intl.DateTimeFormat().resolvedOptions().timeZone) || 'Asia/Kolkata'
                     })
                 });
 

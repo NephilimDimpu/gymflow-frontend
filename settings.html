@@ -88,6 +88,20 @@
                         </div>
                     </div>
 
+                    <!-- Localization Section -->
+                    <div class="glass-panel" style="padding: 32px; margin-bottom: 32px;">
+                        <h2 style="font-size: 20px; margin-bottom: 24px;">🌐 Localization</h2>
+                        <div class="form-group">
+                            <label class="form-label" style="color: #fff;">Gym Timezone</label>
+                            <select id="timezone" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;">
+                                <!-- populated by JS, auto-detects browser tz on first load -->
+                            </select>
+                            <p style="font-size: 12px; color: #64748b; margin-top: 8px;">
+                                Automated reminder emails (membership expiry, 3-day warnings) are sent at <b>9 AM in this timezone</b>. Defaults to your browser's detected zone.
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Payment Section -->
                     <div class="glass-panel" style="padding: 32px; margin-bottom: 32px;">
                         <h2 style="font-size: 20px; margin-bottom: 24px;">💳 Payment Information</h2>
@@ -141,6 +155,29 @@
             else window.location.href = 'dashboard.html';
         }
 
+        // Populate timezone dropdown using the browser's full IANA list when available,
+        // falling back to a curated short list for older browsers.
+        function populateTimezones(selected) {
+            const select = document.getElementById('timezone');
+            let zones = [];
+            try {
+                // Modern browsers expose the full IANA DB
+                zones = Intl.supportedValuesOf('timeZone');
+            } catch (_) {
+                zones = [
+                    'Asia/Kolkata','Asia/Dubai','Asia/Singapore','Asia/Tokyo','Asia/Shanghai',
+                    'Europe/London','Europe/Paris','Europe/Berlin',
+                    'America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+                    'Australia/Sydney','UTC'
+                ];
+            }
+            const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const effective = selected || browserTz || 'Asia/Kolkata';
+            select.innerHTML = zones.map(z =>
+                `<option value="${z}" ${z === effective ? 'selected' : ''}>${z}</option>`
+            ).join('');
+        }
+
         async function loadSettings() {
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/settings`, {
@@ -154,8 +191,14 @@
                     document.getElementById('email').value = data.email || '';
                     document.getElementById('phone').value = data.phone || '';
                     document.getElementById('upi_id').value = data.upi_id || '';
+                    populateTimezones(data.timezone);
+                } else {
+                    populateTimezones(null);
                 }
-            } catch (error) { console.error('[SETTINGS-LOAD-ERROR]', error); }
+            } catch (error) {
+                console.error('[SETTINGS-LOAD-ERROR]', error);
+                populateTimezones(null);
+            }
         }
 
         document.getElementById('settings-form').addEventListener('submit', async (e) => {
@@ -169,7 +212,8 @@
                 owner_name: document.getElementById('owner_name').value,
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
-                upi_id: document.getElementById('upi_id').value
+                upi_id: document.getElementById('upi_id').value,
+                timezone: document.getElementById('timezone').value
             };
 
             const password = document.getElementById('password').value;

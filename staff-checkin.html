@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Staff Check-In</title>
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e1a; color: #f1f5f9;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            width: 100%; max-width: 420px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px; padding: 32px;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center; margin-bottom: 28px;
+        }
+        .logo { font-size: 40px; margin-bottom: 8px; }
+        .title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+        .subtitle { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+        .branch-badge {
+            display: inline-block; margin-top: 10px;
+            background: rgba(245,158,11,0.12); color: #fbbf24;
+            border: 1px solid rgba(245,158,11,0.3);
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 12px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .form-group { margin-bottom: 18px; }
+        label {
+            display: block; font-size: 12px; color: #94a3b8;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 6px; font-weight: 600;
+        }
+        input {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #f59e0b;
+            background: rgba(0,0,0,0.5);
+        }
+        .pin-input { letter-spacing: 8px; text-align: center; font-size: 20px; font-weight: 700; }
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        button {
+            border: none; cursor: pointer;
+            padding: 14px 20px; border-radius: 10px;
+            font-size: 15px; font-weight: 700;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-in { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+        .btn-out { background: rgba(255,255,255,0.05); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.1); }
+        .error-state, .success-state {
+            margin-top: 18px; padding: 14px 16px;
+            border-radius: 10px; font-size: 14px;
+            text-align: center;
+        }
+        .error-state {
+            background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+            color: #fca5a5;
+        }
+        .success-state {
+            background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+            color: #6ee7b7;
+        }
+        .footer-note {
+            text-align: center; margin-top: 20px;
+            font-size: 11px; color: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <div class="logo">🕒</div>
+            <div class="title">Staff Shift Check-In</div>
+            <div class="subtitle" id="gym-label">&nbsp;</div>
+            <div class="branch-badge" id="branch-label">Loading branch…</div>
+        </div>
+
+        <div id="form-section">
+            <div class="form-group">
+                <label for="email">Work Email</label>
+                <input type="email" id="email" autocomplete="email" placeholder="you@gym.com" required>
+            </div>
+            <div class="form-group">
+                <label for="pin">4\u20136 Digit PIN</label>
+                <input type="password" id="pin" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="\u2022\u2022\u2022\u2022" required>
+            </div>
+            <div class="actions">
+                <button class="btn-in" id="checkin-btn">\u2705 Check In</button>
+                <button class="btn-out" id="checkout-btn">\ud83d\udeaa Check Out</button>
+            </div>
+            <div id="status" style="display:none;"></div>
+        </div>
+
+        <div class="footer-note">Only works at your assigned branch.</div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const branchId = params.get('branch');
+        const form = document.getElementById('form-section');
+        const statusBox = document.getElementById('status');
+
+        if (!branchId) {
+            document.getElementById('branch-label').textContent = 'Invalid Link';
+            form.style.display = 'none';
+        } else {
+            // We don't have a public branch-info endpoint, and auth here is intentionally
+            // absent (kiosk-style). Just display the branch ID in the badge until a check-in
+            // returns the full name.
+            document.getElementById('branch-label').textContent = `Branch #${branchId}`;
+        }
+
+        function showStatus(msg, kind) {
+            statusBox.className = kind === 'success' ? 'success-state' : 'error-state';
+            statusBox.textContent = msg;
+            statusBox.style.display = 'block';
+        }
+
+        async function submitCheckin(action) {
+            const email = document.getElementById('email').value.trim();
+            const pin = document.getElementById('pin').value.trim();
+
+            if (!email || !pin) {
+                showStatus('Email and PIN are required.', 'error');
+                return;
+            }
+
+            const btnIn = document.getElementById('checkin-btn');
+            const btnOut = document.getElementById('checkout-btn');
+            btnIn.disabled = true; btnOut.disabled = true;
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin/staff`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email, pin, action,
+                        branch_id: parseInt(branchId, 10)
+                    })
+                });
+
+                if (res.status === 403) {
+                    const body = await res.json().catch(() => ({}));
+                    showStatus(body.detail || 'Staff QR check-in is not enabled for this gym\u2019s plan.', 'error');
+                    return;
+                }
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    showStatus(body.detail || 'Check-in failed. Try again.', 'error');
+                    return;
+                }
+                const data = await res.json();
+                document.getElementById('branch-label').textContent = data.branch_name || `Branch #${branchId}`;
+                showStatus(`\u2705 ${data.staff_name} \u2014 ${data.message}`, 'success');
+                document.getElementById('pin').value = '';
+            } catch (e) {
+                showStatus('Could not reach server. Check your connection.', 'error');
+            } finally {
+                btnIn.disabled = false; btnOut.disabled = false;
+            }
+        }
+
+        document.getElementById('checkin-btn').addEventListener('click', () => submitCheckin('in'));
+        document.getElementById('checkout-btn').addEventListener('click', () => submitCheckin('out'));
+    </script>
+</body>
+</html>

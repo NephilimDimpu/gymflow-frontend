@@ -290,6 +290,13 @@
                     <input type="text" id="staff-custom-role" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="Coach, Trainer, Front Desk...">
                 </div>
 
+                <div class="form-group" id="pin-group">
+                    <label class="form-label" style="color: #fff;">QR Check-In PIN <span style="font-size: 11px; color: #64748b;">(4\u20136 digits, for staff shift QR poster)</span></label>
+                    <input type="text" id="staff-pin" class="form-input" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff; letter-spacing: 4px;" placeholder="e.g. 4821">
+                    <p style="font-size: 11px; color: #64748b; margin-top: 6px;">Staff enter this at the branch QR poster to log their shift. Leave blank to keep the current PIN unchanged. Clear explicitly by typing <code>0</code> and saving? \u2014 no, use the <b>Clear PIN</b> button below.</p>
+                    <button type="button" class="btn btn-secondary" id="clear-pin-btn" style="margin-top: 8px; font-size: 12px; padding: 6px 12px;" onclick="document.getElementById('staff-pin').value = '__CLEAR__'; showToast('PIN will be cleared on save', 'warning');">Clear current PIN</button>
+                </div>
+
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
                     <button type="submit" class="btn btn-primary" id="save-btn" style="flex: 2;">Save Staff Member</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">Cancel</button>
@@ -450,8 +457,10 @@
 
             document.getElementById('staff-role').value = 'staff';
             document.getElementById('staff-custom-role').value = '';
+            document.getElementById('staff-pin').value = '';
             document.getElementById('email-group').style.display = 'block';
             document.getElementById('password-group').style.display = 'block';
+            document.getElementById('pin-group').style.display = 'block';
             document.getElementById('staff-email').required = true;
             document.getElementById('staff-password').required = true;
             document.getElementById('staff-modal').classList.add('active');
@@ -465,8 +474,10 @@
             document.getElementById('staff-branch').value = branchId;
             document.getElementById('staff-role').value = role;
             document.getElementById('staff-custom-role').value = customRole || '';
+            document.getElementById('staff-pin').value = '';  // blank = don't change existing
             document.getElementById('email-group').style.display = 'none';
             document.getElementById('password-group').style.display = 'none';
+            document.getElementById('pin-group').style.display = 'block';
             document.getElementById('staff-email').required = false;
             document.getElementById('staff-password').required = false;
             document.getElementById('staff-modal').classList.add('active');
@@ -490,6 +501,18 @@
                         role: document.getElementById('staff-role').value,
                         custom_role: document.getElementById('staff-custom-role').value || null
                     };
+                    // PIN handling: blank = no change, "__CLEAR__" = clear, digits = set
+                    const pinVal = document.getElementById('staff-pin').value.trim();
+                    if (pinVal === '__CLEAR__') {
+                        data.checkin_pin = '';  // backend treats empty string as "clear"
+                    } else if (pinVal) {
+                        if (!/^[0-9]{4,6}$/.test(pinVal)) {
+                            showToast('PIN must be 4\u20136 digits', 'warning');
+                            btn.disabled = false; btn.textContent = 'Save Staff Member';
+                            return;
+                        }
+                        data.checkin_pin = pinVal;
+                    }
                     const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff/${id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

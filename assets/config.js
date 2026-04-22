@@ -5,11 +5,13 @@
 // ============================================
 
 const CONFIG = {
-    // API backend base URL — PRODUCTION (Vercel)
-    API_BASE_URL: 'https://gymflow-backend-rho.vercel.app',
+    // API backend base URL — PRODUCTION (Vercel stable production alias)
+    // IMPORTANT: Use the STABLE alias (e.g. <project>.vercel.app), NOT a deployment URL
+    // with a random suffix like -rho / -six — those rotate on every push and break the frontend.
+    API_BASE_URL: 'https://gymflow-backend.vercel.app',
 
-    // Frontend port (for references like payment links)
-    FRONTEND_URL: 'https://gymflow-frontend-six.vercel.app'
+    // Frontend base URL — PRODUCTION (used for share links, QR posters, payment links, etc.)
+    FRONTEND_URL: 'https://gymflow-frontend.vercel.app'
 };
 
 // ============================================
