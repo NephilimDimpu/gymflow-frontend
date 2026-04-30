@@ -9,7 +9,7 @@ const CONFIG = {
     API_BASE_URL: 'https://gymflow-backend-rho.vercel.app',
 
     // Frontend base URL — PRODUCTION (used for share links, QR posters, payment links, etc.)
-    FRONTEND_URL: 'https://gymflow-frontend-six.vercel.app'
+    FRONTEND_URL: 'https://gymexec.com'
 };
 
 // ============================================
