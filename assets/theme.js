@@ -77,3 +77,72 @@
         root.style.setProperty('--theme-text-muted', '#94a3b8');
     }
 })();
+
+// ============================================
+// [MOBILE-NAV] Auto-inject hamburger drawer toggle
+// Runs on every page that includes theme.js. If the page has a
+// `.sidebar` element, we inject a hamburger button + backdrop and
+// wire up open/close. Pages without a sidebar (login, kiosk, etc.)
+// are no-ops.
+// ============================================
+(function setupMobileNav() {
+    function init() {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+        // Skip if already wired (e.g. theme.js loaded twice)
+        if (document.querySelector('.mobile-nav-toggle')) return;
+
+        // Hamburger button
+        const btn = document.createElement('button');
+        btn.className = 'mobile-nav-toggle';
+        btn.setAttribute('aria-label', 'Open menu');
+        btn.innerHTML = '☰'; // ☰
+        document.body.appendChild(btn);
+
+        // Backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'mobile-nav-backdrop';
+        document.body.appendChild(backdrop);
+
+        function open() {
+            sidebar.classList.add('mobile-open');
+            backdrop.classList.add('active');
+            btn.innerHTML = '✕'; // ✕
+            btn.setAttribute('aria-label', 'Close menu');
+        }
+        function close() {
+            sidebar.classList.remove('mobile-open');
+            backdrop.classList.remove('active');
+            btn.innerHTML = '☰'; // ☰
+            btn.setAttribute('aria-label', 'Open menu');
+        }
+        function toggle() {
+            sidebar.classList.contains('mobile-open') ? close() : open();
+        }
+
+        btn.addEventListener('click', toggle);
+        backdrop.addEventListener('click', close);
+
+        // Close drawer when a nav link inside the sidebar is tapped
+        sidebar.addEventListener('click', (e) => {
+            const link = e.target.closest('a.nav-link, a[href]');
+            if (link) close();
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') close();
+        });
+
+        // Close when resizing back to desktop, so state is sane
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) close();
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

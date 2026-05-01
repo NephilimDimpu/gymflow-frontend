@@ -582,4 +582,183 @@ body[data-tier="elite"] .feature-elite-only {
     background: rgba(255,255,255,0.5);
     padding: 2px 6px;
     border-radius: 4px;
+}
+
+/* =====================================================
+   [MOBILE-RESPONSIVE]
+   Comprehensive mobile / tablet adaptations.
+   The hamburger button + backdrop are injected by theme.js.
+   ===================================================== */
+
+/* Hide hamburger on desktop by default */
+.mobile-nav-toggle { display: none; }
+.mobile-nav-backdrop { display: none; }
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .main-content { padding: 24px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Phone */
+@media (max-width: 768px) {
+    body { font-size: 14px; }
+
+    /* --- Sidebar becomes a slide-out drawer --- */
+    .main-layout { display: block; }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 280px;
+        max-width: 85vw;
+        z-index: 1001;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        overflow-y: auto;
+        padding: 20px 16px 80px 16px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.4);
+    }
+    .sidebar.mobile-open { transform: translateX(0); }
+
+    /* Hamburger button (injected by theme.js) */
+    .mobile-nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 1002;
+        width: 44px;
+        height: 44px;
+        background: rgba(15, 23, 42, 0.92);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .mobile-nav-toggle:active { transform: scale(0.95); }
+
+    /* Backdrop behind open drawer */
+    .mobile-nav-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+    }
+    .mobile-nav-backdrop.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Push content below the hamburger so headers don't collide */
+    .main-content {
+        padding: 64px 16px 32px 16px;
+        width: 100%;
+    }
+
+    /* --- Headers --- */
+    h1 { font-size: 24px !important; }
+    h2 { font-size: 20px !important; }
+
+    /* Page-header rows that use flex justify-between need to wrap */
+    header,
+    .page-header,
+    .header-row,
+    [style*="justify-content: space-between"][style*="display: flex"] {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    /* --- Stats / KPI grids: single column --- */
+    .stats-grid,
+    .kpi-grid,
+    [class*="grid-cols-"] { grid-template-columns: 1fr !important; }
+
+    .stat-card, .kpi-card { padding: 16px !important; }
+
+    /* --- Tables: horizontal scroll wrapper --- */
+    .table-wrap,
+    .data-table,
+    table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+    table { min-width: 100%; }
+    table td, table th { padding: 10px 12px !important; }
+
+    /* --- Forms: full-width, bigger touch targets --- */
+    input, select, textarea, button {
+        font-size: 16px !important;  /* prevents iOS auto-zoom on focus */
+    }
+    .form-row, .form-grid {
+        grid-template-columns: 1fr !important;
+        flex-direction: column !important;
+    }
+    .form-row > *, .form-grid > * { width: 100% !important; }
+
+    /* --- Buttons: stack stretched action rows --- */
+    .actions, .button-row, .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .actions > *, .button-row > *, .btn-group > * { width: 100%; }
+
+    /* --- Cards: no max-width constraint --- */
+    .card, .glass-panel, .panel {
+        padding: 16px !important;
+        border-radius: 14px;
+    }
+
+    /* --- Modals: full-screen --- */
+    .modal-content, .modal-card, .modal-dialog {
+        width: 96vw !important;
+        max-width: 96vw !important;
+        max-height: 92vh !important;
+        margin: 4vh auto !important;
+        overflow-y: auto;
+    }
+
+    /* --- Member / list cards stack --- */
+    .member-card, .list-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    /* --- Toast container: full width on mobile --- */
+    #toast-container {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+    }
+    .toast { width: 100%; }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+    .main-content { padding: 56px 12px 24px 12px; }
+    h1 { font-size: 20px !important; }
+    .sidebar-logo { font-size: 18px !important; margin-bottom: 24px !important; }
+}
+
+/* Print: keep mobile drawer hidden when printing posters */
+@media print {
+    .mobile-nav-toggle,
+    .mobile-nav-backdrop { display: none !important; }
+    .sidebar { display: none !important; }
 }
