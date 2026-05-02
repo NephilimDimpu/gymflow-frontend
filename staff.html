@@ -534,7 +534,12 @@
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify(data)
                     });
-                    if (!res.ok) throw new Error('Create failed');
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        const msg = typeof errData.detail === 'string' ? errData.detail 
+                                  : errData.detail?.message || 'Create failed';
+                        throw new Error(msg);
+                    }
                 }
                 closeModal();
                 loadStaff();
