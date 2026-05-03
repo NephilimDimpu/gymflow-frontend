@@ -407,7 +407,7 @@
                             ${getAttendanceHtml(s)}
                         </td>
                         <td style="text-align: right;">
-                            <button class="btn" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; padding: 6px 10px; font-size: 12px; margin-right: 4px;" data-name="${s.name}" data-branch="${s.branch_name}" data-email="${s.email}" onclick="copyInvite(this.dataset.name, this.dataset.branch, this.dataset.email)">📋 Invite</button>
+                            <button class="btn" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; padding: 6px 10px; font-size: 12px; margin-right: 4px;" data-id="${s.id}" data-name="${s.name}" data-branch="${s.branch_name}" data-email="${s.email}" onclick="resendInvite(this)">📧 Invite</button>
                             <button class="btn" style="background: rgba(255,255,255,0.05); color: #fff; padding: 6px 10px; font-size: 12px;" onclick="openEditModal(${s.id}, '${s.name}', '${s.phone || ''}', ${s.branch_id}, '${s.role}', ${s.is_active}, '${s.custom_role || ''}')">Edit</button>
                             <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: #f87171; padding: 6px 10px; font-size: 12px; margin-left: 4px;" onclick="deactivateStaff(${s.id}, '${s.name}')">Remove</button>
                         </td>
@@ -536,10 +536,24 @@
                     });
                     if (!res.ok) {
                         const errData = await res.json().catch(() => ({}));
-                        const msg = typeof errData.detail === 'string' ? errData.detail 
+                        const msg = typeof errData.detail === 'string' ? errData.detail
                                   : errData.detail?.message || 'Create failed';
                         throw new Error(msg);
                     }
+                    const created = await res.json().catch(() => ({}));
+                    closeModal();
+                    loadStaff();
+                    if (created.email_sent === false) {
+                        showToast(
+                            `Staff added — but welcome email FAILED (${created.email_error || 'unknown'}). Use the Invite button to retry.`,
+                            'warning'
+                        );
+                    } else if (created.email_sent === true) {
+                        showToast(`Staff added & welcome email sent to ${created.email}`, 'success');
+                    } else {
+                        showToast('Staff added successfully', 'success');
+                    }
+                    return;
                 }
                 closeModal();
                 loadStaff();
@@ -564,23 +578,59 @@
             } catch (err) { showToast(err.message, 'error'); }
         }
 
-        function copyInvite(name, branchName, email) {
-            const gymName = localStorage.getItem('gym_name') || 'GymExec';
-            
-            // Assuming frontend URL logic (e.g. localhost:5500/login.html or custom domain)
-            const originBase = window.location.origin;
-            const pathSegments = window.location.pathname.split('/');
-            pathSegments.pop(); // Remove staff.html
-            const baseUrl = originBase + pathSegments.join('/');
-            
-            const loginUrl = baseUrl + '/login.html';
-            const msg = `Welcome to ${gymName}, ${name}! You've been assigned as Staff at ${branchName}.\n\nLogin here: ${loginUrl}\nEmail: ${email}\n\nPlease ask the owner for your initial password.`;
-            
-            navigator.clipboard.writeText(msg).then(() => {
-                showToast("Invite message copied to clipboard!", "success");
-            }).catch(err => {
-                showToast("Failed to copy invite. You can manually copy the link.", "error");
-            });
+        async function resendInvite(btn) {
+            const id = btn.dataset.id;
+            const name = btn.dataset.name;
+            const email = btn.dataset.email;
+
+            // Optional: rotate password and include the new one in the email.
+            const rotate = confirm(
+                `Resend the welcome email to ${name} (${email})?\n\n` +
+                `Click OK to set a new temporary password and email it to them.\n` +
+                `Click Cancel to send a regular welcome email (they'll need to use Forgot Password).`
+            );
+
+            let body = {};
+            if (rotate) {
+                const newPwd = prompt(`Set a new temporary password for ${name} (min 6 chars):`);
+                if (newPwd === null) return;  // user cancelled the prompt
+                if (!newPwd || newPwd.length < 6) {
+                    showToast('Password must be at least 6 characters', 'warning');
+                    return;
+                }
+                body.new_password = newPwd;
+            }
+
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Sending...';
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff/${id}/resend-welcome`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || `Send failed (${res.status})`);
+                }
+                showToast(`📧 Welcome email sent to ${email}`, 'success');
+            } catch (err) {
+                // Fall back: copy a manual invite to clipboard so the owner has SOMETHING to give the staff member
+                const gymName = localStorage.getItem('gym_name') || 'GymExec';
+                const loginUrl = window.location.origin + '/login.html';
+                const msg = `Welcome to ${gymName}, ${name}!\n\nLogin: ${loginUrl}\nEmail: ${email}\nUse "Forgot Password" to set your password.`;
+                try {
+                    await navigator.clipboard.writeText(msg);
+                    showToast(`Email failed: ${err.message}. Manual invite copied to clipboard.`, 'warning');
+                } catch (_) {
+                    showToast(`Email failed: ${err.message}`, 'error');
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
         }
 
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
