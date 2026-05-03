@@ -377,7 +377,9 @@
                 const empty = document.getElementById('empty-state');
                 const tbody = document.getElementById('staff-body');
 
-                if (staffList.length === 0) {
+                const activeStaff = staffList.filter(s => s.is_active);
+
+                if (activeStaff.length === 0) {
                     tableWrapper.style.display = 'none';
                     empty.style.display = 'block';
                     return;
@@ -386,7 +388,7 @@
                 tableWrapper.style.display = 'block';
                 empty.style.display = 'none';
 
-                tbody.innerHTML = staffList.map(s => `
+                tbody.innerHTML = activeStaff.map(s => `
                     <tr>
                         <td>
                             <div style="font-weight: 600; color: #fff;">${s.name}</div>
