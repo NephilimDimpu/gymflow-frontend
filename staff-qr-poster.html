@@ -175,7 +175,7 @@
     const userRole = localStorage.getItem('role') || 'owner';
 
     if (!token) window.location.href = 'login.html';
-    if (userType === 'staff') window.location.href = 'dashboard.html';
+    if (userType === 'staff' && userRole !== 'manager') window.location.href = 'dashboard.html';
 
     // Elite-only gate
     if (gymTier !== 'elite') {
