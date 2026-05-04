@@ -148,24 +148,27 @@ body[data-tier="elite"] .feature-elite-only {
 }
 
 .member-card {
-    background: white;
+    background: var(--theme-card-bg, #ffffff);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid var(--theme-card-border, #e2e8f0);
+    box-shadow: 0 1px 3px var(--theme-card-shadow, rgba(0,0,0,0.1));
     display: flex;
     justify-content: space-between;
     align-items: center;
+    color: var(--theme-text-main, #0f172a);
 }
 
 .member-info h3 {
     font-size: 18px;
     font-weight: 600;
     margin-bottom: 4px;
+    color: var(--theme-text-main, #0f172a);
 }
 
 .member-info p {
     font-size: 14px;
-    color: #6b7280;
+    color: var(--theme-text-muted, #6b7280);
 }
 
 /* [BADGES] Status badges */
