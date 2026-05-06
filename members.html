@@ -258,7 +258,8 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const d = await res.json();
-                window.showToast(d.message, res.ok ? "success" : "error");
+                const msg = d.message || d.detail || 'Reminder sent';
+                window.showToast(msg, res.ok ? "success" : "error");
             } catch (err) { window.showToast("Network error", "error"); }
         }
 
