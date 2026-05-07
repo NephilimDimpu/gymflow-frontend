@@ -298,13 +298,37 @@
 
             // Plans
             const plansList = document.getElementById('plans-list');
+
+            // Build a WhatsApp deep-link from the gym phone. If WhatsApp isn't installed,
+            // wa.me silently falls back to opening the chat in a browser, which is the same
+            // behaviour as a tel: link on desktop. India default country code (91) is added
+            // when the gym phone is exactly 10 digits with no country prefix.
+            function buildJoinLink(plan) {
+                const raw = (gym.phone || '').toString().replace(/\D/g, '');
+                if (!raw) {
+                    // No phone on file — fall back to a mailto if we ever expose email,
+                    // otherwise just an anchor that does nothing harmful.
+                    return { href: '#', label: 'Contact Gym', kind: 'none' };
+                }
+                const intlPhone = raw.length === 10 ? `91${raw}` : raw;
+                const message = `Hi ${gym.name}, I'd like to join the "${plan.name}" plan (₹${plan.price.toLocaleString()}, ${plan.duration_days} days). Please share the next steps.`;
+                return {
+                    href: `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`,
+                    label: '💬 Chat to Join',
+                    kind: 'whatsapp'
+                };
+            }
+
             if (gym.plans.length === 0) {
                 plansList.innerHTML = `
                     <div class="empty-state">
                         <p>No plans available yet. Contact the gym directly.</p>
                     </div>`;
             } else {
-                plansList.innerHTML = gym.plans.map(p => `
+                plansList.innerHTML = gym.plans.map(p => {
+                    const link = buildJoinLink(p);
+                    const target = link.kind === 'whatsapp' ? 'target="_blank" rel="noopener"' : '';
+                    return `
                     <div class="plan-card">
                         <div class="plan-info">
                             <h3>${p.name}</h3>
@@ -312,10 +336,11 @@
                         </div>
                         <div class="plan-right">
                             <div class="plan-price">₹${p.price.toLocaleString()}</div>
-                            <a href="pay.html?id=${p.payment_link_id}" class="join-btn">Join Now →</a>
+                            <a href="${link.href}" ${target} class="join-btn">${link.label}</a>
                         </div>
                     </div>
-                `).join('');
+                    `;
+                }).join('');
             }
 
         } catch (err) {
