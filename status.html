@@ -4,153 +4,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Membership Status</title>
+    <title>My Membership · GymExec</title>
     <link rel="stylesheet" href="assets/style.css">
     <script src="assets/config.js"></script>
     <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #111827 50%, #1e1b4b 100%);
+            color: #f1f5f9;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            background: #f3f4f6;
             padding: 20px;
-            font-family: 'Inter', sans-serif;
         }
 
         .status-card {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            max-width: 400px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 32px 28px;
+            max-width: 440px;
             width: 100%;
-            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
         }
 
         .gym-name {
-            font-size: 14px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 2px;
-            color: #6b7280;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .gym-phone {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #60a5fa;
+            text-decoration: none;
             margin-bottom: 24px;
             font-weight: 600;
         }
+        .gym-phone:hover { text-decoration: underline; }
+
+        .header-center { text-align: center; }
+
+        .status-icon {
+            font-size: 56px;
+            margin: 8px 0 4px;
+            line-height: 1;
+        }
 
         .member-name {
-            font-size: 28px;
-            font-weight: bold;
-            color: #111827;
-            margin-bottom: 8px;
+            font-size: 26px;
+            font-weight: 800;
+            color: #fff;
+            margin: 4px 0 8px;
+            letter-spacing: -0.5px;
         }
 
         .status-badge {
             display: inline-block;
-            padding: 8px 16px;
+            padding: 6px 16px;
             border-radius: 999px;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .status-active   { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .status-expiring { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .status-expired  { background: rgba(239, 68, 68, 0.15);  color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* Days-left pill — the headline number */
+        .days-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 20px;
+            margin: 8px 0 24px;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 16px;
+        }
+        .days-pill.expired   { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25); }
+        .days-pill.expiring  { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); }
+        .days-num {
+            font-size: 48px;
+            font-weight: 900;
+            color: #818cf8;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+        .days-num.expired  { color: #f87171; }
+        .days-num.expiring { color: #fbbf24; }
+        .days-label {
+            font-size: 12px;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
             font-weight: 600;
-            font-size: 14px;
-            margin: 20px 0;
         }
 
-        .status-active {
-            background: #dcfce7;
-            color: #166534;
+        /* Progress bar showing days used vs total plan length */
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 12px;
         }
-
-        .status-expiring {
-            background: #fef9c3;
-            color: #854d0e;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #818cf8, #6366f1);
+            border-radius: 999px;
+            transition: width 0.6s ease;
         }
-
-        .status-expired {
-            background: #fee2e2;
-            color: #991b1b;
-        }
+        .progress-fill.expiring { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+        .progress-fill.expired  { background: linear-gradient(90deg, #f87171, #ef4444); }
 
         .detail-row {
             display: flex;
             justify-content: space-between;
-            padding: 16px 0;
-            border-bottom: 1px solid #f3f4f6;
-            text-align: left;
-            gap: 12px;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            gap: 16px;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: #94a3b8; font-size: 13px; flex-shrink: 0; }
+        .detail-value { font-weight: 700; color: #f1f5f9; text-align: right; font-size: 14px; word-break: break-word; }
+
+        /* Renew CTA */
+        .renew-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            margin-top: 24px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            letter-spacing: 0.3px;
+        }
+        .renew-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5); }
+        .renew-btn:active { transform: translateY(0); }
+        .renew-btn.urgent { background: linear-gradient(135deg, #f59e0b, #ef4444); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3); }
+
+        .footer-note {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 11px;
+            color: #64748b;
         }
 
-        .detail-row:last-child {
-            border-bottom: none;
+        .powered {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 11px;
+            color: #475569;
         }
-
-        .detail-label {
-            color: #6b7280;
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-
-        .detail-value {
-            font-weight: 600;
-            color: #111827;
-            text-align: right;
-            word-break: break-word;
-        }
+        .powered a { color: #64748b; text-decoration: none; }
 
         @media (max-width: 480px) {
-            .status-card {
-                padding: 30px 20px;
-            }
-
-            .member-name {
-                font-size: 24px;
-            }
+            .status-card { padding: 24px 20px; border-radius: 18px; }
+            .member-name { font-size: 22px; }
+            .days-num { font-size: 40px; }
         }
     </style>
-    <script src="assets/theme.js"></script>
 </head>
 
 <body>
-
     <div class="status-card" id="status-container" style="display: none;">
-        <div class="gym-name" id="gym-name">Gym Name</div>
+        <div class="header-center">
+            <div class="gym-name" id="gym-name">Gym Name</div>
+            <a href="#" class="gym-phone" id="gym-phone-link" style="display: none;">📞 <span id="gym-phone-text"></span></a>
 
-        <!-- Icon -->
-        <div style="font-size: 48px; margin-bottom: 16px;">
-            <div id="status-icon">👤</div>
+            <div class="status-icon" id="status-icon">👤</div>
+            <div class="member-name" id="member-name">Member Name</div>
+            <div id="status-badge" class="status-badge status-active">Active</div>
         </div>
 
-        <div class="member-name" id="member-name">Member Name</div>
-
-        <div id="status-badge" class="status-badge status-active">
-            Active
-        </div>
-
-        <div style="margin-top: 24px;">
-            <div class="detail-row">
-                <span class="detail-label">Current Plan</span>
-                <span class="detail-value" id="plan-name">-</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Expires On</span>
-                <span class="detail-value" id="expiry-date">-</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Days Remaining</span>
-                <span class="detail-value" id="days-left">-</span>
+        <div class="days-pill" id="days-pill">
+            <div class="days-num" id="days-num">–</div>
+            <div class="days-label" id="days-label">days remaining</div>
+            <div class="progress-track" style="margin-top: 12px;">
+                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
             </div>
         </div>
+
+        <div>
+            <div class="detail-row">
+                <span class="detail-label">📋 Current Plan</span>
+                <span class="detail-value" id="plan-name">–</span>
+            </div>
+            <div class="detail-row" id="row-start" style="display: none;">
+                <span class="detail-label">🗓️ Started</span>
+                <span class="detail-value" id="start-date">–</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">⏳ Expires</span>
+                <span class="detail-value" id="expiry-date">–</span>
+            </div>
+        </div>
+
+        <a href="#" id="renew-btn" class="renew-btn" style="display: none;">💳 Renew Now</a>
+
+        <div class="footer-note" id="footer-note">Save this link to check anytime.</div>
+        <div class="powered">Powered by <a href="#" target="_blank">GymExec</a></div>
     </div>
 
-    <div id="loading" style="text-align: center; color: #6b7280;">
-        Loading your membership details...
+    <div id="loading" style="text-align: center; color: #cbd5e1;">
+        <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
+        <div>Loading your membership…</div>
     </div>
-    <div id="error"
-        style="display: none; text-align: center; color: #ef4444; background: #fee2e2; padding: 20px; border-radius: 12px;">
-        Sorry, we couldn't find your membership details.<br>Please contact your gym.
+    <div id="error" style="display: none; text-align: center; color: #fca5a5; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 24px; border-radius: 16px; max-width: 400px;">
+        <div style="font-size: 32px; margin-bottom: 8px;">😕</div>
+        <div style="font-weight: 600; margin-bottom: 6px;">We couldn't find your membership.</div>
+        <div style="font-size: 13px; color: #f87171;">Please contact your gym for a new link.</div>
     </div>
 
     <script>
@@ -165,46 +255,96 @@
             }
 
             try {
-                // Fetch public status (no token needed)
                 const response = await fetch(`${CONFIG.API_BASE_URL}/api/public/members/${memberId}`);
-
                 if (!response.ok) throw new Error('Not found');
-
                 const data = await response.json();
 
-                // Populate data
+                // Header
                 document.getElementById('gym-name').textContent = data.gym_name;
                 document.getElementById('member-name').textContent = data.member_name;
-                document.getElementById('plan-name').textContent = data.plan_name;
-                document.getElementById('expiry-date').textContent = data.expiry_date;
 
+                // Tap-to-call gym phone
+                if (data.gym_phone) {
+                    const link = document.getElementById('gym-phone-link');
+                    link.href = `tel:${data.gym_phone}`;
+                    document.getElementById('gym-phone-text').textContent = data.gym_phone;
+                    link.style.display = 'inline-flex';
+                }
+
+                // Plan + dates
+                document.getElementById('plan-name').textContent = data.plan_name || '–';
+                document.getElementById('expiry-date').textContent = data.expiry_date || '–';
+                if (data.start_date) {
+                    document.getElementById('start-date').textContent = data.start_date;
+                    document.getElementById('row-start').style.display = 'flex';
+                }
+
+                // Status logic
                 const daysLeft = data.days_left;
-                document.getElementById('days-left').textContent = daysLeft > 0 ? `${daysLeft} days` : 'Expired';
-
-                // Handle Status Formatting
                 const badge = document.getElementById('status-badge');
                 const icon = document.getElementById('status-icon');
+                const pill = document.getElementById('days-pill');
+                const daysNum = document.getElementById('days-num');
+                const daysLabel = document.getElementById('days-label');
+                const progressFill = document.getElementById('progress-fill');
+                const renewBtn = document.getElementById('renew-btn');
 
+                let statusKey = 'active';
                 if (daysLeft < 0 || data.status === 'expired') {
+                    statusKey = 'expired';
                     badge.className = 'status-badge status-expired';
                     badge.textContent = 'Expired';
                     icon.textContent = '⚠️';
-                } else if (daysLeft <= 3 || data.status === 'expiring_soon') {
+                    pill.classList.add('expired');
+                    daysNum.classList.add('expired');
+                    daysNum.textContent = Math.abs(daysLeft);
+                    daysLabel.textContent = `day${Math.abs(daysLeft) === 1 ? '' : 's'} ago`;
+                    progressFill.classList.add('expired');
+                    progressFill.style.width = '100%';
+                    renewBtn.classList.add('urgent');
+                    renewBtn.textContent = '🚨 Renew Now to Resume Access';
+                    renewBtn.href = `pay.html?id=${data.member_id}`;
+                    renewBtn.style.display = 'block';
+                    document.getElementById('footer-note').textContent = 'Tap above to renew, or contact your gym.';
+                } else if (daysLeft <= 7 || data.status === 'expiring_soon') {
+                    statusKey = 'expiring';
                     badge.className = 'status-badge status-expiring';
                     badge.textContent = 'Expiring Soon';
-                    icon.textContent = '⏳';
+                    icon.textContent = daysLeft <= 1 ? '⏰' : '⏳';
+                    pill.classList.add('expiring');
+                    daysNum.classList.add('expiring');
+                    daysNum.textContent = daysLeft;
+                    daysLabel.textContent = `day${daysLeft === 1 ? '' : 's'} left`;
+                    progressFill.classList.add('expiring');
+                    if (data.plan_duration_days) {
+                        const used = data.plan_duration_days - daysLeft;
+                        progressFill.style.width = Math.min(100, Math.max(0, (used / data.plan_duration_days) * 100)) + '%';
+                    } else {
+                        progressFill.style.width = '85%';
+                    }
+                    renewBtn.textContent = '💳 Renew Early — Don\'t Miss a Day';
+                    renewBtn.href = `pay.html?id=${data.member_id}`;
+                    renewBtn.style.display = 'block';
+                    document.getElementById('footer-note').textContent = 'Renew now to keep your access uninterrupted.';
                 } else {
                     badge.className = 'status-badge status-active';
                     badge.textContent = 'Active';
                     icon.textContent = '✅';
+                    daysNum.textContent = daysLeft;
+                    daysLabel.textContent = `day${daysLeft === 1 ? '' : 's'} left`;
+                    if (data.plan_duration_days) {
+                        const used = data.plan_duration_days - daysLeft;
+                        progressFill.style.width = Math.min(100, Math.max(0, (used / data.plan_duration_days) * 100)) + '%';
+                    } else {
+                        progressFill.style.width = '20%';
+                    }
+                    document.getElementById('footer-note').textContent = 'Save this link to check anytime — even offline.';
                 }
 
-                // Show card
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('status-container').style.display = 'block';
-
             } catch (error) {
-                console.error(error);
+                console.error('[STATUS-LOAD]', error);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
             }
