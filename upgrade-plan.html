@@ -434,7 +434,7 @@
             document.getElementById('badge-pro').style.display = 'block';
         }
 
-        // Disable downgrade buttons (tiers below current)
+        // Lower-tier buttons also go through payment (new month = new payment)
         const tierOrder = ['starter', 'pro', 'elite'];
         const currentIndex = tierOrder.indexOf(currentTier);
         tierOrder.forEach((tier, idx) => {
@@ -444,56 +444,12 @@
                     downBtn.classList.remove('btn-outline', 'btn-primary-gradient');
                     downBtn.classList.add('btn-outline');
                     downBtn.innerText = `Switch to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
-                    downBtn.setAttribute('onclick', `downgradeToTier('${tier}')`);
+                    downBtn.setAttribute('onclick', `initPayment('${tier}')`);
                     downBtn.style.borderColor = '#f59e0b';
                     downBtn.style.color = '#f59e0b';
                 }
             }
         });
-
-        // ============================================
-        // [JS-DOWNGRADE] Switch to a lower tier
-        // ============================================
-        async function downgradeToTier(tier) {
-            const tierNames = { starter: 'Starter (₹500/mo)', pro: 'Pro (₹999/mo)', elite: 'Elite (₹2,499/mo)' };
-            
-            if (!confirm(`⚠️ Are you sure you want to downgrade to ${tierNames[tier]}?\n\nYou will lose access to higher-tier features immediately.`)) {
-                return;
-            }
-
-            const clickedBtn = document.getElementById(`btn-${tier}`);
-            clickedBtn.disabled = true;
-            clickedBtn.innerText = 'Switching...';
-
-            try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/downgrade`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ tier })
-                });
-
-                if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.detail || 'Downgrade failed');
-                }
-
-                const result = await res.json();
-                localStorage.setItem('tier', result.tier);
-                showToast(`✅ ${result.message}`, 'success');
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1200);
-            } catch (error) {
-                console.error('[DOWNGRADE]', error);
-                showToast(error.message, 'error');
-                clickedBtn.disabled = false;
-                clickedBtn.innerText = `Switch to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
-            }
-        }
 
         // ============================================
         // [JS-PAYMENT] Razorpay Payment Flow

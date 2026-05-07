@@ -214,7 +214,6 @@
                     { name: 'Unlimited members', locked: false },
                     { name: 'Membership tracking', locked: false },
                     { name: 'Payment receipts', locked: false },
-                    { name: 'QR Check-in', locked: false },
                     { name: 'Member portal', locked: false }
                 ]
             },
@@ -225,7 +224,7 @@
                 desc: 'The powerhouse engine for fast-growing gyms.',
                 features: [
                     { name: 'Everything in Starter', locked: false },
-                    { name: 'Staff management', locked: false },
+                    { name: 'QR Check-in (Kiosk & QR)', locked: false },
                     { name: 'Automated email reminders', locked: false },
                     { name: 'AI receipt scanning', locked: false },
                     { name: 'Class schedule & routine builder', locked: false },
@@ -331,7 +330,7 @@
                             <div class="payment-link-box">${realLink}</div>
                             <div style="display: flex; gap: 8px; margin-top: 12px;">
                                 <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="copyLink('${realLink}')">📋 Copy</button>
-                                <button class="btn" style="flex: 1; font-size: 12px; background: #25d36622; color: #25d366; border: 1px solid #25d36644;" onclick="shareWhatsApp('${realLink}', '${plan.name}')">📲 Share</button>
+                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="shareLink('${realLink}', '${plan.name}')">📤 Share</button>
                             </div>
                         </div>
                     </div>
@@ -411,9 +410,13 @@
             navigator.clipboard.writeText(link).then(() => window.showToast("Link copied!", "success"));
         }
 
-        function shareWhatsApp(link, name) {
-            const msg = encodeURIComponent(`Register for our ${name} plan here: ${link}`);
-            window.open(`https://wa.me/?text=${msg}`, '_blank');
+        function shareLink(link, name) {
+            if (navigator.share) {
+                navigator.share({ title: name, text: `Register for our ${name} plan here:`, url: link });
+            } else {
+                navigator.clipboard.writeText(`Register for our ${name} plan here: ${link}`)
+                    .then(() => window.showToast('Link copied to clipboard!', 'success'));
+            }
         }
 
         function exportPlansExcel() {
@@ -452,10 +455,10 @@
 
         (function() {
             const tier = localStorage.getItem('tier') || 'starter';
-            if (tier !== 'elite') {
+            if (tier === 'starter') {
                 const btn = document.getElementById('export-btn');
                 btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-                btn.innerHTML = '✨ Unlock Elite Excel Export';
+                btn.innerHTML = '✨ Unlock Pro Excel Export';
             }
         })();
     </script>
