@@ -6,8 +6,10 @@
     <title id="page-title">Gym Profile | GymExec</title>
     <meta name="description" id="page-desc" content="View plans and join this gym. Powered by GymExec.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="assets/config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -16,111 +18,176 @@
             background: #f8fafc;
             color: #0f172a;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
+        /* ── Top Bar ── */
         .top-bar {
             background: #fff;
-            padding: 16px 5%;
+            padding: 14px 5%;
             border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .top-bar a {
+        .top-bar a.brand {
             font-size: 18px; font-weight: 700; color: #2563eb;
             text-decoration: none; display: flex; align-items: center; gap: 8px;
         }
         .top-bar .discover-link {
-            font-size: 14px; color: #64748b; text-decoration: none; font-weight: 500;
+            font-size: 13px; color: #64748b; text-decoration: none; font-weight: 500;
+            background: #f1f5f9; padding: 8px 14px; border-radius: 8px;
         }
-        .top-bar .discover-link:hover { color: #2563eb; }
+        .top-bar .discover-link:hover { background: #e2e8f0; }
 
+        /* ── Hero ── */
         .hero-section {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: #fff;
-            padding: 60px 5% 40px;
+            padding: 48px 20px 36px;
             text-align: center;
         }
         .hero-section h1 {
-            font-size: 42px; font-weight: 800; margin-bottom: 8px;
-            letter-spacing: -1px;
+            font-size: clamp(26px, 5vw, 42px);
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+            text-transform: capitalize;
         }
         .hero-section .location {
-            font-size: 16px; color: #94a3b8; display: flex;
-            align-items: center; justify-content: center; gap: 8px;
+            font-size: 15px; color: #94a3b8;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            flex-wrap: wrap;
         }
-        .hero-section .phone {
-            margin-top: 12px; font-size: 15px; color: #cbd5e1;
+        .hero-section .phone-row {
+            margin-top: 10px; font-size: 15px; color: #cbd5e1;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            flex-wrap: wrap;
         }
-        .hero-section .phone a { color: #60a5fa; text-decoration: none; }
+        .hero-section .phone-row a { color: #60a5fa; text-decoration: none; font-weight: 600; }
+        .gmaps-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 16px; padding: 10px 20px;
+            background: #22c55e; color: #fff; border-radius: 10px;
+            font-weight: 600; font-size: 14px; text-decoration: none;
+            transition: background 0.2s;
+        }
+        .gmaps-btn:hover { background: #16a34a; }
 
+        /* ── Map ── */
+        .map-wrapper {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            z-index: 1;
+        }
         #map {
-            width: 100%; height: 280px;
-            border-bottom: 3px solid #2563eb;
+            width: 100%;
+            height: 100%;
         }
 
+        /* ── Plans ── */
         .plans-section {
-            max-width: 800px; margin: -30px auto 60px;
-            padding: 0 20px; position: relative; z-index: 10;
+            max-width: 700px;
+            margin: 32px auto 40px;
+            padding: 0 16px;
+            width: 100%;
+            flex: 1;
         }
         .plans-section h2 {
-            font-size: 22px; font-weight: 700; margin-bottom: 20px;
+            font-size: 20px; font-weight: 700; margin-bottom: 16px;
             color: #0f172a; text-align: center;
         }
 
         .plan-card {
             background: #fff;
             border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 24px 28px;
-            margin-bottom: 16px;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.04);
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .plan-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
         }
-        .plan-info h3 { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+        .plan-info { flex: 1; min-width: 0; }
+        .plan-info h3 {
+            font-size: 16px; font-weight: 700; color: #0f172a;
+            margin-bottom: 2px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
         .plan-info .duration { font-size: 13px; color: #64748b; }
-        .plan-price { font-size: 28px; font-weight: 800; color: #2563eb; white-space: nowrap; }
-        .plan-price span { font-size: 14px; font-weight: 500; color: #94a3b8; }
-
-        .join-btn {
-            display: inline-block; margin-left: 24px;
-            background: #2563eb; color: #fff; padding: 12px 24px;
-            border-radius: 10px; font-weight: 600; font-size: 14px;
-            text-decoration: none; transition: all 0.2s; border: none; cursor: pointer;
+        .plan-right {
+            display: flex; align-items: center; gap: 12px;
+            flex-shrink: 0;
         }
-        .join-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .plan-price {
+            font-size: 22px; font-weight: 800; color: #2563eb; white-space: nowrap;
+        }
+        .join-btn {
+            display: inline-block;
+            background: #2563eb; color: #fff; padding: 10px 20px;
+            border-radius: 10px; font-weight: 600; font-size: 13px;
+            text-decoration: none; transition: all 0.2s; border: none; cursor: pointer;
+            white-space: nowrap;
+        }
+        .join-btn:hover { background: #1d4ed8; }
 
         .empty-state {
-            text-align: center; padding: 60px 20px; color: #64748b;
+            text-align: center; padding: 40px 20px; color: #64748b;
         }
 
+        /* ── Footer ── */
         .footer {
-            text-align: center; padding: 40px 20px;
-            color: #94a3b8; font-size: 13px;
+            text-align: center; padding: 30px 16px;
+            color: #94a3b8; font-size: 12px;
             border-top: 1px solid #e2e8f0;
+            margin-top: auto;
         }
         .footer a { color: #2563eb; text-decoration: none; font-weight: 600; }
 
-        .loading { text-align: center; padding: 80px 20px; color: #64748b; font-size: 18px; }
+        .loading {
+            text-align: center; padding: 80px 20px; color: #64748b;
+            font-size: 16px; flex: 1; display: flex; align-items: center; justify-content: center;
+        }
 
+        /* ── Mobile ── */
         @media (max-width: 600px) {
-            .hero-section h1 { font-size: 28px; }
-            .plan-card { flex-direction: column; align-items: flex-start; gap: 16px; }
-            .join-btn { margin-left: 0; width: 100%; text-align: center; }
+            .plan-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .plan-right {
+                flex-direction: row;
+                justify-content: space-between;
+                width: 100%;
+            }
+            .join-btn {
+                flex: 1;
+                text-align: center;
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+            .plan-price {
+                font-size: 20px;
+            }
+            .map-wrapper { height: 220px; }
+            .hero-section { padding: 32px 16px 24px; }
         }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <a href="index.html">🏋️‍♀️ GymExec</a>
+        <a href="index.html" class="brand">🏋️‍♀️ GymExec</a>
         <a href="discover.html" class="discover-link">🔍 Find More Gyms</a>
     </div>
 
@@ -132,12 +199,17 @@
             <div class="location">
                 <span>📍</span> <span id="gym-address"></span>
             </div>
-            <div class="phone">
+            <div class="phone-row">
                 📞 <a id="gym-phone" href=""></a>
             </div>
+            <a id="gmaps-link" href="#" target="_blank" class="gmaps-btn" style="display: none;">
+                🗺️ Open in Google Maps
+            </a>
         </div>
 
-        <div id="map"></div>
+        <div class="map-wrapper">
+            <div id="map"></div>
+        </div>
 
         <div class="plans-section">
             <h2>📋 Available Plans</h2>
@@ -146,9 +218,9 @@
     </div>
 
     <div id="not-found" style="display: none;" class="empty-state">
-        <h2 style="font-size: 28px; color: #0f172a; margin-bottom: 12px;">Gym Not Found</h2>
+        <h2 style="font-size: 24px; color: #0f172a; margin-bottom: 12px;">Gym Not Found</h2>
         <p>This gym profile doesn't exist or hasn't been set up yet.</p>
-        <a href="discover.html" class="join-btn" style="margin-top: 24px; display: inline-block;">Browse All Gyms</a>
+        <a href="discover.html" class="join-btn" style="margin-top: 20px; display: inline-block;">Browse All Gyms</a>
     </div>
 
     <footer class="footer">
@@ -174,33 +246,63 @@
 
             // SEO
             document.getElementById('page-title').textContent = `${gym.name} — Plans & Location | GymExec`;
-            document.getElementById('page-desc').content = `Join ${gym.name} in ${gym.city || ''}. View plans starting from ₹${gym.plans[0]?.price || 'N/A'}. Powered by GymExec.`;
+            document.getElementById('page-desc').content =
+                `Join ${gym.name} in ${gym.city || ''}. View plans starting from ₹${gym.plans[0]?.price || 'N/A'}. Powered by GymExec.`;
 
             // Hero
             document.getElementById('gym-name').textContent = gym.name;
-            document.getElementById('gym-address').textContent = [gym.address, gym.city].filter(Boolean).join(', ') || 'Location available';
+            document.getElementById('gym-address').textContent =
+                [gym.address, gym.city].filter(Boolean).join(', ') || 'Location available';
             const phoneEl = document.getElementById('gym-phone');
             phoneEl.textContent = gym.phone;
             phoneEl.href = `tel:${gym.phone}`;
 
-            // Map
+            // Google Maps link
             if (gym.latitude && gym.longitude) {
-                const map = L.map('map').setView([gym.latitude, gym.longitude], 15);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap'
-                }).addTo(map);
-                L.marker([gym.latitude, gym.longitude])
-                    .addTo(map)
-                    .bindPopup(`<b>${gym.name}</b><br>${gym.address || ''}`)
-                    .openPopup();
+                const gmapsLink = document.getElementById('gmaps-link');
+                gmapsLink.href = `https://www.google.com/maps/search/?api=1&query=${gym.latitude},${gym.longitude}`;
+                gmapsLink.style.display = 'inline-flex';
+            }
+
+            // Show content first, then init map (so container has dimensions)
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'flex';
+            document.getElementById('content').style.flexDirection = 'column';
+            document.getElementById('content').style.flex = '1';
+
+            // Map — init AFTER container is visible
+            if (gym.latitude && gym.longitude) {
+                setTimeout(() => {
+                    const map = L.map('map', {
+                        scrollWheelZoom: false,
+                        dragging: !L.Browser.mobile,
+                        tap: false
+                    }).setView([gym.latitude, gym.longitude], 16);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© <a href="https://www.openstreetmap.org/">OSM</a>',
+                        maxZoom: 19
+                    }).addTo(map);
+
+                    L.marker([gym.latitude, gym.longitude])
+                        .addTo(map)
+                        .bindPopup(`<b>${gym.name}</b><br>${gym.address || ''}`)
+                        .openPopup();
+
+                    // Force re-render to fix tile loading
+                    setTimeout(() => map.invalidateSize(), 200);
+                }, 100);
             } else {
-                document.getElementById('map').style.display = 'none';
+                document.querySelector('.map-wrapper').style.display = 'none';
             }
 
             // Plans
             const plansList = document.getElementById('plans-list');
             if (gym.plans.length === 0) {
-                plansList.innerHTML = '<div class="empty-state"><p>No plans available yet. Contact the gym directly.</p></div>';
+                plansList.innerHTML = `
+                    <div class="empty-state">
+                        <p>No plans available yet. Contact the gym directly.</p>
+                    </div>`;
             } else {
                 plansList.innerHTML = gym.plans.map(p => `
                     <div class="plan-card">
@@ -208,16 +310,13 @@
                             <h3>${p.name}</h3>
                             <div class="duration">${p.duration_days} days validity</div>
                         </div>
-                        <div style="display: flex; align-items: center;">
-                            <div class="plan-price">₹${p.price.toLocaleString()}<span>/plan</span></div>
+                        <div class="plan-right">
+                            <div class="plan-price">₹${p.price.toLocaleString()}</div>
                             <a href="pay.html?id=${p.payment_link_id}" class="join-btn">Join Now →</a>
                         </div>
                     </div>
                 `).join('');
             }
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
 
         } catch (err) {
             document.getElementById('loading').style.display = 'none';
