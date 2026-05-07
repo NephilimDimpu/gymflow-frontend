@@ -141,6 +141,10 @@
     <script>
         const token = localStorage.getItem('auth_token');
         const userRole = localStorage.getItem('role') || 'owner';
+        // [TIER-GATE] Auto-reminders are a Pro+Elite feature. Starter gyms see an
+        // upgrade prompt instead of the bell button so they can't trigger 403s.
+        const userTier = localStorage.getItem('tier') || 'starter';
+        const remindersEnabled = userTier === 'pro' || userTier === 'elite';
         if (!token) window.location.href = 'login.html';
 
         if (userRole === 'owner') loadBranchFilter();
@@ -221,7 +225,10 @@
                     </td>
                     <td style="text-align: right;">
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit</button>
-                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})">🔔</button>
+                        ${remindersEnabled
+                            ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})" title="Send reminder email">🔔</button>`
+                            : `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03); opacity: 0.5;" onclick="window.location.href='upgrade-plan.html'" title="Upgrade to Pro to send member reminders">🔒</button>`
+                        }
                         ${userRole === 'owner' ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: #f87171;" onclick="deleteMember(${m.id})">🗑️</button>` : ''}
                     </td>
                 </tr>
@@ -258,7 +265,13 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const d = await res.json();
-                const msg = d.message || d.detail || 'Reminder sent';
+                if (res.status === 403 && d.detail && d.detail.error === 'tier_required') {
+                    if (confirm(d.detail.message + '\n\nGo to Upgrade page now?')) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                    return;
+                }
+                const msg = (typeof d.detail === 'string' ? d.detail : d.message) || 'Reminder sent';
                 window.showToast(msg, res.ok ? "success" : "error");
             } catch (err) { window.showToast("Network error", "error"); }
         }
