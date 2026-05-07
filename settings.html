@@ -134,6 +134,48 @@
                         </div>
                     </div>
 
+                    <!-- Location & Discovery Section -->
+                    <div id="geotag-section" class="glass-panel" style="padding: 32px; margin-bottom: 32px; display: none;">
+                        <h2 style="font-size: 20px; margin-bottom: 8px;">📍 Location & Discovery</h2>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">
+                            Set your gym's location so new members can find you on Google and book plans directly.
+                        </p>
+
+                        <div id="geotag-status" style="display: none; margin-bottom: 20px; padding: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 20px;">✅</span>
+                                <strong style="color: #10b981;">Location Set!</strong>
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 12px 0;">
+                                Your gym is discoverable. Share your public profile:
+                            </p>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="text" id="public-link" class="form-input" readonly
+                                    style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #a78bfa; font-size: 13px; font-family: monospace; flex: 1;">
+                                <button type="button" class="btn btn-secondary" onclick="copyPublicLink()" style="white-space: nowrap; padding: 10px 16px;">📋 Copy</button>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div class="form-group">
+                                <label class="form-label" style="color: #fff;">Address</label>
+                                <input type="text" id="geo-address" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. Near Beltola Tiniali, GS Road">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="color: #fff;">City</label>
+                                <input type="text" id="geo-city" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. Guwahati">
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-primary" onclick="captureLocation()" id="geotag-btn"
+                            style="background: linear-gradient(135deg, #10b981, #059669); padding: 14px 28px; font-weight: 700; width: 100%;">
+                            📍 Set My Location (GPS)
+                        </button>
+                        <p style="font-size: 11px; color: #64748b; margin-top: 8px; text-align: center;">
+                            Uses your browser's GPS. Make sure you're at your gym when clicking this.
+                        </p>
+                    </div>
+
                     <div style="display: flex; gap: 16px;">
                         <button type="submit" class="btn btn-primary" style="padding: 16px 32px; font-weight: 700;">Save All Settings</button>
                         <button type="button" class="btn btn-secondary" onclick="goBackToDashboard()" style="padding: 16px 24px;">Discard Changes</button>
@@ -269,7 +311,105 @@
         });
 
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+        // [DISCOVERY] Geo-tag functions
+        const gymTier = localStorage.getItem('tier') || 'starter';
+        if (gymTier === 'pro' || gymTier === 'elite') {
+            document.getElementById('geotag-section').style.display = 'block';
+        }
+
+        async function captureLocation() {
+            const btn = document.getElementById('geotag-btn');
+            const address = document.getElementById('geo-address').value.trim();
+            const city = document.getElementById('geo-city').value.trim();
+
+            if (!address || !city) {
+                showToast('Please enter your address and city first', 'warning');
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                showToast('GPS not supported by your browser', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = '📡 Getting GPS...';
+
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    try {
+                        const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/geotag`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                latitude: pos.coords.latitude,
+                                longitude: pos.coords.longitude,
+                                address: address,
+                                city: city
+                            })
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.json();
+                            throw new Error(err.detail || 'Failed to save location');
+                        }
+
+                        const result = await res.json();
+                        showToast('📍 ' + result.message, 'success');
+                        showGeotagStatus(result.slug);
+                    } catch (err) {
+                        showToast(err.message, 'error');
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerText = '📍 Set My Location (GPS)';
+                    }
+                },
+                (err) => {
+                    showToast('GPS error: ' + err.message, 'error');
+                    btn.disabled = false;
+                    btn.innerText = '📍 Set My Location (GPS)';
+                },
+                { enableHighAccuracy: true, timeout: 15000 }
+            );
+        }
+
+        function showGeotagStatus(slug) {
+            const statusEl = document.getElementById('geotag-status');
+            const linkEl = document.getElementById('public-link');
+            const publicUrl = `${window.location.origin}/g.html?s=${slug}`;
+            linkEl.value = publicUrl;
+            statusEl.style.display = 'block';
+        }
+
+        function copyPublicLink() {
+            const link = document.getElementById('public-link').value;
+            navigator.clipboard.writeText(link)
+                .then(() => showToast('Public link copied!', 'success'));
+        }
+
+        // Check if gym already has geo-tag on load
+        async function checkGeoStatus() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/settings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.gym_slug) {
+                        showGeotagStatus(data.gym_slug);
+                        if (data.address) document.getElementById('geo-address').value = data.address;
+                        if (data.city) document.getElementById('geo-city').value = data.city;
+                    }
+                }
+            } catch(e) { /* ignore */ }
+        }
+
         loadSettings();
+        if (gymTier === 'pro' || gymTier === 'elite') checkGeoStatus();
     </script>
 </body>
 

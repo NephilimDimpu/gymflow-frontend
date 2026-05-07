@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find a Gym Near You | GymExec Directory</title>
+    <meta name="description" content="Discover gyms near you. Browse locations, compare plans, and join instantly. Powered by GymExec.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="assets/config.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: #fff;
+            padding: 16px 5%;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar a.brand {
+            font-size: 18px; font-weight: 700; color: #2563eb;
+            text-decoration: none; display: flex; align-items: center; gap: 8px;
+        }
+        .navbar .nav-links {
+            display: flex; gap: 24px; align-items: center;
+        }
+        .navbar .nav-links a {
+            font-size: 14px; color: #475569; text-decoration: none; font-weight: 500;
+        }
+        .navbar .nav-links a:hover { color: #2563eb; }
+        .navbar .nav-links .btn-cta {
+            background: #2563eb; color: #fff; padding: 10px 20px;
+            border-radius: 8px; font-weight: 600;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+            padding: 50px 5% 30px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .hero h1 {
+            font-size: 36px; font-weight: 800; margin-bottom: 12px;
+            letter-spacing: -1px; color: #0f172a;
+        }
+        .hero p {
+            font-size: 16px; color: #475569; max-width: 500px;
+            margin: 0 auto 24px;
+        }
+        .search-bar {
+            max-width: 500px; margin: 0 auto;
+            display: flex; gap: 8px;
+        }
+        .search-bar input {
+            flex: 1; padding: 14px 20px;
+            border: 2px solid #e2e8f0; border-radius: 12px;
+            font-size: 15px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-bar input:focus { border-color: #2563eb; }
+        .search-bar button {
+            background: #2563eb; color: #fff; border: none;
+            padding: 14px 24px; border-radius: 12px;
+            font-weight: 600; font-size: 15px; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-bar button:hover { background: #1d4ed8; }
+
+        #map {
+            width: 100%; height: 350px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .results-section {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .results-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 24px;
+        }
+        .results-header h2 {
+            font-size: 22px; font-weight: 700;
+        }
+        .results-count {
+            font-size: 14px; color: #64748b;
+        }
+
+        .gym-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px 28px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .gym-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+        .gym-info h3 {
+            font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 4px;
+        }
+        .gym-info .meta {
+            font-size: 13px; color: #64748b;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .gym-pricing {
+            text-align: right; white-space: nowrap;
+        }
+        .gym-pricing .from {
+            font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .gym-pricing .price {
+            font-size: 24px; font-weight: 800; color: #2563eb;
+        }
+        .view-btn {
+            display: inline-block; margin-top: 8px;
+            background: #f1f5f9; color: #2563eb; padding: 8px 16px;
+            border-radius: 8px; font-weight: 600; font-size: 13px;
+            text-decoration: none; transition: background 0.2s;
+        }
+        .view-btn:hover { background: #e2e8f0; }
+
+        .empty-state {
+            text-align: center; padding: 60px 20px; color: #64748b;
+        }
+        .empty-state h2 { color: #0f172a; margin-bottom: 12px; }
+
+        .footer {
+            text-align: center; padding: 40px 20px;
+            color: #94a3b8; font-size: 13px;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 40px;
+        }
+        .footer a { color: #2563eb; text-decoration: none; font-weight: 600; }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 26px; }
+            .gym-card { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .gym-pricing { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="brand">🏋️‍♀️ GymExec</a>
+        <div class="nav-links">
+            <a href="pricing.html">For Gym Owners</a>
+            <a href="login.html">Sign In</a>
+            <a href="signup.html" class="btn-cta">List Your Gym</a>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>🔍 Find a Gym Near You</h1>
+        <p>Browse gyms, compare plans, and join instantly — no phone calls needed.</p>
+        <div class="search-bar">
+            <input type="text" id="city-search" placeholder="Enter your city (e.g. Guwahati)..." onkeydown="if(event.key==='Enter') searchGyms()">
+            <button onclick="searchGyms()">Search</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="results-section">
+        <div class="results-header">
+            <h2>Gyms Near You</h2>
+            <span class="results-count" id="results-count"></span>
+        </div>
+        <div id="gym-list"></div>
+
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <h2>No Gyms Found</h2>
+            <p>No gyms have been listed in this area yet. Are you a gym owner?</p>
+            <a href="signup.html" class="view-btn" style="margin-top: 20px; display: inline-block; background: #2563eb; color: #fff; padding: 12px 24px;">List Your Gym Free</a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        Powered by <a href="index.html">GymExec</a> — The Smart OS for Modern Fitness
+    </footer>
+
+<script>
+    let map;
+    let markers = [];
+
+    // Initialize map centered on India
+    function initMap() {
+        map = L.map('map').setView([22.5, 82], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+    }
+
+    async function loadGyms(city) {
+        try {
+            let url = `${CONFIG.API_BASE_URL}/api/public/discover`;
+            if (city) url += `?city=${encodeURIComponent(city)}`;
+
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Failed to load');
+            const gyms = await res.json();
+
+            renderGyms(gyms);
+            plotOnMap(gyms);
+        } catch (err) {
+            console.error(err);
+            document.getElementById('gym-list').innerHTML = '';
+            document.getElementById('empty-state').style.display = 'block';
+            document.getElementById('results-count').textContent = '';
+        }
+    }
+
+    function renderGyms(gyms) {
+        const list = document.getElementById('gym-list');
+        const empty = document.getElementById('empty-state');
+        const count = document.getElementById('results-count');
+
+        if (gyms.length === 0) {
+            list.innerHTML = '';
+            empty.style.display = 'block';
+            count.textContent = '';
+            return;
+        }
+
+        empty.style.display = 'none';
+        count.textContent = `${gyms.length} gym${gyms.length > 1 ? 's' : ''} found`;
+
+        list.innerHTML = gyms.map(g => `
+            <div class="gym-card">
+                <div class="gym-info">
+                    <h3>${g.name}</h3>
+                    <div class="meta">
+                        <span>📍</span>
+                        <span>${[g.address, g.city].filter(Boolean).join(', ') || 'Location available'}</span>
+                    </div>
+                    <div class="meta" style="margin-top: 4px;">
+                        <span>📋</span>
+                        <span>${g.plan_count} plan${g.plan_count !== 1 ? 's' : ''} available</span>
+                    </div>
+                </div>
+                <div class="gym-pricing">
+                    ${g.starting_price ? `
+                        <div class="from">Starting from</div>
+                        <div class="price">₹${g.starting_price.toLocaleString()}</div>
+                    ` : '<div class="from">Contact gym</div>'}
+                    <a href="g.html?s=${g.slug}" class="view-btn">View Plans →</a>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function plotOnMap(gyms) {
+        // Clear existing markers
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        if (gyms.length === 0) return;
+
+        const bounds = [];
+        gyms.forEach(g => {
+            if (g.latitude && g.longitude) {
+                const marker = L.marker([g.latitude, g.longitude]).addTo(map);
+                marker.bindPopup(`
+                    <b>${g.name}</b><br>
+                    ${g.address || ''}<br>
+                    ${g.starting_price ? '₹' + g.starting_price.toLocaleString() + ' onwards' : ''}<br>
+                    <a href="g.html?s=${g.slug}" style="color: #2563eb; font-weight: 600;">View Plans →</a>
+                `);
+                markers.push(marker);
+                bounds.push([g.latitude, g.longitude]);
+            }
+        });
+
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+        }
+    }
+
+    function searchGyms() {
+        const city = document.getElementById('city-search').value.trim();
+        loadGyms(city || null);
+    }
+
+    // Initialize
+    initMap();
+    loadGyms();
+</script>
+</body>
+</html>
