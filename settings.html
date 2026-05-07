@@ -167,12 +167,18 @@
                             </div>
                         </div>
 
-                        <button type="button" class="btn btn-primary" onclick="captureLocation()" id="geotag-btn"
-                            style="background: linear-gradient(135deg, #10b981, #059669); padding: 14px 28px; font-weight: 700; width: 100%;">
-                            📍 Set My Location (GPS)
-                        </button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
+                            <button type="button" class="btn" onclick="autoDetectLocation()" id="autodetect-btn"
+                                style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 14px 20px; font-weight: 700; color: #fff; border: none; width: 100%;">
+                                🛰️ Auto-Detect Location
+                            </button>
+                            <button type="button" class="btn" onclick="captureLocation()" id="geotag-btn"
+                                style="background: linear-gradient(135deg, #10b981, #059669); padding: 14px 20px; font-weight: 700; color: #fff; border: none; width: 100%;">
+                                📍 Set Location (Manual)
+                            </button>
+                        </div>
                         <p style="font-size: 11px; color: #64748b; margin-top: 8px; text-align: center;">
-                            Uses your browser's GPS. Make sure you're at your gym when clicking this.
+                            <b>Auto-Detect</b> fills address & city from GPS automatically. <b>Manual</b> uses the address you typed above.
                         </p>
                     </div>
 
@@ -318,6 +324,84 @@
             document.getElementById('geotag-section').style.display = 'block';
         }
 
+        // Auto-detect: GPS + reverse geocode → auto-fill address & city → save
+        async function autoDetectLocation() {
+            const btn = document.getElementById('autodetect-btn');
+            if (!navigator.geolocation) {
+                showToast('GPS not supported by your browser', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = '📡 Detecting...';
+
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+
+                    btn.innerText = '🗺️ Getting address...';
+
+                    // Reverse geocode using Nominatim (free, no API key)
+                    try {
+                        const geoRes = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+                            { headers: { 'Accept-Language': 'en' } }
+                        );
+                        const geoData = await geoRes.json();
+
+                        const addr = geoData.address || {};
+                        const addressParts = [addr.road, addr.suburb, addr.neighbourhood].filter(Boolean);
+                        const detectedAddress = addressParts.join(', ') || geoData.display_name?.split(',').slice(0, 3).join(',') || '';
+                        const detectedCity = addr.city || addr.town || addr.state_district || addr.state || '';
+
+                        // Auto-fill the fields
+                        document.getElementById('geo-address').value = detectedAddress;
+                        document.getElementById('geo-city').value = detectedCity;
+
+                        showToast(`📍 Detected: ${detectedCity}`, 'success');
+
+                        // Now save to backend automatically
+                        btn.innerText = '💾 Saving...';
+                        await saveGeoTag(lat, lng, detectedAddress, detectedCity);
+                    } catch (err) {
+                        showToast('Could not detect address. Please type manually.', 'warning');
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerText = '🛰️ Auto-Detect Location';
+                    }
+                },
+                (err) => {
+                    showToast('GPS error: ' + err.message + '. Allow location access.', 'error');
+                    btn.disabled = false;
+                    btn.innerText = '🛰️ Auto-Detect Location';
+                },
+                { enableHighAccuracy: true, timeout: 15000 }
+            );
+        }
+
+        // Shared save function used by both auto-detect and manual
+        async function saveGeoTag(lat, lng, address, city) {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/geotag`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ latitude: lat, longitude: lng, address, city })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to save location');
+            }
+
+            const result = await res.json();
+            showToast('✅ ' + result.message, 'success');
+            showGeotagStatus(result.slug);
+            return result;
+        }
+
         async function captureLocation() {
             const btn = document.getElementById('geotag-btn');
             const address = document.getElementById('geo-address').value.trim();
@@ -339,39 +423,18 @@
             navigator.geolocation.getCurrentPosition(
                 async (pos) => {
                     try {
-                        const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/geotag`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                latitude: pos.coords.latitude,
-                                longitude: pos.coords.longitude,
-                                address: address,
-                                city: city
-                            })
-                        });
-
-                        if (!res.ok) {
-                            const err = await res.json();
-                            throw new Error(err.detail || 'Failed to save location');
-                        }
-
-                        const result = await res.json();
-                        showToast('📍 ' + result.message, 'success');
-                        showGeotagStatus(result.slug);
+                        await saveGeoTag(pos.coords.latitude, pos.coords.longitude, address, city);
                     } catch (err) {
                         showToast(err.message, 'error');
                     } finally {
                         btn.disabled = false;
-                        btn.innerText = '📍 Set My Location (GPS)';
+                        btn.innerText = '📍 Set Location (Manual)';
                     }
                 },
                 (err) => {
                     showToast('GPS error: ' + err.message, 'error');
                     btn.disabled = false;
-                    btn.innerText = '📍 Set My Location (GPS)';
+                    btn.innerText = '📍 Set Location (Manual)';
                 },
                 { enableHighAccuracy: true, timeout: 15000 }
             );
