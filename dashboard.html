@@ -106,6 +106,48 @@
             </div>
         </div>
 
+        <!-- [REMINDER-STATS] Pro/Elite-only ROI widget for automated reminders.
+             Hidden for Starter (replaced with an upgrade teaser). -->
+        <div id="reminder-stats-section" style="display: none; margin-bottom: 30px;">
+            <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin: 0 0 16px;">
+                📧 Reminder Activity (Last 30 Days)
+            </h3>
+            <div id="reminder-stats-card" class="glass-panel" style="padding: 24px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04)); border: 1px solid rgba(99, 102, 241, 0.2);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
+                    <div>
+                        <div style="font-size: 32px; font-weight: 800; color: #818cf8; line-height: 1.1;" id="rem-total">–</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Reminders sent</div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;" id="rem-breakdown">–</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 32px; font-weight: 800; color: #34d399; line-height: 1.1;" id="rem-recovered-count">–</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Members renewed after reminder</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 32px; font-weight: 800; color: #fbbf24; line-height: 1.1;" id="rem-recovered-revenue">–</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Revenue retained 💰</div>
+                    </div>
+                </div>
+                <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: var(--text-muted); line-height: 1.5;" id="rem-summary">
+                    Loading reminder activity…
+                </div>
+            </div>
+        </div>
+
+        <!-- [REMINDER-TEASER] Shown to Starter only. Sells the Pro upgrade. -->
+        <div id="reminder-stats-teaser" style="display: none; margin-bottom: 30px; padding: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px dashed rgba(99, 102, 241, 0.4);">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div style="font-size: 32px;">📧</div>
+                <div style="flex: 1; min-width: 220px;">
+                    <h3 style="margin: 0 0 4px 0; color: #a78bfa; font-size: 16px;">Stop losing members to expired plans</h3>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+                        Pro &amp; Elite gyms get automated 3-day, 1-day, and expiry-day reminders sent on autopilot — and you'll see the recovered revenue right here.
+                    </p>
+                </div>
+                <button class="btn btn-primary" style="padding: 10px 20px; font-weight: 700;" onclick="location.href='upgrade-plan.html'">⭐ Upgrade to Pro</button>
+            </div>
+        </div>
+
         <!-- [ATTENDANCE-KPI] Minimalist attendance counter (hidden for Starter tier) -->
         <div id="attendance-kpi-section" style="display: none; margin-bottom: 30px;">
             <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin: 0 0 16px;">
@@ -488,6 +530,9 @@
                 // Attendance KPI strip \u2014 loads independently, silently hidden on 403 (Starter tier)
                 loadAttendanceKPI();
 
+                // Reminder ROI widget \u2014 Pro/Elite shows the data, Starter shows the teaser.
+                loadReminderStats();
+
             } catch (error) {
                 console.error('[DASHBOARD-ERROR]', error);
                 showToast('Failed to load dashboard. Please refresh.', 'error');
@@ -530,6 +575,49 @@
                     document.getElementById('att-per-branch').style.display = 'block';
                 }
             } catch (e) { /* silent \u2014 non-critical */ }
+        }
+
+        // ============================================
+        // [JS-REMINDER-STATS] Pro/Elite ROI widget for the reminder system.
+        // Pro/Elite \u2192 shows live numbers. Starter \u2192 shows upgrade teaser.
+        // Anything else (network error, missing endpoint) \u2192 silent.
+        // ============================================
+        async function loadReminderStats() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/dashboard/reminder-stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                // Starter tier: backend returns 403 with structured upgrade payload.
+                // Show the upgrade teaser instead of the data card.
+                if (res.status === 403) {
+                    document.getElementById('reminder-stats-teaser').style.display = 'block';
+                    return;
+                }
+                if (!res.ok) return;  // any other failure \u2192 silent
+
+                const d = await res.json();
+
+                document.getElementById('rem-total').textContent = d.reminders_sent ?? 0;
+                const b = d.breakdown || {};
+                document.getElementById('rem-breakdown').textContent =
+                    `${b.three_day ?? 0} \u00d7 3-day \u00b7 ${b.one_day ?? 0} \u00d7 1-day \u00b7 ${b.expiry ?? 0} \u00d7 expiry`;
+                document.getElementById('rem-recovered-count').textContent = d.recovered_count ?? 0;
+                document.getElementById('rem-recovered-revenue').textContent =
+                    `\u20b9${(d.recovered_revenue ?? 0).toLocaleString('en-IN')}`;
+
+                // Friendly summary line that adapts to the actual numbers.
+                let summary = '';
+                if ((d.reminders_sent ?? 0) === 0) {
+                    summary = '\u2728 No expiring memberships in the last 30 days \u2014 your members are renewing on time!';
+                } else if ((d.recovered_count ?? 0) === 0) {
+                    summary = `\ud83d\udce4 GymExec sent ${d.reminders_sent} reminder${d.reminders_sent === 1 ? '' : 's'} in the last 30 days. Renewals from these will appear here as they happen.`;
+                } else {
+                    summary = `\ud83c\udfaf GymExec helped you bring back <strong>${d.recovered_count} member${d.recovered_count === 1 ? '' : 's'}</strong> who were about to lapse \u2014 that's <strong>\u20b9${(d.recovered_revenue ?? 0).toLocaleString('en-IN')}</strong> in retained revenue this month.`;
+                }
+                document.getElementById('rem-summary').innerHTML = summary;
+                document.getElementById('reminder-stats-section').style.display = 'block';
+            } catch (e) { /* silent \u2014 non-critical widget */ }
         }
 
         // ============================================
