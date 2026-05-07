@@ -131,6 +131,29 @@
             </div>
         </div>
 
+        <!-- [LEADS-INBOX] Identified prospects from public-page form. Visible to all
+             tiers, hidden if no leads yet. Lets owner mark contacted/joined/lost. -->
+        <div id="leads-inbox-section" style="display: none; margin-bottom: 30px;">
+            <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin: 0 0 16px;">
+                📥 Recent Leads
+                <span style="font-size: 11px; color: #94a3b8; text-transform: none; letter-spacing: 0; margin-left: 8px; font-weight: 400;">prospects who shared their contact info on your public page</span>
+            </h3>
+            <div class="glass-panel" style="padding: 0; overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse;" class="data-table">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.03); text-align: left;">
+                            <th style="padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Name</th>
+                            <th style="padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Phone</th>
+                            <th style="padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Plan</th>
+                            <th style="padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">When</th>
+                            <th style="padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leads-inbox-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- [REMINDER-STATS] Pro/Elite-only ROI widget for automated reminders.
              Hidden for Starter (replaced with an upgrade teaser). -->
         <div id="reminder-stats-section" style="display: none; margin-bottom: 30px;">
@@ -561,6 +584,9 @@
                 // Public-page Join Now click counter \u2014 visible to all tiers, hidden if no clicks
                 loadLeadStats();
 
+                // Identified-prospect inbox \u2014 visible to all tiers, hidden if no leads yet
+                loadLeadsInbox();
+
             } catch (error) {
                 console.error('[DASHBOARD-ERROR]', error);
                 showToast('Failed to load dashboard. Please refresh.', 'error');
@@ -676,6 +702,88 @@
                 }
                 document.getElementById('lead-stats-section').style.display = 'block';
             } catch (e) { /* silent */ }
+        }
+
+        // ============================================
+        // [JS-LEADS-INBOX] List identified prospects + inline status update.
+        // Hidden entirely if no leads exist yet — no empty-state spam.
+        // ============================================
+        async function loadLeadsInbox() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/leads`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const leads = await res.json();
+                if (!Array.isArray(leads) || leads.length === 0) return;
+
+                const tbody = document.getElementById('leads-inbox-tbody');
+                const STATUS_COLORS = {
+                    new: '#3b82f6', contacted: '#fbbf24', joined: '#34d399', lost: '#94a3b8'
+                };
+                const STATUS_LABELS = {
+                    new: 'New', contacted: 'Contacted', joined: 'Joined ✓', lost: 'Lost'
+                };
+                const escapeAttr = (s) => String(s || '').replace(/"/g, '&quot;').replace(/'/g, "\\'");
+
+                tbody.innerHTML = leads.slice(0, 20).map(L => {
+                    const ts = L.created_at ? new Date(L.created_at) : null;
+                    const ago = ts ? humanAgo(ts) : '–';
+                    const phoneClean = (L.phone || '').replace(/\D/g, '');
+                    const intl = phoneClean.length === 10 ? `91${phoneClean}` : phoneClean;
+                    const waLink = `https://wa.me/${intl}`;
+                    return `
+                        <tr style="border-top: 1px solid rgba(255,255,255,0.04);">
+                            <td style="padding: 12px 16px; font-weight: 600;">${escapeHtml(L.name)}</td>
+                            <td style="padding: 12px 16px;">
+                                <a href="tel:${escapeAttr(L.phone)}" style="color: #60a5fa; text-decoration: none; margin-right: 8px;">📞 ${escapeHtml(L.phone)}</a>
+                                <a href="${waLink}" target="_blank" rel="noopener" style="color: #25D366; text-decoration: none;" title="Open WhatsApp">💬</a>
+                            </td>
+                            <td style="padding: 12px 16px; color: var(--text-muted);">${escapeHtml(L.plan_name || '—')}</td>
+                            <td style="padding: 12px 16px; color: var(--text-muted); font-size: 12px;">${ago}</td>
+                            <td style="padding: 12px 16px;">
+                                <select onchange="updateLeadStatus(${L.id}, this.value)"
+                                        style="background: rgba(${L.status === 'new' ? '59,130,246' : L.status === 'contacted' ? '251,191,36' : L.status === 'joined' ? '52,211,153' : '148,163,184'}, 0.15); color: ${STATUS_COLORS[L.status] || '#94a3b8'}; border: 1px solid rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                                    <option value="new" ${L.status === 'new' ? 'selected' : ''}>${STATUS_LABELS.new}</option>
+                                    <option value="contacted" ${L.status === 'contacted' ? 'selected' : ''}>${STATUS_LABELS.contacted}</option>
+                                    <option value="joined" ${L.status === 'joined' ? 'selected' : ''}>${STATUS_LABELS.joined}</option>
+                                    <option value="lost" ${L.status === 'lost' ? 'selected' : ''}>${STATUS_LABELS.lost}</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                document.getElementById('leads-inbox-section').style.display = 'block';
+            } catch (e) { /* silent */ }
+        }
+
+        async function updateLeadStatus(leadId, status) {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/leads/${leadId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
+                });
+                if (res.ok) {
+                    if (typeof window.showToast === 'function') window.showToast(`Lead marked: ${status}`, 'success');
+                } else {
+                    if (typeof window.showToast === 'function') window.showToast('Could not update lead status', 'error');
+                }
+            } catch (_) { /* silent */ }
+        }
+
+        function humanAgo(dt) {
+            const s = Math.floor((Date.now() - dt.getTime()) / 1000);
+            if (s < 60) return 'just now';
+            if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+            if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+            if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+            return dt.toLocaleDateString();
+        }
+
+        function escapeHtml(s) {
+            if (s === null || s === undefined) return '';
+            return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
 
         // ============================================

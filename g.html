@@ -227,6 +227,29 @@
         Powered by <a href="index.html">GymExec</a> — The Smart OS for Modern Fitness
     </footer>
 
+    <!-- [LEAD-MODAL] Optional capture step before opening WhatsApp -->
+    <div id="lead-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+        <div style="background:#fff; max-width:420px; width:100%; border-radius:16px; padding:28px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <h3 style="margin:0 0 4px 0; color:#0f172a; font-size:18px; font-weight:800;">Quick — should we know who you are?</h3>
+            <p style="margin:0 0 18px 0; color:#64748b; font-size:13px; line-height:1.5;">
+                Optional. Helps the gym call you back if you miss WhatsApp. Or just skip and chat directly.
+            </p>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#475569; font-weight:600;">Your Name</label>
+                <input id="lead-name" type="text" placeholder="e.g. Rohit Sharma" style="width:100%; margin-top:4px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+            </div>
+            <div style="margin-bottom:18px;">
+                <label style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#475569; font-weight:600;">Phone Number</label>
+                <input id="lead-phone" type="tel" inputmode="tel" placeholder="10-digit phone" style="width:100%; margin-top:4px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button id="lead-submit" style="flex:1; background:linear-gradient(135deg, #25D366, #128C7E); color:#fff; border:none; padding:12px; border-radius:10px; font-weight:800; cursor:pointer; font-size:14px;">💬 Send WhatsApp</button>
+                <button id="lead-skip" style="background:rgba(100,116,139,0.1); color:#475569; border:none; padding:12px 18px; border-radius:10px; font-weight:600; cursor:pointer; font-size:13px;">Skip</button>
+            </div>
+            <div id="lead-error" style="display:none; margin-top:10px; color:#dc2626; font-size:12px; text-align:center;"></div>
+        </div>
+    </div>
+
 <script>
     const params = new URLSearchParams(window.location.search);
     const slug = params.get('s');
@@ -252,6 +275,97 @@
         } catch (_) { /* never break the user's WA flow */ }
     }
     window.recordLeadClick = recordLeadClick;
+
+    // [LEAD-MODAL] Intercept Join Now clicks so we can offer the optional
+    // name+phone capture before opening WhatsApp. The user can always Skip
+    // and go straight to wa.me — we don't add friction without an out.
+    let pendingWaUrl = null;
+    let pendingPlanLinkId = null;
+
+    function openLeadModal(waUrl, planLinkId) {
+        pendingWaUrl = waUrl;
+        pendingPlanLinkId = planLinkId;
+        document.getElementById('lead-name').value = '';
+        document.getElementById('lead-phone').value = '';
+        document.getElementById('lead-error').style.display = 'none';
+        document.getElementById('lead-modal').style.display = 'flex';
+        setTimeout(() => document.getElementById('lead-name').focus(), 100);
+    }
+
+    function closeLeadModal() {
+        document.getElementById('lead-modal').style.display = 'none';
+        pendingWaUrl = null;
+        pendingPlanLinkId = null;
+    }
+
+    function openWhatsAppNow() {
+        if (pendingWaUrl) {
+            window.open(pendingWaUrl, '_blank', 'noopener');
+        }
+        closeLeadModal();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('lead-skip').addEventListener('click', openWhatsAppNow);
+
+        document.getElementById('lead-submit').addEventListener('click', async () => {
+            const name = document.getElementById('lead-name').value.trim();
+            const phone = document.getElementById('lead-phone').value.trim();
+            const errEl = document.getElementById('lead-error');
+
+            // If both are empty → treat as Skip (don't bug them)
+            if (!name && !phone) {
+                openWhatsAppNow();
+                return;
+            }
+
+            if (name.length < 2 || phone.replace(/\D/g, '').length < 6) {
+                errEl.textContent = 'Please enter a name and a valid phone number — or click Skip.';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            const submitBtn = document.getElementById('lead-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving…';
+
+            try {
+                await fetch(`${CONFIG.API_BASE_URL}/api/public/gym/${encodeURIComponent(slug)}/lead`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        phone,
+                        payment_link_id: pendingPlanLinkId || null,
+                    }),
+                    keepalive: true,
+                });
+            } catch (_) {
+                // even if save fails, continue to WhatsApp — never block the user
+            }
+            openWhatsAppNow();
+        });
+
+        // Click outside modal closes it (counts as Skip)
+        document.getElementById('lead-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'lead-modal') openWhatsAppNow();
+        });
+    });
+
+    // Replace the Join button's default behavior: instead of letting the
+    // anchor follow href directly, intercept and show the modal first.
+    function handleJoinClick(event, paymentLinkId, waUrl) {
+        event.preventDefault();
+        recordLeadClick(paymentLinkId);
+        if (waUrl && waUrl.startsWith('https://wa.me/')) {
+            openLeadModal(waUrl, paymentLinkId);
+        } else {
+            // No phone on file — just follow whatever the link does
+            if (waUrl) window.location.href = waUrl;
+        }
+        return false;
+    }
+    window.handleJoinClick = handleJoinClick;
 
     async function loadGymProfile(slug) {
         try {
@@ -343,7 +457,9 @@
                 plansList.innerHTML = gym.plans.map(p => {
                     const link = buildJoinLink(p);
                     const target = link.kind === 'whatsapp' ? 'target="_blank" rel="noopener"' : '';
-                    // data-plid carries the payment_link_id so we can attribute the click
+                    // data-plid carries the payment_link_id; data-wa is the wa.me URL
+                    // so the click handler can open the lead modal before WhatsApp.
+                    const escAttr = (s) => String(s || '').replace(/"/g, '&quot;');
                     return `
                     <div class="plan-card">
                         <div class="plan-info">
@@ -352,7 +468,10 @@
                         </div>
                         <div class="plan-right">
                             <div class="plan-price">₹${p.price.toLocaleString()}</div>
-                            <a href="${link.href}" ${target} class="join-btn" data-plid="${p.payment_link_id || ''}" onclick="recordLeadClick(this.dataset.plid)">${link.label}</a>
+                            <a href="${link.href}" ${target} class="join-btn"
+                               data-plid="${escAttr(p.payment_link_id)}"
+                               data-wa="${escAttr(link.href)}"
+                               onclick="return handleJoinClick(event, this.dataset.plid, this.dataset.wa);">${link.label}</a>
                         </div>
                     </div>
                     `;
