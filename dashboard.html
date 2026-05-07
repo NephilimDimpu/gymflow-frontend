@@ -268,7 +268,14 @@
         <!-- [REVENUE-CHART] Monthly Revenue Graph -->
         <div class="glass-panel"
             style="margin-bottom: 30px;">
-            <h2 style="margin-bottom: 20px;">Revenue Trend (6 Months)</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <h2 style="margin: 0;">Revenue Trend (6 Months)</h2>
+                <button id="export-revenue-btn" class="btn btn-secondary feature-pro-only"
+                        onclick="exportRevenueCSV()"
+                        style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 8px 14px; font-size: 13px;">
+                    <span style="margin-right: 6px;">⬇️</span> Export CSV
+                </button>
+            </div>
             <canvas id="revenueChart" height="80"></canvas>
         </div>
 
@@ -779,6 +786,48 @@
             if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
             if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
             return dt.toLocaleDateString();
+        }
+
+        // [JS-EXPORT-REVENUE] Stream revenue ledger as CSV via the backend.
+        // Tier-gated server-side; on 403 we offer the upgrade path.
+        async function exportRevenueCSV() {
+            const tier = localStorage.getItem('tier') || 'starter';
+            if (tier === 'starter') {
+                if (confirm("CSV export is a Pro feature. Would you like to check upgrade options?")) {
+                    window.location.href = 'upgrade-plan.html';
+                }
+                return;
+            }
+            const btn = document.getElementById('export-revenue-btn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span style="margin-right: 6px;">⏳</span> Exporting…';
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/revenue/export.csv?months=12`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 403) {
+                    if (confirm("This feature requires Pro or Elite. Upgrade now?")) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                    return;
+                }
+                if (!res.ok) throw new Error(`Export failed (${res.status})`);
+                const blob = await res.blob();
+                const filename = (res.headers.get('content-disposition') || '')
+                    .match(/filename="?([^"]+)"?/)?.[1]
+                    || `revenue_${new Date().toISOString().split('T')[0]}.csv`;
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename; a.click();
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                if (typeof window.showToast === 'function') window.showToast('Revenue CSV exported', 'success');
+            } catch (err) {
+                if (typeof window.showToast === 'function') window.showToast(err.message || 'Export failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
         }
 
         function escapeHtml(s) {

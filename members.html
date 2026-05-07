@@ -336,25 +336,51 @@
             } catch (err) { window.showToast("Failed to delete", "error"); }
         }
 
-        function exportMembersCSV() {
+        async function exportMembersCSV() {
             const tier = localStorage.getItem('tier') || 'starter';
-            if (tier !== 'elite') {
-                if(confirm("Elite Upgrade Required: Unlock Excel/CSV Exports with our Elite tier! Would you like to check upgrade options?")) {
+            if (tier === 'starter') {
+                if (confirm("CSV export is a Pro feature. Would you like to check upgrade options?")) {
                     window.location.href = 'upgrade-plan.html';
                 }
                 return;
             }
-            // ... (rest of export logic from original file)
-            const headers = ['Name', 'Email', 'Phone', 'Status', 'Plan', 'Plan Ends'];
-            const csvRows = filteredMembers.map(m => [
-                `"${m.name}"`, `"${m.email || ''}"`, `"${m.phone}"`, `"${m.status}"`, `"${m.current_plan || 'N/A'}"`, `"${m.expiry_date || 'N/A'}"`
-            ].join(','));
-            const blob = new Blob([headers.join(',') + '\n' + csvRows.join('\n')], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Members_Export_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
+
+            const btn = document.getElementById('export-btn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span style="margin-right: 6px;">⏳</span> Exporting…';
+
+            try {
+                // Auth header is required, so we fetch + blob rather than using
+                // a plain <a href>. The backend streams the full members list
+                // (not just the loaded page) with branch + email + payment status.
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/export.csv`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 403) {
+                    if (confirm("This feature requires Pro or Elite. Upgrade now?")) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                    return;
+                }
+                if (!res.ok) throw new Error(`Export failed (${res.status})`);
+
+                const blob = await res.blob();
+                const filename = (res.headers.get('content-disposition') || '')
+                    .match(/filename="?([^"]+)"?/)?.[1]
+                    || `members_${new Date().toISOString().split('T')[0]}.csv`;
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename; a.click();
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                window.showToast('CSV exported', 'success');
+            } catch (err) {
+                window.showToast(err.message || 'Export failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
         }
 
         function logout() {
