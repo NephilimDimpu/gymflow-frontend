@@ -238,6 +238,21 @@
         loadGymProfile(slug);
     }
 
+    // Fire-and-forget: ping the backend so the gym owner can see how many
+    // prospects are clicking Join Now. We DON'T await the response — the
+    // wa.me link continues opening even if the analytics call fails.
+    function recordLeadClick(paymentLinkId) {
+        try {
+            fetch(`${CONFIG.API_BASE_URL}/api/public/gym/${encodeURIComponent(slug)}/lead-click`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payment_link_id: paymentLinkId || null }),
+                keepalive: true,  // ensure request survives page unload
+            }).catch(() => {});
+        } catch (_) { /* never break the user's WA flow */ }
+    }
+    window.recordLeadClick = recordLeadClick;
+
     async function loadGymProfile(slug) {
         try {
             const res = await fetch(`${CONFIG.API_BASE_URL}/api/public/gym/${slug}`);
@@ -328,6 +343,7 @@
                 plansList.innerHTML = gym.plans.map(p => {
                     const link = buildJoinLink(p);
                     const target = link.kind === 'whatsapp' ? 'target="_blank" rel="noopener"' : '';
+                    // data-plid carries the payment_link_id so we can attribute the click
                     return `
                     <div class="plan-card">
                         <div class="plan-info">
@@ -336,7 +352,7 @@
                         </div>
                         <div class="plan-right">
                             <div class="plan-price">₹${p.price.toLocaleString()}</div>
-                            <a href="${link.href}" ${target} class="join-btn">${link.label}</a>
+                            <a href="${link.href}" ${target} class="join-btn" data-plid="${p.payment_link_id || ''}" onclick="recordLeadClick(this.dataset.plid)">${link.label}</a>
                         </div>
                     </div>
                     `;
