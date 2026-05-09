@@ -67,8 +67,8 @@
                     <p id="context-info" style="font-size: 14px; color: var(--text-muted);">Define your offerings and share checkout links with members.</p>
                 </div>
                 <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-secondary" onclick="exportPlansExcel()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
-                        <span style="margin-right: 6px;">⬇️</span> Export Excel
+                    <button class="btn btn-secondary" onclick="exportPlansCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Export plans as CSV (opens in Excel)">
+                        <span style="margin-right: 6px;">⬇️</span> Export CSV
                     </button>
                     <button class="btn btn-primary" onclick="showCreateModal()">
                         + Create Plan
@@ -429,34 +429,51 @@
             }
         }
 
-        function exportPlansExcel() {
+        async function exportPlansCSV() {
             const tier = localStorage.getItem('tier') || 'starter';
             if (tier === 'starter') {
-                if(confirm("📊 Excel Export is a PRO feature!\n\nUpgrade to Pro or Elite to unlock this capability.")) {
+                if (confirm("CSV export is a Pro feature. Would you like to check upgrade options?")) {
                     window.location.href = 'upgrade-plan.html';
                 }
                 return;
             }
-            if (tier === 'pro') {
-                // Pro has this, so allow export
+
+            const btn = document.getElementById('export-btn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span style="margin-right: 6px;">⏳</span> Exporting…';
+
+            try {
+                // Server-side export so we get the FULL plan list (with active
+                // member counts joined in), not just what's loaded in the page.
+                // CSV opens directly in Excel, so we don't need the SheetJS lib.
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans/export.csv`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 403) {
+                    if (confirm("This feature requires Pro or Elite. Upgrade now?")) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                    return;
+                }
+                if (!res.ok) throw new Error(`Export failed (${res.status})`);
+
+                const blob = await res.blob();
+                const filename = (res.headers.get('content-disposition') || '')
+                    .match(/filename="?([^"]+)"?/)?.[1]
+                    || `plans_${new Date().toISOString().split('T')[0]}.csv`;
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename; a.click();
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                window.showToast('Plans CSV exported', 'success');
+            } catch (err) {
+                window.showToast(err.message || 'Export failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
             }
-            
-            // Format data for SheetJS
-            const excelData = allPlans.map(p => ({
-                'Plan Name': p.name,
-                'Duration (Days)': p.duration_days,
-                'Price (₹)': p.price,
-                'System ID': p.id,
-                'Payment Link ID': p.payment_link_id
-            }));
-
-            // Create workbook and worksheet
-            const ws = XLSX.utils.json_to_sheet(excelData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Membership Plans");
-
-            // Trigger download
-            XLSX.writeFile(wb, "GymExec_Plans_Export.xlsx");
         }
 
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }

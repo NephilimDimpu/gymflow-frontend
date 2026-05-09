@@ -390,12 +390,18 @@
 
         loadMembers();
 
-        (function() {
+        // Export button: visible for everyone, but Starter sees an upgrade
+        // prompt on click (handled in exportMembersCSV). The button label
+        // stays consistent — no more "Unlock Elite CSV" mislabel since
+        // CSV export is actually a Pro+Elite feature, not Elite-only.
+        (function styleExportBtn() {
             const tier = localStorage.getItem('tier') || 'starter';
-            if (tier !== 'elite') {
-                const btn = document.getElementById('export-btn');
-                btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-                btn.innerHTML = '✨ Unlock Elite CSV';
+            const btn = document.getElementById('export-btn');
+            if (!btn) return;
+            if (tier === 'starter') {
+                // Subtle visual cue for locked-on-starter, click still works
+                // and routes to upgrade prompt via exportMembersCSV().
+                btn.title = 'CSV export is a Pro feature — click to upgrade';
             }
         })();
     </script>
