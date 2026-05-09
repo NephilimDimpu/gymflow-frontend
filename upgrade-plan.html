@@ -254,13 +254,14 @@
                 </div>
             </div>
             <ul class="feature-list">
-                <li><span class="check">✓</span> Unlimited member profiles</li>
+                <li><span class="check">✓</span> <strong>Up to 30 members</strong></li>
+                <li><span class="check">✓</span> <strong>1 membership plan</strong></li>
                 <li><span class="check">✓</span> Membership & expiry tracking</li>
-                <li><span class="check">✓</span> Automated payment receipts</li>
-                <li><span class="check">✓</span> Member mobile app access</li>
+                <li><span class="check">✓</span> Public status link + UPI pay link</li>
+                <li><span class="check">✓</span> Lead capture & inbox</li>
                 <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Member check-in (Kiosk / QR)</li>
-                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Email automation</li>
-                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Staff management</li>
+                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Automated reminders</li>
+                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Class schedule</li>
             </ul>
             <button id="btn-starter" class="card-btn btn-outline" onclick="initPayment('starter')">Select Starter</button>
         </div>
@@ -280,13 +281,15 @@
             </div>
             <ul class="feature-list">
                 <li><span class="check">✓</span> Everything in Starter</li>
+                <li><span class="check">✓</span> <strong>Unlimited members &amp; plans</strong></li>
                 <li><span class="check">✓</span> <strong>Member check-in</strong> (Kiosk &amp; QR code)</li>
                 <li><span class="check">✓</span> <strong>Automated email reminders</strong> for renewals</li>
-                <li><span class="check">✓</span> <strong>AI receipt scanning</strong> from photos</li>
-                <li><span class="check">✓</span> <strong>Class schedule builder</strong> (calendar, table, board)</li>
+                <li><span class="check">✓</span> <strong>WhatsApp reminders</strong> (manual, one-tap)</li>
+                <li><span class="check">✓</span> <strong>Class schedule board</strong> (calendar + photo)</li>
                 <li><span class="check">✓</span> <strong>Excel import/export</strong> for bulk operations</li>
-                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Staff management</li>
-                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Multi-branch management</li>
+                <li><span class="check">✓</span> <strong>Reminder ROI dashboard</strong> + weekly digest</li>
+                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> AI Receipt OCR (Elite-only)</li>
+                <li style="color: #64748b; opacity: 0.6;"><span style="opacity: 0.5;">✗</span> Staff management & multi-branch</li>
             </ul>
             <button id="btn-pro" class="card-btn btn-primary-gradient" onclick="initPayment('pro')">Upgrade to Pro</button>
         </div>
@@ -306,13 +309,13 @@
             </div>
             <ul class="feature-list">
                 <li><span class="check">✓</span> Everything in Pro</li>
+                <li><span class="check">✓</span> 🤖 <strong>AI Receipt OCR</strong> (auto-fill from photos)</li>
+                <li><span class="check">✓</span> 🤖 <strong>Future AI features</strong> (member analytics, churn prediction)</li>
+                <li><span class="check">✓</span> <strong>Multi-branch management</strong> (unlimited locations)</li>
                 <li><span class="check">✓</span> <strong>Staff management &amp; roles</strong> (trainers, managers)</li>
-                <li><span class="check">✓</span> <strong>Unlimited branches</strong> (no per-branch limits)</li>
+                <li><span class="check">✓</span> <strong>Branch manager roles</strong> with scoped permissions</li>
                 <li><span class="check">✓</span> <strong>Cross-branch analytics</strong> &amp; insights dashboard</li>
-                <li><span class="check">✓</span> <strong>Branch manager roles</strong> with permissions</li>
-                <li><span class="check">✓</span> <strong>Master attendance portal</strong> (all branches)</li>
                 <li><span class="check">✓</span> <strong>Priority support</strong> (24/7)</li>
-                <li><span class="check">✓</span> <strong>Bulk member operations</strong> across branches</li>
             </ul>
             <button id="btn-elite" class="card-btn btn-outline" onclick="initPayment('elite')">Upgrade to Elite</button>
         </div>
@@ -334,70 +337,88 @@
                 </thead>
                 <tbody>
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                        <td style="padding: 16px; color: #cbd5e1;">Unlimited Members</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; color: #cbd5e1;">Members</td>
+                        <td style="padding: 16px; text-align: center; color: #cbd5e1;">Up to 30</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">Unlimited</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">Unlimited</td>
                     </tr>
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;">Membership Plans</td>
+                        <td style="padding: 16px; text-align: center; color: #cbd5e1;">1 plan</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">Unlimited</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">Unlimited</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
                         <td style="padding: 16px; color: #cbd5e1;"><strong>Member Check-in (Kiosk / QR)</strong></td>
                         <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
                         <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
                         <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
                     </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Email Reminders (auto)</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>WhatsApp Reminders (manual)</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Class Schedule Board</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Excel Import / CSV Export</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Reminder ROI Dashboard</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;">🤖 <strong>AI Receipt OCR</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #fbbf24;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Multi-Branch Management</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #fbbf24;">✓</td>
+                    </tr>
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
                         <td style="padding: 16px; color: #cbd5e1;"><strong>Staff Management</strong></td>
                         <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
                         <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
-                        <td style="padding: 16px; color: #cbd5e1;"><strong>Email Automation</strong></td>
-                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                        <td style="padding: 16px; color: #cbd5e1;"><strong>AI Receipt Scanning</strong></td>
-                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                        <td style="padding: 16px; color: #cbd5e1;"><strong>Class Schedule Builder</strong></td>
-                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
-                        <td style="padding: 16px; color: #cbd5e1;"><strong>Excel Import/Export</strong></td>
-                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                        <td style="padding: 16px; color: #cbd5e1;"><strong>Unlimited Branches</strong></td>
-                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                        <td style="padding: 16px; color: #cbd5e1;"><strong>Cross-Branch Analytics</strong></td>
-                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #fbbf24;">✓</td>
                     </tr>
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
                         <td style="padding: 16px; color: #cbd5e1;"><strong>Branch Manager Roles</strong></td>
                         <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
                         <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #fbbf24;">✓</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 16px; color: #cbd5e1;"><strong>Cross-Branch Analytics</strong></td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
+                        <td style="padding: 16px; text-align: center; color: #fbbf24;">✓</td>
                     </tr>
                     <tr style="background: rgba(255,255,255,0.01);">
                         <td style="padding: 16px; color: #cbd5e1;"><strong>Priority Support</strong></td>
                         <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
                         <td style="padding: 16px; text-align: center; color: #64748b;">✗</td>
-                        <td style="padding: 16px; text-align: center; color: #4ade80;">✓</td>
+                        <td style="padding: 16px; text-align: center; color: #fbbf24;">✓</td>
                     </tr>
                 </tbody>
             </table>
@@ -405,7 +426,8 @@
 
         <div style="margin-top: 40px; padding: 24px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 12px; text-align: center;">
             <p style="margin: 0; color: #cbd5e1; font-size: 13px;">
-                <strong>Can't decide?</strong> Start with <strong>Pro</strong> — 99% of growing gyms choose this. Upgrade to Elite later when you expand to multiple branches.
+                <strong>Can't decide?</strong> Most single-location gyms run perfectly on <strong>Pro</strong>.
+                Upgrade to <strong>Elite</strong> only when you open a 2nd branch or want AI-powered features.
             </p>
         </div>
     </div>
