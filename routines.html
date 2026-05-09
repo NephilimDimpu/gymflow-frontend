@@ -500,9 +500,10 @@
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(data)
                 });
+                if (await window.handleTierError(res)) return;
                 if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.detail || 'Save failed');
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(window.getErrorMessage(err, 'Save failed'));
                 }
                 closeModal();
                 loadRoutines();
@@ -663,7 +664,11 @@
                             label: "Today's Schedule"
                         })
                     });
-                    if (!res.ok) throw new Error('Upload failed');
+                    if (await window.handleTierError(res)) { input.value = ''; return; }
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(window.getErrorMessage(err, 'Upload failed'));
+                    }
                     showToast('Board uploaded!', 'success');
                     loadBoard();
                 } catch (err) {

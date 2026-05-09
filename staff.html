@@ -520,7 +520,12 @@
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify(data)
                     });
-                    if (!res.ok) throw new Error('Update failed');
+                    // Tier-gate prompt if Elite was downgraded mid-session
+                    if (await window.handleTierError(res)) return;
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(window.getErrorMessage(errData, 'Update failed'));
+                    }
                 } else {
                     const data = {
                         name: document.getElementById('staff-name').value,
@@ -536,11 +541,10 @@
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify(data)
                     });
+                    if (await window.handleTierError(res)) return;
                     if (!res.ok) {
                         const errData = await res.json().catch(() => ({}));
-                        const msg = typeof errData.detail === 'string' ? errData.detail
-                                  : errData.detail?.message || 'Create failed';
-                        throw new Error(msg);
+                        throw new Error(window.getErrorMessage(errData, 'Create failed'));
                     }
                     const created = await res.json().catch(() => ({}));
                     closeModal();
