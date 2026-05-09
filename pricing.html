@@ -462,6 +462,16 @@
         </div>
     </header>
 
+    <!-- [FOUNDER-BANNER] Anchor + scarcity. Update the "X spots claimed" number
+         manually as you sign each gym. -->
+    <div style="max-width: 920px; margin: 0 auto 30px auto; padding: 16px 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 14px; text-align: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);">
+        <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #b45309;">🚀 Founder Pricing</div>
+        <p style="margin: 6px 0 0; font-size: 14px; color: #78350f; font-weight: 600;">
+            First <strong>20 gyms</strong> get the prices below — <strong>locked-in for life</strong>. No surprise hikes, ever.
+            <span style="display: inline-block; margin-left: 6px; padding: 2px 10px; background: rgba(180, 83, 9, 0.12); border-radius: 999px; font-size: 12px; color: #92400e;">3 of 20 claimed</span>
+        </p>
+    </div>
+
     <!-- Pricing Cards -->
     <div class="pricing-container">
 
@@ -470,7 +480,8 @@
             <div class="card-title">Starter</div>
             <div class="card-desc">Essential tools for independent coaches and small gyms to track members.</div>
             <div class="card-price">
-                <span class="currency-symbol">₹</span><span id="starter-amount">500</span><span>/mo</span>
+                <span class="currency-symbol">₹</span><span id="starter-amount">499</span><span>/mo</span>
+                <div style="font-size: 14px; color: #94a3b8; text-decoration: line-through; font-weight: 500; margin-top: 4px;" id="starter-list">₹699</div>
             </div>
             <div style="font-size: 13px; color: #64748b; margin-top: -5px; min-height: 20px;" id="starter-billed-text">
             </div>
@@ -503,6 +514,7 @@
             <div class="card-desc">The ultimate automation engine for fast-growing gyms.</div>
             <div class="card-price">
                 <span class="currency-symbol">₹</span><span id="pro-amount">999</span><span>/mo</span>
+                <div style="font-size: 14px; color: #94a3b8; text-decoration: line-through; font-weight: 500; margin-top: 4px;" id="pro-list">₹1,499</div>
             </div>
             <div style="font-size: 13px; color: #64748b; margin-top: -5px; min-height: 20px;" id="pro-billed-text">
             </div>
@@ -547,6 +559,7 @@
             <div class="card-desc">Premium tools and Multi-Branch support for established franchises.</div>
             <div class="card-price">
                 <span class="currency-symbol">₹</span><span id="elite-amount">2,499</span><span>/mo</span>
+                <div style="font-size: 14px; color: #94a3b8; text-decoration: line-through; font-weight: 500; margin-top: 4px;" id="elite-list">₹2,999</div>
             </div>
             <div style="font-size: 13px; color: #64748b; margin-top: -5px; min-height: 20px;" id="elite-billed-text">
             </div>
@@ -669,37 +682,35 @@
     </footer>
 
     <script>
+        // Two pricing layers:
+        //   .list:    What pricing-card displays once founder slots fill (after 20 gyms)
+        //   .founder: What the FIRST 20 GYMS get, locked-in for life
+        // The pricing card shows founder price prominently with the list price
+        // struck through next to it, so customers see both the discount AND
+        // the future regular price they'd otherwise pay.
         const pricing = {
             monthly: {
                 inr: {
-                    starter: '500',
-                    pro: '999',
-                    elite: '2,499',
-                    symbol: '₹',
-                    billedText: ''
+                    list:    { starter: '699',   pro: '1,499', elite: '2,999' },
+                    founder: { starter: '499',   pro: '999',   elite: '2,499' },
+                    symbol: '₹', billedText: ''
                 },
                 usd: {
-                    starter: '19',
-                    pro: '39',
-                    elite: '89',
-                    symbol: '$',
-                    billedText: ''
+                    list:    { starter: '19',    pro: '39',    elite: '89' },
+                    founder: { starter: '14',    pro: '29',    elite: '69' },
+                    symbol: '$', billedText: ''
                 }
             },
             annual: {
                 inr: {
-                    starter: '400',
-                    pro: '799',
-                    elite: '1,999',
-                    symbol: '₹',
-                    billedText: 'Billed annually'
+                    list:    { starter: '559',   pro: '1,199', elite: '2,499' },
+                    founder: { starter: '399',   pro: '799',   elite: '1,999' },
+                    symbol: '₹', billedText: 'Billed annually'
                 },
                 usd: {
-                    starter: '15',
-                    pro: '32',
-                    elite: '69',
-                    symbol: '$',
-                    billedText: 'Billed annually'
+                    list:    { starter: '15',    pro: '32',    elite: '69' },
+                    founder: { starter: '11',    pro: '24',    elite: '54' },
+                    symbol: '$', billedText: 'Billed annually'
                 }
             }
         };
@@ -748,8 +759,13 @@
             tiers.forEach(tier => {
                 // Update symbols
                 document.querySelectorAll('.currency-symbol').forEach(el => el.innerText = currentPricing.symbol);
-                // Update amount
-                document.getElementById(`${tier}-amount`).innerText = currentPricing[tier];
+                // Display founder price prominently
+                document.getElementById(`${tier}-amount`).innerText = currentPricing.founder[tier];
+                // Display list price (struck-through) so customers see the discount
+                const listEl = document.getElementById(`${tier}-list`);
+                if (listEl) {
+                    listEl.innerText = `${currentPricing.symbol}${currentPricing.list[tier]}`;
+                }
                 // Update billed text (e.g. "Billed annually")
                 const textEl = document.getElementById(`${tier}-billed-text`);
                 if (textEl) textEl.innerText = currentPricing.billedText;
