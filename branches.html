@@ -278,8 +278,8 @@
     <script>
         const token = localStorage.getItem('auth_token');
         const userType = localStorage.getItem('user_type');
-        if (!token) window.location.href = 'login.html';
-        if (userType === 'staff') window.location.href = 'dashboard.html';
+        if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
+        if (userType === 'staff') { window.location.href = 'dashboard.html'; throw new Error('redirecting'); }
 
         // [TIER-GATE] Branches = Elite only
         const gymTier = localStorage.getItem('tier') || 'starter';

@@ -293,7 +293,7 @@
         const userRole = localStorage.getItem('role') || 'owner';
         const gymTier = localStorage.getItem('tier') || 'starter';
 
-        if (!token) window.location.href = 'login.html';
+        if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
         if (userRole === 'staff' || userRole === 'customer') {
             window.location.href = userRole === 'staff' ? 'staff-dashboard.html' : 'customer-dashboard.html';
         }

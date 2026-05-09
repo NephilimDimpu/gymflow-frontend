@@ -185,8 +185,8 @@
     const gymTier = localStorage.getItem('tier') || 'starter';
     const userRole = localStorage.getItem('role') || 'owner';
 
-    if (!token) window.location.href = 'login.html';
-    if (userType === 'staff' && userRole !== 'manager') window.location.href = 'dashboard.html';
+    if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
+    if (userType === 'staff' && userRole !== 'manager') { window.location.href = 'dashboard.html'; throw new Error('redirecting'); }
 
     // [TIER-GATE] Member attendance requires Pro or Elite
     const hasMemberAttendance = gymTier === 'pro' || gymTier === 'elite';

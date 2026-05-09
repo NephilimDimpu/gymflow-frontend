@@ -314,6 +314,10 @@
         const userBranchName = localStorage.getItem('branch_name');
         if (!token) {
             window.location.href = 'login.html';
+            // Stop the rest of the script — without `throw`, JS keeps
+            // running for one frame, fires unauth fetches, and may
+            // flash broken UI before the redirect completes.
+            throw new Error('redirecting to login');
         }
 
         const userTier = localStorage.getItem('tier') || 'starter';

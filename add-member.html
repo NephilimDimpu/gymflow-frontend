@@ -188,6 +188,7 @@
         const userBranchId = localStorage.getItem('branch_id');
         if (!token) {
             window.location.href = 'login.html';
+            throw new Error('redirecting to login');
         }
 
         // [JS-STATE] Store loaded plans

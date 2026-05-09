@@ -287,7 +287,7 @@
         const userRole = localStorage.getItem('role') || 'owner';
         const userTier = localStorage.getItem('tier') || 'starter';
         const userBranchId = localStorage.getItem('branch_id');
-        if (!token) window.location.href = 'login.html';
+        if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
 
         // [TIER-GATE] Routines are Pro+Elite only. Show upgrade banner + hide
         // the working UI for Starter so they don't try to add routines and

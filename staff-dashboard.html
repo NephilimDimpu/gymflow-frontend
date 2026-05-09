@@ -202,9 +202,9 @@
         const staffNameVal = localStorage.getItem('staff_name') || 'Staff';
         const customRole = localStorage.getItem('custom_role') || userRole || 'Staff';
 
-        if (!token) window.location.href = 'login.html';
-        if (userRole === 'owner') window.location.href = 'dashboard.html';
-        if (userRole === 'manager') window.location.href = 'branch-dashboard.html';
+        if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
+        if (userRole === 'owner') { window.location.href = 'dashboard.html'; throw new Error('redirecting'); }
+        if (userRole === 'manager') { window.location.href = 'branch-dashboard.html'; throw new Error('redirecting'); }
 
         document.getElementById('staff-name').textContent = staffNameVal;
         document.getElementById('branch-label').textContent = branchName;

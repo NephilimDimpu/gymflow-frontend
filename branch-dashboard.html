@@ -297,9 +297,9 @@
         const branchName = localStorage.getItem('branch_name') || 'Branch';
         const staffName = localStorage.getItem('staff_name') || 'Manager';
 
-        if (!token) window.location.href = 'login.html';
-        if (userRole === 'owner') window.location.href = 'dashboard.html';
-        if (userRole === 'staff') window.location.href = 'staff-dashboard.html';
+        if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
+        if (userRole === 'owner') { window.location.href = 'dashboard.html'; throw new Error('redirecting'); }
+        if (userRole === 'staff') { window.location.href = 'staff-dashboard.html'; throw new Error('redirecting'); }
 
         document.getElementById('branch-name').textContent = branchName;
         document.getElementById('staff-name-display').textContent = staffName;

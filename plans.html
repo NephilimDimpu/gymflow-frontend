@@ -197,7 +197,7 @@
     <!-- [JAVASCRIPT] Plans logic -->
     <script>
         const token = localStorage.getItem('auth_token');
-        if (!token) window.location.href = 'login.html';
+        if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
 
         let allPlans = [];
 

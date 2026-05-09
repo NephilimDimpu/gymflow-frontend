@@ -193,7 +193,7 @@
 
     <script>
         const token = localStorage.getItem('auth_token');
-        if (!token) window.location.href = 'login.html';
+        if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
 
         function goBackToDashboard() {
             const role = localStorage.getItem('role') || 'owner';
