@@ -91,8 +91,8 @@
         <aside class="sidebar">
             <div class="sidebar-logo">💪 GymExec</div>
             <nav>
-                <a href="#" class="nav-link" onclick="goBackToDashboard()">
-                    <span>←</span> Back to Dashboard
+                <a href="dashboard.html" class="nav-link">
+                    <span>🏠</span> Dashboard
                 </a>
                 <a href="members.html" class="nav-link active">
                     <span>👥</span> Members
@@ -100,6 +100,29 @@
                 <a href="plans.html" class="nav-link">
                     <span>📋</span> Plans
                 </a>
+                <a href="staff.html" class="nav-link">
+                    <span>🛡️</span> Staff
+                </a>
+                <a href="branches.html" class="nav-link">
+                    <span>📍</span> Branches
+                </a>
+                <a href="attendance.html" class="nav-link">
+                    <span>🕘</span> Attendance
+                </a>
+                <a href="routines.html" class="nav-link">
+                    <span>📋</span> Routines
+                </a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link">
+                        <span>⚙️</span> Settings
+                    </a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </div>
             </nav>
         </aside>
 
@@ -487,6 +510,10 @@
                 showToast(`❌ Failed to add member: ${error.message}`, 'error');
             }
         }
+
+        // Sidebar logout — keep parity with the rest of the owner pages
+        // since import-members now shares the standard 8-item sidebar.
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
         init();
     </script>
