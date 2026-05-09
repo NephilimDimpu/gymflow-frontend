@@ -135,34 +135,59 @@
         if (idx >= 0) openStack.splice(idx, 1);
     };
 
+    // ----- Escape and click-outside listeners -----
+    // Two layers:
+    //   1. Stack-tracked modals (opened via window.openModal)
+    //   2. DOM-tracked: any `.modal-backdrop.active` element. Pages that
+    //      use the standard `.classList.add('active')` pattern (branches,
+    //      routines, staff, customer-dashboard) automatically get
+    //      Escape + click-outside without calling openModal at all.
+    //   Pages can opt out by setting [data-no-backdrop-close="true"]
+    //   on the modal root.
+
+    function _findActiveBackdrop() {
+        const all = document.querySelectorAll('.modal-backdrop.active');
+        return all.length ? all[all.length - 1] : null;
+    }
+
+    function _closeAny(el) {
+        if (!el) return;
+        if (el.dataset.noBackdropClose === 'true') return;
+        // Same close behaviour for stack-tracked vs DOM-tracked.
+        if (el.classList.contains('active')) {
+            el.classList.remove('active');
+        } else {
+            el.style.display = 'none';
+        }
+        const idx = openStack.indexOf(el);
+        if (idx >= 0) openStack.splice(idx, 1);
+    }
+
     // Escape closes the topmost open modal.
     document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape' || openStack.length === 0) return;
-        const top = openStack[openStack.length - 1];
-        // Don't close if the user is typing into a select/textarea where
-        // Escape has its own meaning. Inputs are fine to dismiss from.
+        if (e.key !== 'Escape') return;
+        // Don't hijack Escape inside select/textarea — those use it themselves.
         const tag = (e.target.tagName || '').toLowerCase();
         if (tag === 'select' || tag === 'textarea') return;
-        window.closeModal(top);
+
+        const top = openStack.length ? openStack[openStack.length - 1] : _findActiveBackdrop();
+        if (top) _closeAny(top);
     });
 
-    // Click-outside-to-close. Looks for elements styled as backdrops
-    // (z-index'd full-screen wrappers). Pages can opt out by adding
-    // data-no-backdrop-close to the modal root.
+    // Click-outside-to-close. Click is on the backdrop iff target IS the
+    // modal root itself, not a child. The form/buttons inside the modal
+    // bubble up with target=that-child, never the backdrop wrapper.
     document.addEventListener('click', (e) => {
-        if (openStack.length === 0) return;
-        const top = openStack[openStack.length - 1];
+        const stackTop = openStack.length ? openStack[openStack.length - 1] : null;
+        const domTop = _findActiveBackdrop();
+        const top = stackTop || domTop;
+        if (!top) return;
         if (top.dataset.noBackdropClose === 'true') return;
-        // Click is on the backdrop iff target IS the modal root itself,
-        // not a child. (When you click the form inside the modal, the
-        // event target is the input/button, not the wrapper.)
-        if (e.target === top) {
-            // Don't close in the same tick the modal was opened — would
-            // capture the same click that opened it.
-            const openedAt = parseInt(top.dataset.openedAt || '0', 10);
-            if (Date.now() - openedAt < 200) return;
-            window.closeModal(top);
-        }
+        if (e.target !== top) return;
+        // 200ms grace so the click that opened the modal can't immediately close it.
+        const openedAt = parseInt(top.dataset.openedAt || '0', 10);
+        if (openedAt && Date.now() - openedAt < 200) return;
+        _closeAny(top);
     });
 })();
 
