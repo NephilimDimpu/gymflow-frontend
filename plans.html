@@ -205,44 +205,51 @@
         // [TIER-FEATURES] Define what each tier has
         // ============================================
         const tierFeatures = {
+            // [TIER-FEATURES] Must mirror backend/tier_enforcement.py.
+            // Edit BOTH places when adding a feature, or this card will lie.
             starter: {
                 icon: '🚀',
                 name: 'Starter Plan',
-                price: '₹500/month',
-                desc: 'Essential tools for independent coaches and small gyms.',
+                price: '₹499/month',
+                desc: 'Essential tools for solo trainers and pre-launch gyms.',
                 features: [
-                    { name: 'Unlimited members', locked: false },
-                    { name: 'Membership tracking', locked: false },
-                    { name: 'Payment receipts', locked: false },
-                    { name: 'Member portal', locked: false }
+                    { name: 'Up to 30 members', locked: false },
+                    { name: '1 membership plan', locked: false },
+                    { name: 'Membership & expiry tracking', locked: false },
+                    { name: 'Public status link + UPI pay', locked: false },
+                    { name: 'Lead capture & inbox', locked: false }
                 ]
             },
             pro: {
                 icon: '⚡',
                 name: 'Pro Automation',
                 price: '₹999/month',
-                desc: 'The powerhouse engine for fast-growing gyms.',
+                desc: 'The powerhouse engine for fast-growing single-location gyms.',
                 features: [
                     { name: 'Everything in Starter', locked: false },
-                    { name: 'QR Check-in (Kiosk & QR)', locked: false },
+                    { name: 'Unlimited members & plans', locked: false },
+                    { name: 'Member Check-in (Kiosk & QR)', locked: false },
                     { name: 'Automated email reminders', locked: false },
-                    { name: 'AI receipt scanning', locked: false },
-                    { name: 'Class schedule & routine builder', locked: false },
-                    { name: 'Excel import/export', locked: false }
+                    { name: 'WhatsApp reminders (manual)', locked: false },
+                    { name: 'Class schedule board', locked: false },
+                    { name: 'Excel import & CSV export', locked: false },
+                    { name: 'Reminder ROI dashboard + weekly digest', locked: false }
                 ]
             },
             elite: {
                 icon: '👑',
                 name: 'Elite Dashboard',
                 price: '₹2,499/month',
-                desc: 'Premium multi-branch command center for gym chains.',
+                desc: 'Premium multi-branch command center + AI tier for gym chains.',
                 features: [
                     { name: 'Everything in Pro', locked: false },
-                    { name: 'Unlimited branches', locked: false },
-                    { name: 'Cross-branch analytics', locked: false },
+                    { name: '🤖 AI Receipt OCR', locked: false },
+                    { name: '🤖 Future AI features (analytics, churn)', locked: false },
+                    { name: 'Multi-branch management', locked: false },
+                    { name: 'Staff management & roles', locked: false },
                     { name: 'Branch manager roles', locked: false },
-                    { name: 'Master attendance portal', locked: false },
-                    { name: 'Priority support', locked: false }
+                    { name: 'Cross-branch analytics', locked: false },
+                    { name: 'Priority support (24/7)', locked: false }
                 ]
             }
         };
