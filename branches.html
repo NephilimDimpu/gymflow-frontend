@@ -415,7 +415,27 @@
                     body: JSON.stringify(data)
                 });
                 if (!res.ok) {
-                    const errData = await res.json();
+                    const errData = await res.json().catch(() => ({}));
+
+                    // [TIER-WALL] Pro → Elite trigger: Pro tier can't create branches.
+                    // This is the cleanest upgrade prompt in the entire SaaS — gym
+                    // with a real second-location ambition hits this and converts.
+                    if (res.status === 403 && errData.detail && errData.detail.error === 'tier_required'
+                        && errData.detail.feature === 'branch_management') {
+                        const upgradeMsg =
+                            "🎉 Running 2+ locations? Awesome — you're scaling!\n\n" +
+                            "Multi-branch management is an Elite feature. Elite unlocks:\n" +
+                            "• Unlimited branches\n" +
+                            "• Branch managers with scoped permissions\n" +
+                            "• Cross-branch analytics\n" +
+                            "• AI-powered insights\n\n" +
+                            "Upgrade now to add this branch?";
+                        if (confirm(upgradeMsg)) {
+                            window.location.href = 'upgrade-plan.html';
+                        }
+                        return;
+                    }
+
                     let errMsg = errData.detail;
                     if (typeof errMsg === 'object' && errMsg.message) errMsg = errMsg.message;
                     throw new Error(typeof errMsg === 'string' ? errMsg : 'Save failed');

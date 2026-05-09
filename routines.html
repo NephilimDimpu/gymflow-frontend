@@ -29,6 +29,22 @@
                 <button class="btn btn-primary" onclick="openAddModal()" id="add-routine-btn">+ Add Routine</button>
             </header>
 
+            <!-- [TIER-GATE] Starter users see this banner instead of empty / broken UX.
+                 Pro/Elite users see the regular page below. -->
+            <div id="routines-tier-gate" style="display: none; padding: 28px; margin-bottom: 24px; background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px dashed rgba(99,102,241,0.4); border-radius: 14px;">
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    <div style="font-size: 36px;">📋</div>
+                    <div style="flex: 1; min-width: 240px;">
+                        <h3 style="margin: 0 0 4px 0; color: #a78bfa; font-size: 17px;">Class schedules are a Pro feature</h3>
+                        <p style="margin: 0; color: var(--text-muted, #94a3b8); font-size: 13px; line-height: 1.5;">
+                            Build your weekly class schedule, upload a whiteboard photo, and share with members.
+                            Pro also unlocks automated reminders, member check-in, and unlimited members & plans.
+                        </p>
+                    </div>
+                    <button class="btn btn-primary" onclick="location.href='upgrade-plan.html'" style="padding: 10px 22px; font-weight: 700;">⭐ Upgrade to Pro</button>
+                </div>
+            </div>
+
             <!-- View Toggle -->
             <div style="display: flex; gap: 4px; margin-bottom: 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 4px; width: fit-content;">
                 <button class="view-tab active" data-view="calendar" onclick="switchView('calendar')">📅 Calendar</button>
@@ -269,8 +285,28 @@
     <script>
         const token = localStorage.getItem('auth_token');
         const userRole = localStorage.getItem('role') || 'owner';
+        const userTier = localStorage.getItem('tier') || 'starter';
         const userBranchId = localStorage.getItem('branch_id');
         if (!token) window.location.href = 'login.html';
+
+        // [TIER-GATE] Routines are Pro+Elite only. Show upgrade banner + hide
+        // the working UI for Starter so they don't try to add routines and
+        // hit a 403. Cleaner UX than letting them click a dead button.
+        const isRoutinesGated = (userTier === 'starter');
+        if (isRoutinesGated) {
+            // Show the banner, hide the working bits, when DOM is ready.
+            window.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('routines-tier-gate').style.display = 'block';
+                const addBtn = document.getElementById('add-routine-btn');
+                if (addBtn) addBtn.style.display = 'none';
+                // Hide the view-tabs and the calendar/table/board so the page is just the banner
+                ['view-calendar', 'view-table', 'view-board'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+                document.querySelectorAll('.view-tab').forEach(el => el.style.display = 'none');
+            });
+        }
 
         // Build sidebar based on role
         const nav = document.getElementById('sidebar-nav');

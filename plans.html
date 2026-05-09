@@ -366,6 +366,16 @@
                     window.showToast("Plan created!", "success");
                     hideCreateModal();
                     loadPlans();
+                } else {
+                    // [TIER-WALL] Plan limit reached on Starter (max 1 plan)
+                    const err = await res.json().catch(() => ({}));
+                    if (res.status === 403 && err.detail && err.detail.error === 'plan_limit_reached') {
+                        if (confirm((err.detail.message || 'You\'ve reached your plan limit.') + '\n\nUpgrade now?')) {
+                            window.location.href = 'upgrade-plan.html';
+                        }
+                        return;
+                    }
+                    window.showToast(err.detail?.message || err.detail || 'Failed to create plan', 'error');
                 }
             } catch (err) { window.showToast("Failed to create", "error"); }
         });
