@@ -397,7 +397,7 @@
                 document.getElementById('staff-board-display').innerHTML = `
                     <div style="padding: 10px 14px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; color: #94a3b8;">${data.label || 'Schedule'}</span>
-                        <span style="font-size: 10px; color: #475569;">${data.uploaded_at ? new Date(data.uploaded_at).toLocaleString() : ''}</span>
+                        <span style="font-size: 10px; color: #475569;">${data.uploaded_at ? window.formatDateTime(data.uploaded_at) : ''}</span>
                     </div>
                     <img src="${data.image_data}" style="width: 100%; max-height: 400px; object-fit: contain;" alt="Routine Board">
                 `;
