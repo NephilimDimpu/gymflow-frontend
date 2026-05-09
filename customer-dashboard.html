@@ -614,7 +614,10 @@
                     body: JSON.stringify({ plan_id: selectedPlanId })
                 });
 
-                if (!res.ok) throw new Error('Failed to create renewal');
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(window.getErrorMessage(err, 'Failed to create renewal'));
+                }
                 const data = await res.json();
                 
                 window.showToast("Success! Redirecting to payment...", "success");
