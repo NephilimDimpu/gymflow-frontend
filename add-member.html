@@ -110,7 +110,7 @@
                     style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 6px; display: none;">
                     <p style="font-size: 14px; color: var(--text-muted);">
                         <strong>Duration:</strong> <span id="plan-duration">-</span> days<br>
-                        <strong>Price:</strong> ₹<span id="plan-price">-</span>
+                        <strong>Price:</strong> <span id="plan-price">-</span>
                     </p>
                 </div>
             </div>
@@ -258,7 +258,7 @@
             availablePlans.forEach(plan => {
                 const option = document.createElement('option');
                 option.value = plan.id;
-                option.textContent = `${plan.name} - ₹${plan.price} (${plan.duration_days} days)`;
+                option.textContent = `${plan.name} - ${formatINR(plan.price)} (${plan.duration_days} days)`;
                 planSelect.appendChild(option);
             });
         }
@@ -279,7 +279,7 @@
 
             if (selectedPlan) {
                 document.getElementById('plan-duration').textContent = selectedPlan.duration_days;
-                document.getElementById('plan-price').textContent = selectedPlan.price;
+                document.getElementById('plan-price').textContent = formatINR(selectedPlan.price);
                 planDetails.style.display = 'block';
             }
         });

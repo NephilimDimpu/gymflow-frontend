@@ -236,7 +236,7 @@
                     availablePlans.forEach(plan => {
                         const option = document.createElement('option');
                         option.value = plan.id;
-                        option.textContent = `${plan.name} - ₹${plan.price}`;
+                        option.textContent = `${plan.name} - ${formatINR(plan.price)}`;
                         planSelect.appendChild(option);
                     });
                 }
