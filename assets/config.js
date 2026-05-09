@@ -13,35 +13,57 @@ const CONFIG = {
 };
 
 // ============================================
-// [AUTH-INTERCEPTOR] Global 401 Handler
-// If any API request returns 401 Unauthorized (e.g., token expired),
-// cleanly log the user out to prevent broken dashboard states.
+// [AUTH-INTERCEPTOR] Global handler for 401 / 402
+//
+// 401 Unauthorized → token expired, clear local auth state and bounce
+//                    to login (skipped on /login + /signup routes to
+//                    avoid loops).
+// 402 Payment Required → trial+grace expired (backend returns this for
+//                    every authenticated route except the upgrade flow).
+//                    Bounce to upgrade-plan.html with the reason hint.
+//                    This used to be implemented only on dashboard.html;
+//                    moving it here makes every page handle it the same
+//                    way without per-page boilerplate.
 // ============================================
 const originalFetch = window.fetch;
 window.fetch = async function(...args) {
     try {
         const response = await originalFetch(...args);
-        
-        // Check if this is an API request that returned 401
-        if (response.status === 401 && args[0] && typeof args[0] === 'string' && args[0].includes('/api/')) {
-            // Ignore 401s on login/signup routes to prevent loops
-            if (!args[0].includes('/login') && !args[0].includes('/signup')) {
+        const url = (args[0] && typeof args[0] === 'string') ? args[0] : '';
+        const isApiCall = url.includes('/api/');
+
+        // 401 — session expired
+        if (response.status === 401 && isApiCall) {
+            // Skip login/signup routes to prevent infinite loops
+            if (!url.includes('/login') && !url.includes('/signup')) {
                 console.warn('[AUTH] Session expired or invalid token. Redirecting to login.');
-                
-                // Clear state
+
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user_type');
                 localStorage.removeItem('role');
                 localStorage.removeItem('gym_id');
                 localStorage.removeItem('branch_id');
-                
-                // Redirect if not already on an auth page
+                localStorage.removeItem('tier');
+
                 const currentPath = window.location.pathname;
                 if (!currentPath.includes('login.html') && !currentPath.includes('signup.html')) {
                     window.location.href = 'login.html';
                 }
             }
         }
+
+        // 402 — trial/grace expired. Backend whitelists the upgrade flow,
+        // so any other 402 means "this gym needs to pay to keep using
+        // this." Routing the user straight to upgrade is the right move.
+        if (response.status === 402 && isApiCall) {
+            const currentPath = window.location.pathname;
+            // Skip if we're already on the upgrade page (avoid loop)
+            if (!currentPath.includes('upgrade-plan.html') && !currentPath.includes('login.html')) {
+                console.warn('[AUTH] HTTP 402 — trial expired. Redirecting to upgrade.');
+                window.location.href = 'upgrade-plan.html?reason=trial_expired';
+            }
+        }
+
         return response;
     } catch (error) {
         throw error;
