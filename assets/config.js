@@ -13,6 +13,63 @@ const CONFIG = {
 };
 
 // ============================================
+// [ERROR-HELPERS] Globals for safely reading backend error responses
+// and routing tier-gate prompts to the upgrade page.
+//
+// Backend mixes two `detail` shapes:
+//   1. Plain string:  { detail: "Email already registered" }
+//   2. Structured:    { detail: { error: "tier_required", message: "...",
+//                                  current_tier: "starter", ... } }
+//
+// Pages doing `error.detail || 'Failed'` print "[object Object]" on
+// case 2. These helpers normalize both so every page can call them
+// the same way.
+// ============================================
+
+/**
+ * Pull a human-readable message out of any backend error response.
+ * @param {*} errorJson - the parsed JSON body (or {} if parse failed)
+ * @param {string} fallback - shown if no message can be extracted
+ */
+window.getErrorMessage = function(errorJson, fallback) {
+    fallback = fallback || 'Something went wrong. Please try again.';
+    if (!errorJson) return fallback;
+    const d = errorJson.detail;
+    if (!d) return errorJson.message || fallback;
+    if (typeof d === 'string') return d;
+    if (typeof d === 'object') return d.message || d.error || fallback;
+    return fallback;
+};
+
+/**
+ * Detect the structured tier-gate error responses and route the user
+ * to the upgrade page if they confirm. Returns true if the response
+ * was a tier-gate (caller should `return` afterward), false otherwise.
+ *
+ * Usage:
+ *   if (await window.handleTierError(res)) return;
+ */
+window.handleTierError = async function(res) {
+    if (res.status !== 402 && res.status !== 403) return false;
+    let body = {};
+    try { body = await res.clone().json(); } catch (_) { /* not JSON */ }
+    const d = body.detail;
+    if (!d || typeof d !== 'object') return false;
+
+    const tierGates = new Set([
+        'tier_required', 'member_limit_reached', 'plan_limit_reached',
+        'trial_expired',
+    ]);
+    if (!tierGates.has(d.error)) return false;
+
+    const msg = d.message || 'This feature requires a plan upgrade.';
+    if (confirm(msg + '\n\nGo to Upgrade page now?')) {
+        window.location.href = 'upgrade-plan.html';
+    }
+    return true;
+};
+
+// ============================================
 // [AUTH-INTERCEPTOR] Global handler for 401 / 402
 //
 // 401 Unauthorized → token expired, clear local auth state and bounce
