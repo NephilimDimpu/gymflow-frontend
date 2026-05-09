@@ -363,6 +363,12 @@
                 duration_days: parseInt(document.getElementById('plan-duration').value),
                 price: parseFloat(document.getElementById('plan-price').value)
             };
+            // Submit-button lock: prevent double-submit and give feedback that
+            // something is happening. The `finally` block ALWAYS restores —
+            // including on early-return paths (tier-gate confirm).
+            const submitBtn = e.submitter || this.querySelector('button[type="submit"]');
+            const originalLabel = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving…'; }
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, {
                     method: 'POST',
@@ -382,9 +388,15 @@
                         }
                         return;
                     }
-                    window.showToast(err.detail?.message || err.detail || 'Failed to create plan', 'error');
+                    // Safely surface backend message whether detail is a string or a dict
+                    const msg = (err.detail && (err.detail.message || (typeof err.detail === 'string' ? err.detail : null))) || 'Failed to create plan';
+                    window.showToast(msg, 'error');
                 }
-            } catch (err) { window.showToast("Failed to create", "error"); }
+            } catch (err) {
+                window.showToast(err.message || "Failed to create", "error");
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+            }
         });
 
         document.getElementById('edit-plan-form').addEventListener('submit', async function (e) {
@@ -395,6 +407,9 @@
                 duration_days: parseInt(document.getElementById('edit-plan-duration').value),
                 price: parseFloat(document.getElementById('edit-plan-price').value)
             };
+            const submitBtn = e.submitter || this.querySelector('button[type="submit"]');
+            const originalLabel = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving…'; }
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans/${id}`, {
                     method: 'PUT',
@@ -405,8 +420,16 @@
                     window.showToast("Plan updated!", "success");
                     hideEditModal();
                     loadPlans();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    const msg = (err.detail && (err.detail.message || (typeof err.detail === 'string' ? err.detail : null))) || 'Failed to update plan';
+                    window.showToast(msg, 'error');
                 }
-            } catch (err) { window.showToast("Failed to update", "error"); }
+            } catch (err) {
+                window.showToast(err.message || "Failed to update", "error");
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+            }
         });
 
         async function deletePlan(id) {

@@ -316,9 +316,17 @@
             }
 
 
-            // Show loading overlay
+            // Show loading overlay + lock the submit button so the user
+            // can't double-submit. Both are cleared in `finally` so even
+            // tier-gate early-returns don't leave the page stuck.
             document.getElementById('loading-overlay').style.display = 'flex';
+            const submitBtn = e.submitter || this.querySelector('button[type="submit"]');
+            const originalLabel = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving…'; }
 
+            // Track whether we're navigating away on success so the
+            // `finally` block doesn't accidentally re-show the form.
+            let navigatingAway = false;
             try {
                 // [API-CALL] Submit member data
                 const isEdit = !!editMemberId;
@@ -350,20 +358,24 @@
                         const d = error.detail;
                         const msg = d.message || `You've reached your plan's ${d.limit}-member limit.`;
                         if (confirm(msg + '\n\nWould you like to see upgrade options?')) {
+                            navigatingAway = true;
                             window.location.href = 'upgrade-plan.html';
                         }
                         return;
                     }
 
-                    // [TIER-WALL] Plan limit (won't fire from add-member, but defensive)
+                    // [TIER-WALL] Other tier-gated features (defensive)
                     if (response.status === 403 && error.detail && error.detail.error === 'tier_required') {
                         if (confirm((error.detail.message || 'This requires an upgrade.') + '\n\nGo to Upgrade page now?')) {
+                            navigatingAway = true;
                             window.location.href = 'upgrade-plan.html';
                         }
                         return;
                     }
 
-                    throw new Error(error.detail?.message || error.detail || 'Failed to save member');
+                    // Safely surface backend message whether detail is a string or a dict
+                    const msg = (error.detail && (error.detail.message || (typeof error.detail === 'string' ? error.detail : null))) || 'Failed to save member';
+                    throw new Error(msg);
                 }
 
                 const result = await response.json();
@@ -374,14 +386,20 @@
                 } else {
                     showToast('✅ Member added successfully! Welcome email notification sent.', 'success');
                 }
-
-                // window.location.href = 'members.html';
+                navigatingAway = true;
                 setTimeout(() => window.location.href = 'members.html', 1500);
 
             } catch (error) {
                 console.error('[ADD-MEMBER-ERROR]', error);
                 showToast('❌ Failed to add member: ' + error.message, 'error');
-                document.getElementById('loading-overlay').style.display = 'none';
+            } finally {
+                // Always restore the form/button so the user can retry if they
+                // decline an upgrade prompt or recover from a transient error.
+                // Skip restoration only when we're actively navigating away.
+                if (!navigatingAway) {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+                }
             }
         });
 
