@@ -340,9 +340,11 @@
         document.getElementById('signup-form').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            // Extract selected plan from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const planTier = urlParams.get('plan') || 'starter';
+            // The ?plan= URL param is informational only — used by pricing.html
+            // CTAs to track which plan a prospect was eyeing. The backend
+            // ignores client-supplied tier and always creates new gyms as
+            // 'starter' (security fix in commit a3eb538). Tier upgrades
+            // happen exclusively through the Razorpay payment flow.
 
             // [GET-VALUES] Get form values
             const gymName = document.getElementById('gym-name').value.trim();
@@ -405,7 +407,6 @@
                         email: email,
                         phone: phone,
                         password: password,
-                        tier: planTier,
                         // Auto-detect browser tz so reminders fire at local 9 AM from day one.
                         // Owner can change this later in Settings.
                         timezone: (Intl.DateTimeFormat().resolvedOptions().timeZone) || 'Asia/Kolkata'
