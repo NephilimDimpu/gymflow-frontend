@@ -272,8 +272,9 @@
                 <h2 style="margin: 0;">Revenue Trend (6 Months)</h2>
                 <button id="export-revenue-btn" class="btn btn-secondary feature-pro-only"
                         onclick="exportRevenueCSV()"
+                        title="Download as Excel-compatible CSV — opens directly in Microsoft Excel or Google Sheets"
                         style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 8px 14px; font-size: 13px;">
-                    <span style="margin-right: 6px;">⬇️</span> Export CSV
+                    <span style="margin-right: 6px;">⬇️</span> Export to Excel
                 </button>
             </div>
             <canvas id="revenueChart" height="80"></canvas>
@@ -803,7 +804,7 @@
             btn.disabled = true;
             btn.innerHTML = '<span style="margin-right: 6px;">⏳</span> Exporting…';
             try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/revenue/export.csv?months=12`, {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/exports/revenue.csv?months=12`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.status === 403) {

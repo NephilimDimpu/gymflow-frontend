@@ -66,8 +66,8 @@
                     <p id="context-info" style="font-size: 14px; color: var(--text-muted);">Manage your gym community and subscriptions.</p>
                 </div>
                 <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-secondary" onclick="exportMembersCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
-                        <span style="margin-right: 6px;">⬇️</span> Export CSV
+                    <button class="btn btn-secondary" onclick="exportMembersCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Download as Excel-compatible CSV — opens directly in Microsoft Excel or Google Sheets">
+                        <span style="margin-right: 6px;">⬇️</span> Export to Excel
                     </button>
                     <button class="btn btn-primary" onclick="location.href='add-member.html'">
                         + Add Member
@@ -354,7 +354,7 @@
                 // Auth header is required, so we fetch + blob rather than using
                 // a plain <a href>. The backend streams the full members list
                 // (not just the loaded page) with branch + email + payment status.
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/export.csv`, {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/exports/members.csv`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.status === 403) {

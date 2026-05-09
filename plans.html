@@ -67,8 +67,8 @@
                     <p id="context-info" style="font-size: 14px; color: var(--text-muted);">Define your offerings and share checkout links with members.</p>
                 </div>
                 <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-secondary" onclick="exportPlansCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Export plans as CSV (opens in Excel)">
-                        <span style="margin-right: 6px;">⬇️</span> Export CSV
+                    <button class="btn btn-secondary" onclick="exportPlansCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Download as Excel-compatible CSV — opens directly in Microsoft Excel or Google Sheets">
+                        <span style="margin-right: 6px;">⬇️</span> Export to Excel
                     </button>
                     <button class="btn btn-primary" onclick="showCreateModal()">
                         + Create Plan
@@ -447,7 +447,7 @@
                 // Server-side export so we get the FULL plan list (with active
                 // member counts joined in), not just what's loaded in the page.
                 // CSV opens directly in Excel, so we don't need the SheetJS lib.
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans/export.csv`, {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/exports/plans.csv`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.status === 403) {
