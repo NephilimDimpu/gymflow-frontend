@@ -562,7 +562,11 @@
                 if (!res.ok) throw new Error('Failed to load');
                 const routines = await res.json();
                 if (routines.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#475569;padding:24px;">No routines yet. Click "+ Add Routine" to get started.</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="6" style="padding: 48px 20px; text-align: center;">
+                        <div style="font-size: 40px; opacity: 0.4; margin-bottom: 12px;">📋</div>
+                        <h3 style="color: #94a3b8; margin: 0 0 6px; font-weight: 700;">No routines yet</h3>
+                        <p style="color: #64748b; font-size: 13px; margin: 0;">Tap <strong>+ Add Routine</strong> to schedule a class. Members will see this on their portal.</p>
+                    </td></tr>`;
                     return;
                 }
                 // Sort by date

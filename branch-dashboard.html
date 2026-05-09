@@ -366,7 +366,11 @@
                 const list = document.getElementById('recent-members-list');
 
                 if (recent.length === 0) {
-                    list.innerHTML = `<p style="color: #64748b; text-align: center; font-size: 14px;">No members yet.</p>`;
+                    list.innerHTML = `<div style="text-align: center; padding: 32px 20px;">
+                        <div style="font-size: 36px; opacity: 0.4; margin-bottom: 10px;">👥</div>
+                        <h3 style="color: #94a3b8; margin: 0 0 4px; font-weight: 700; font-size: 15px;">No members yet</h3>
+                        <p style="color: #64748b; font-size: 13px; margin: 0;">Add your first member to see them listed here.</p>
+                    </div>`;
                     return;
                 }
 
@@ -402,7 +406,10 @@
                 const todayLogs = logs.filter(l => l.date === today);
 
                 if (todayLogs.length === 0) {
-                    container.innerHTML = '<p style="color:#64748b;font-size:13px;text-align:center;">No attendance records for today yet.</p>';
+                    container.innerHTML = `<div style="text-align: center; padding: 28px 20px;">
+                        <div style="font-size: 32px; opacity: 0.4; margin-bottom: 8px;">🕘</div>
+                        <p style="color: #64748b; font-size: 13px; margin: 0;">No staff check-ins yet today.</p>
+                    </div>`;
                     return;
                 }
 
@@ -440,7 +447,10 @@
                 }
                 const checkins = await res.json();
                 if (checkins.length === 0) {
-                    container.innerHTML = '<p style="color:#64748b;font-size:13px;text-align:center;">No member check-ins today yet.</p>';
+                    container.innerHTML = `<div style="text-align: center; padding: 28px 20px;">
+                        <div style="font-size: 32px; opacity: 0.4; margin-bottom: 8px;">📋</div>
+                        <p style="color: #64748b; font-size: 13px; margin: 0;">No member check-ins yet today.</p>
+                    </div>`;
                     return;
                 }
                 container.innerHTML = checkins.map(c => `
