@@ -13,6 +13,60 @@ const CONFIG = {
 };
 
 // ============================================
+// [FORMAT-HELPERS] Locale-locked date + currency formatting
+//
+// Browsers' default toLocaleString / toLocaleDateString return wildly
+// different results depending on the user's system locale (DD/MM/YYYY
+// in India, MM/DD/YYYY in US, YYYY/MM/DD in Japan). For a SaaS that
+// shows the same data to every gym owner, that drift is confusing.
+//
+// All date/currency rendering should go through these helpers.
+// ============================================
+
+const FORMAT_LOCALE = 'en-IN';
+const FORMAT_TZ = 'Asia/Kolkata';
+
+/**
+ * Format an ISO 8601 string (or Date object) as "07 May 2026".
+ * Returns "—" for null/undefined/invalid input so the UI never
+ * shows the raw garbage.
+ */
+window.formatDate = function(input) {
+    if (!input) return '—';
+    const d = (input instanceof Date) ? input : new Date(input);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString(FORMAT_LOCALE, {
+        day: '2-digit', month: 'short', year: 'numeric',
+    });
+};
+
+/**
+ * Format an ISO 8601 string as "07 May 2026, 09:30".
+ */
+window.formatDateTime = function(input) {
+    if (!input) return '—';
+    const d = (input instanceof Date) ? input : new Date(input);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleString(FORMAT_LOCALE, {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+};
+
+/**
+ * Format a numeric amount as ₹1,499 (en-IN locale, no decimals).
+ * Use formatINR(amount, true) for ₹1,499.00 (with paise).
+ */
+window.formatINR = function(amount, withDecimals) {
+    if (amount === null || amount === undefined || isNaN(amount)) return '₹0';
+    const n = Number(amount);
+    if (withDecimals) {
+        return '₹' + n.toLocaleString(FORMAT_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return '₹' + n.toLocaleString(FORMAT_LOCALE, { maximumFractionDigits: 0 });
+};
+
+// ============================================
 // [ERROR-HELPERS] Globals for safely reading backend error responses
 // and routing tier-gate prompts to the upgrade page.
 //

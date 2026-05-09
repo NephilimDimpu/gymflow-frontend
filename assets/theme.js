@@ -79,6 +79,94 @@
 })();
 
 // ============================================
+// [MODAL-HELPERS] Shared open/close + Escape + click-outside.
+//
+// Two patterns existed across the app:
+//   - .classList.add('active') on a .modal-backdrop wrapper
+//   - .style.display = 'flex' / 'none' on the modal itself
+// These helpers handle BOTH. Pages can keep their existing markup
+// and just call window.openModal(el) / window.closeModal(el).
+//
+// Escape key + backdrop click are wired automatically. If a modal
+// has [data-no-backdrop-close] the click-outside is suppressed
+// (e.g. for confirm flows where accidental dismissal is bad).
+// ============================================
+
+(function setupModalHelpers() {
+    // Track currently-open modals so Escape closes the topmost one
+    const openStack = [];
+
+    window.openModal = function(modalEl) {
+        if (!modalEl) return;
+        // Detect existing pattern: prefer classList.active if the page
+        // already styles it that way; fall back to display:flex.
+        const usesActiveClass =
+            modalEl.classList.contains('modal-backdrop') ||
+            modalEl.classList.contains('modal') ||
+            modalEl.dataset.modalStyle === 'active';
+        if (usesActiveClass) {
+            modalEl.classList.add('active');
+        } else {
+            modalEl.style.display = 'flex';
+        }
+        modalEl.dataset.openedAt = String(Date.now());
+        openStack.push(modalEl);
+        // Focus the first focusable element so keyboard users land
+        // inside the modal (a11y polish).
+        setTimeout(() => {
+            const focusable = modalEl.querySelector(
+                'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusable) focusable.focus();
+        }, 50);
+    };
+
+    window.closeModal = function(modalEl) {
+        if (!modalEl) return;
+        const usesActiveClass =
+            modalEl.classList.contains('active') ||
+            modalEl.dataset.modalStyle === 'active';
+        if (usesActiveClass) {
+            modalEl.classList.remove('active');
+        } else {
+            modalEl.style.display = 'none';
+        }
+        const idx = openStack.indexOf(modalEl);
+        if (idx >= 0) openStack.splice(idx, 1);
+    };
+
+    // Escape closes the topmost open modal.
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || openStack.length === 0) return;
+        const top = openStack[openStack.length - 1];
+        // Don't close if the user is typing into a select/textarea where
+        // Escape has its own meaning. Inputs are fine to dismiss from.
+        const tag = (e.target.tagName || '').toLowerCase();
+        if (tag === 'select' || tag === 'textarea') return;
+        window.closeModal(top);
+    });
+
+    // Click-outside-to-close. Looks for elements styled as backdrops
+    // (z-index'd full-screen wrappers). Pages can opt out by adding
+    // data-no-backdrop-close to the modal root.
+    document.addEventListener('click', (e) => {
+        if (openStack.length === 0) return;
+        const top = openStack[openStack.length - 1];
+        if (top.dataset.noBackdropClose === 'true') return;
+        // Click is on the backdrop iff target IS the modal root itself,
+        // not a child. (When you click the form inside the modal, the
+        // event target is the input/button, not the wrapper.)
+        if (e.target === top) {
+            // Don't close in the same tick the modal was opened — would
+            // capture the same click that opened it.
+            const openedAt = parseInt(top.dataset.openedAt || '0', 10);
+            if (Date.now() - openedAt < 200) return;
+            window.closeModal(top);
+        }
+    });
+})();
+
+// ============================================
 // [MOBILE-NAV] Auto-inject hamburger drawer toggle
 // Runs on every page that includes theme.js. If the page has a
 // `.sidebar` element, we inject a hamburger button + backdrop and
