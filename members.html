@@ -144,7 +144,6 @@
         // [TIER-GATE] Auto-reminders are a Pro+Elite feature. Starter gyms see an
         // upgrade prompt instead of the bell button so they can't trigger 403s.
         const userTier = localStorage.getItem('tier') || 'starter';
-        const remindersEnabled = userTier === 'pro' || userTier === 'elite';
         if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
 
         if (userRole === 'owner') loadBranchFilter();
@@ -229,11 +228,11 @@
                     </td>
                     <td style="text-align: right;">
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit</button>
-                        ${remindersEnabled
-                            ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})" title="Send reminder email">🔔</button>
-                               <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(37, 211, 102, 0.1); color: #25D366;" onclick="sendWhatsAppReminder(${m.id})" title="Open WhatsApp with a pre-filled reminder">💬</button>`
-                            : `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03); opacity: 0.5;" onclick="window.location.href='upgrade-plan.html'" title="Upgrade to Pro to send member reminders">🔒</button>`
-                        }
+                        <!-- Manual reminders work on EVERY tier. Pro/Elite uniquely
+                             get the automated 9 AM cron + reminder ROI dashboard.
+                             Starter emails carry a 'Sent via GymExec' footer. -->
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})" title="${userTier === 'starter' ? 'Send manual email reminder (includes GymExec footer — upgrade to Pro to remove)' : 'Send reminder email'}">🔔</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(37, 211, 102, 0.1); color: #25D366;" onclick="sendWhatsAppReminder(${m.id})" title="Open WhatsApp with a pre-filled reminder">💬</button>
                         ${userRole === 'owner' ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: #f87171;" onclick="deleteMember(${m.id})">🗑️</button>` : ''}
                     </td>
                 </tr>
