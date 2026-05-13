@@ -831,6 +831,17 @@
         updatePrices();
         checkAuthAndRoute();
     </script>
+
+    <!-- Footer -->
+    <footer style="padding: 40px 5%; text-align: center; color: #71717a; border-top: 1px solid rgba(255,255,255,0.06); background: #050505;">
+        <div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; font-size: 13px;">
+            <a href="policies.html" style="color: #71717a; text-decoration: none;">Privacy Policy</a>
+            <a href="policies.html" onclick="localStorage.setItem('policy_tab','terms')" style="color: #71717a; text-decoration: none;">Terms of Service</a>
+            <a href="policies.html" onclick="localStorage.setItem('policy_tab','refund')" style="color: #71717a; text-decoration: none;">Refund Policy</a>
+            <a href="policies.html" onclick="localStorage.setItem('policy_tab','contact')" style="color: #71717a; text-decoration: none;">Contact Us</a>
+        </div>
+        <p style="font-size: 12px; color: #3f3f46;">© 2026 GymExec Inc. All rights reserved.</p>
+    </footer>
 </body>
 
 </html>

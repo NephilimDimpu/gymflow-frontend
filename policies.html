@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policies - GymExec</title>
+    <meta name="description" content="GymExec legal policies including Privacy Policy, Terms of Service, Refund Policy, and Contact Information.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/style.css">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --surface: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --primary: #6366f1;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+        }
+
+        /* Navigation */
+        .navbar {
+            background: rgba(5, 5, 5, 0.8);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .navbar-brand svg { color: var(--primary); }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-main); }
+
+        .btn-solid {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Policy Content */
+        .policy-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 60px 24px 80px;
+        }
+
+        .policy-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .policy-header h1 {
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
+        }
+
+        .policy-header p {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        /* Tab Navigation */
+        .policy-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 48px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .policy-tab {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .policy-tab:hover, .policy-tab.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: #a5b4fc;
+        }
+
+        /* Policy Sections */
+        .policy-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .policy-section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .policy-section h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 40px 0 16px;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+        }
+
+        .policy-section h2:first-child { margin-top: 0; }
+
+        .policy-section h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 28px 0 10px;
+            color: #d4d4d8;
+        }
+
+        .policy-section p, .policy-section li {
+            color: #a1a1aa;
+            font-size: 14.5px;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .policy-section ul {
+            padding-left: 20px;
+            margin: 12px 0 20px;
+        }
+
+        .policy-section li { margin-bottom: 8px; }
+
+        .policy-section a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+
+        .policy-section a:hover { text-decoration: underline; }
+
+        .contact-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 20px;
+        }
+
+        .contact-card .contact-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .contact-card .contact-row:last-child { border-bottom: none; }
+        .contact-card .contact-row span:first-child { font-size: 18px; }
+        .contact-card .contact-row strong { color: var(--text-main); margin-right: 8px; }
+
+        .effective-date {
+            display: inline-block;
+            padding: 6px 14px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            GymExec
+        </a>
+        <div class="nav-links">
+            <a href="pricing.html">Pricing</a>
+            <a href="login.html">Sign In</a>
+            <a href="signup.html" class="btn-solid">Start Free Trial</a>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="policy-container">
+        <div class="policy-header">
+            <h1>Legal & Policies</h1>
+            <p>Transparency is at the heart of how we operate. Read our policies below.</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="policy-tabs">
+            <a class="policy-tab active" onclick="showTab('privacy')">Privacy Policy</a>
+            <a class="policy-tab" onclick="showTab('terms')">Terms of Service</a>
+            <a class="policy-tab" onclick="showTab('refund')">Refund & Cancellation</a>
+            <a class="policy-tab" onclick="showTab('shipping')">Shipping & Delivery</a>
+            <a class="policy-tab" onclick="showTab('contact')">Contact Us</a>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- PRIVACY POLICY -->
+        <!-- ============================================ -->
+        <div id="privacy" class="policy-section active">
+            <div class="effective-date">Effective Date: May 13, 2026</div>
+
+            <h2>Privacy Policy</h2>
+            <p>GymExec ("we", "us", or "our") operates the <a href="https://www.gymexec.com">gymexec.com</a> website and SaaS platform. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our platform.</p>
+
+            <h3>1. Information We Collect</h3>
+            <p>We may collect the following types of information:</p>
+            <ul>
+                <li><strong>Account Information:</strong> Name, email address, phone number, and gym business name provided during registration.</li>
+                <li><strong>Payment Information:</strong> Billing details processed securely through Razorpay. We do not store your credit/debit card numbers or UPI PINs on our servers.</li>
+                <li><strong>Usage Data:</strong> Pages visited, features used, browser type, IP address, and device information collected automatically.</li>
+                <li><strong>Member Data:</strong> Information about gym members that you (the gym owner) input into the platform, including names, phone numbers, membership plans, and attendance records.</li>
+            </ul>
+
+            <h3>2. How We Use Your Information</h3>
+            <ul>
+                <li>To create and manage your GymExec account.</li>
+                <li>To process subscription payments securely via Razorpay.</li>
+                <li>To send automated membership expiry reminders (email and WhatsApp) on your behalf.</li>
+                <li>To improve our platform, fix bugs, and develop new features.</li>
+                <li>To send important service-related notifications (billing updates, security alerts).</li>
+            </ul>
+
+            <h3>3. Data Storage & Security</h3>
+            <p>Your data is stored on secure cloud infrastructure with encryption at rest and in transit. We use industry-standard security measures including HTTPS/TLS encryption, bcrypt password hashing, and JWT-based authentication. Access to your gym's data is strictly isolated — no other gym can view or modify your records.</p>
+
+            <h3>4. Third-Party Services</h3>
+            <p>We use the following trusted third-party services:</p>
+            <ul>
+                <li><strong>Razorpay</strong> — Payment processing (<a href="https://razorpay.com/privacy/" target="_blank">Razorpay Privacy Policy</a>)</li>
+                <li><strong>Cloudinary</strong> — Image hosting for routine boards and receipts</li>
+                <li><strong>Vercel / Railway</strong> — Application hosting</li>
+            </ul>
+            <p>We do not sell, trade, or rent your personal information to any third party.</p>
+
+            <h3>5. Data Retention</h3>
+            <p>We retain your account data for as long as your account is active. If you cancel your subscription, your data is retained for 90 days (to allow for reactivation) and then permanently deleted upon request.</p>
+
+            <h3>6. Your Rights</h3>
+            <p>You have the right to:</p>
+            <ul>
+                <li>Access, correct, or delete your personal data by contacting us.</li>
+                <li>Export your member data at any time from the dashboard.</li>
+                <li>Opt out of non-essential communications.</li>
+            </ul>
+
+            <h3>7. Changes to This Policy</h3>
+            <p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated effective date. Continued use of the platform after changes constitutes acceptance.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- TERMS OF SERVICE -->
+        <!-- ============================================ -->
+        <div id="terms" class="policy-section">
+            <div class="effective-date">Effective Date: May 13, 2026</div>
+
+            <h2>Terms of Service</h2>
+            <p>By accessing or using GymExec, you agree to be bound by these Terms of Service. If you do not agree, please do not use the platform.</p>
+
+            <h3>1. Service Description</h3>
+            <p>GymExec is a cloud-based Software-as-a-Service (SaaS) platform that provides gym and fitness studio management tools, including member management, billing, attendance tracking, staff management, and automated reminders.</p>
+
+            <h3>2. Account Registration</h3>
+            <ul>
+                <li>You must provide accurate and complete registration information.</li>
+                <li>You are responsible for maintaining the confidentiality of your login credentials.</li>
+                <li>You are responsible for all activities that occur under your account.</li>
+                <li>You must be at least 18 years old to create an account.</li>
+            </ul>
+
+            <h3>3. Subscription & Billing</h3>
+            <ul>
+                <li>GymExec offers a 14-day free trial. No credit card is required to start.</li>
+                <li>After the trial, you must subscribe to a paid plan (Starter, Pro, or Elite) to continue using the platform.</li>
+                <li>Subscriptions are billed monthly. Payments are processed securely via Razorpay.</li>
+                <li>Prices are listed in Indian Rupees (INR) and are subject to change with 30 days' prior notice.</li>
+            </ul>
+
+            <h3>4. Acceptable Use</h3>
+            <p>You agree not to:</p>
+            <ul>
+                <li>Use the platform for any unlawful purpose.</li>
+                <li>Attempt to gain unauthorized access to other users' accounts or data.</li>
+                <li>Reverse-engineer, decompile, or disassemble any part of the platform.</li>
+                <li>Use the platform to send spam, phishing, or unsolicited messages.</li>
+            </ul>
+
+            <h3>5. Data Ownership</h3>
+            <p>You retain full ownership of all data you input into GymExec (member records, plans, attendance logs, etc.). We do not claim any intellectual property rights over your content. You grant us a limited license to process your data solely for the purpose of providing the service.</p>
+
+            <h3>6. Service Availability</h3>
+            <p>We strive for 99.9% uptime but do not guarantee uninterrupted service. Scheduled maintenance will be communicated in advance. We are not liable for any losses resulting from temporary service interruptions.</p>
+
+            <h3>7. Limitation of Liability</h3>
+            <p>To the maximum extent permitted by law, GymExec shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the platform. Our total liability shall not exceed the amount you paid for the service in the 3 months preceding the claim.</p>
+
+            <h3>8. Termination</h3>
+            <p>Either party may terminate the agreement at any time. Upon termination, your access to the platform will be revoked. Your data will be retained for 90 days and then permanently deleted unless you request an export.</p>
+
+            <h3>9. Governing Law</h3>
+            <p>These Terms shall be governed by and construed in accordance with the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Hyderabad, Telangana, India.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- REFUND & CANCELLATION POLICY -->
+        <!-- ============================================ -->
+        <div id="refund" class="policy-section">
+            <div class="effective-date">Effective Date: May 13, 2026</div>
+
+            <h2>Refund & Cancellation Policy</h2>
+
+            <h3>1. Free Trial</h3>
+            <p>GymExec offers a 14-day free trial with no payment required. You will not be charged during the trial period. If you do not subscribe after the trial, your account will simply be deactivated — no charges apply.</p>
+
+            <h3>2. Cancellation</h3>
+            <ul>
+                <li>You may cancel your subscription at any time from your Settings page or by contacting us.</li>
+                <li>Upon cancellation, your subscription remains active until the end of the current billing period.</li>
+                <li>No further charges will be made after cancellation.</li>
+            </ul>
+
+            <h3>3. Refund Policy</h3>
+            <ul>
+                <li>If you are unsatisfied with the service, you may request a full refund within <strong>7 days</strong> of your first payment.</li>
+                <li>Refund requests made after 7 days will be reviewed on a case-by-case basis.</li>
+                <li>Refunds are processed within 5–7 business days to the original payment method via Razorpay.</li>
+                <li>Subsequent monthly payments are non-refundable once the billing cycle has started, as the service has already been delivered for that period.</li>
+            </ul>
+
+            <h3>4. How to Request a Refund</h3>
+            <p>To request a refund or cancel your subscription, please contact us at <a href="mailto:support@gymexec.com">support@gymexec.com</a> with your registered email address and the reason for your request. We will respond within 24 hours.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SHIPPING & DELIVERY POLICY -->
+        <!-- ============================================ -->
+        <div id="shipping" class="policy-section">
+            <div class="effective-date">Effective Date: May 13, 2026</div>
+
+            <h2>Shipping & Delivery Policy</h2>
+
+            <h3>1. Digital Delivery</h3>
+            <p>GymExec is a 100% digital, cloud-based Software-as-a-Service (SaaS) product. There are no physical goods involved in any transaction.</p>
+
+            <h3>2. Access Delivery</h3>
+            <ul>
+                <li>Upon successful payment, your subscription is activated <strong>instantly</strong>.</li>
+                <li>You will receive a confirmation email at your registered email address.</li>
+                <li>Your dashboard will immediately reflect the upgraded tier and unlocked features.</li>
+            </ul>
+
+            <h3>3. No Physical Shipments</h3>
+            <p>As a digital-only product, GymExec does not ship any physical goods. All features, updates, and support are delivered digitally via the web platform.</p>
+
+            <h3>4. Service Availability</h3>
+            <p>The GymExec platform is accessible 24/7 from any modern web browser. No downloads or installations are required.</p>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- CONTACT US -->
+        <!-- ============================================ -->
+        <div id="contact" class="policy-section">
+            <h2>Contact Us</h2>
+            <p>Have questions, concerns, or need support? We're here to help.</p>
+
+            <div class="contact-card">
+                <div class="contact-row">
+                    <span>📧</span>
+                    <div><strong>Email:</strong> <a href="mailto:support@gymexec.com">support@gymexec.com</a></div>
+                </div>
+                <div class="contact-row">
+                    <span>🌐</span>
+                    <div><strong>Website:</strong> <a href="https://www.gymexec.com">www.gymexec.com</a></div>
+                </div>
+                <div class="contact-row">
+                    <span>📍</span>
+                    <div><strong>Address:</strong> Hyderabad, Telangana, India</div>
+                </div>
+                <div class="contact-row">
+                    <span>⏰</span>
+                    <div><strong>Support Hours:</strong> Monday – Saturday, 10:00 AM – 7:00 PM IST</div>
+                </div>
+            </div>
+
+            <p style="margin-top: 24px; font-size: 13px; color: #64748b;">We aim to respond to all inquiries within 24 hours during business days.</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="padding: 40px 5%; text-align: center; color: var(--text-muted); border-top: 1px solid var(--border); background: var(--bg-color);">
+        <div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; font-size: 13px;">
+            <a href="policies.html" style="color: var(--text-muted); text-decoration: none;">Privacy Policy</a>
+            <a href="policies.html" onclick="localStorage.setItem('policy_tab','terms')" style="color: var(--text-muted); text-decoration: none;">Terms of Service</a>
+            <a href="policies.html" onclick="localStorage.setItem('policy_tab','refund')" style="color: var(--text-muted); text-decoration: none;">Refund Policy</a>
+            <a href="policies.html" onclick="localStorage.setItem('policy_tab','contact')" style="color: var(--text-muted); text-decoration: none;">Contact Us</a>
+        </div>
+        <p style="font-size: 12px; color: #52525b;">© 2026 GymExec. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function showTab(tabId) {
+            // Hide all sections
+            document.querySelectorAll('.policy-section').forEach(s => s.classList.remove('active'));
+            // Remove active from all tabs
+            document.querySelectorAll('.policy-tab').forEach(t => t.classList.remove('active'));
+            // Show selected
+            document.getElementById(tabId).classList.add('active');
+            // Mark tab active
+            event.target.classList.add('active');
+            // Scroll to top of content
+            window.scrollTo({ top: 200, behavior: 'smooth' });
+        }
+
+        // Check if we should open a specific tab (from footer links on other pages)
+        const savedTab = localStorage.getItem('policy_tab');
+        if (savedTab) {
+            localStorage.removeItem('policy_tab');
+            const section = document.getElementById(savedTab);
+            if (section) {
+                document.querySelectorAll('.policy-section').forEach(s => s.classList.remove('active'));
+                document.querySelectorAll('.policy-tab').forEach(t => t.classList.remove('active'));
+                section.classList.add('active');
+                // Find and activate the matching tab
+                document.querySelectorAll('.policy-tab').forEach(t => {
+                    if (t.textContent.toLowerCase().includes(savedTab.substring(0, 4))) {
+                        t.classList.add('active');
+                    }
+                });
+            }
+        }
+    </script>
+
+</body>
+</html>
