@@ -227,6 +227,31 @@
             </div>
         </div>
 
+        <!-- [ATTENDANCE-CARD] Visible only if gym has member_attendance feature (Pro/Elite).
+             Populated by JS from the public status endpoint. -->
+        <div id="attendance-card" style="display: none; margin-top: 20px; padding: 16px; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 14px;">
+            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px; text-align: center;">📊 Your Visits</div>
+            <div style="display: flex; gap: 12px; justify-content: center; text-align: center;">
+                <div style="flex: 1;">
+                    <div id="visits-plan" style="font-size: 28px; font-weight: 900; color: #818cf8; line-height: 1;">–</div>
+                    <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">This plan</div>
+                </div>
+                <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
+                <div style="flex: 1;">
+                    <div id="visits-month" style="font-size: 28px; font-weight: 900; color: #c4b5fd; line-height: 1;">–</div>
+                    <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">This month</div>
+                </div>
+            </div>
+            <div id="last-visit-row" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center; font-size: 12px; color: #94a3b8; display: none;">
+                Last visit: <span id="last-visit" style="color: #cbd5e1; font-weight: 600;">–</span>
+            </div>
+        </div>
+
+        <!-- [ROUTINES-BTN] Visible only if gym has routine_management feature (Pro/Elite). -->
+        <a href="#" id="routines-btn" class="renew-btn" style="display: none; margin-top: 12px; background: linear-gradient(135deg, #0ea5e9, #6366f1); box-shadow: 0 10px 30px rgba(14,165,233,0.25);">
+            📋 View Class Schedule
+        </a>
+
         <a href="#" id="renew-btn" class="renew-btn" style="display: none;">💳 Renew Now</a>
 
         <div class="footer-note" id="footer-note">Save this link to check anytime.</div>
@@ -339,6 +364,33 @@
                         progressFill.style.width = '20%';
                     }
                     document.getElementById('footer-note').textContent = 'Save this link to check anytime — even offline.';
+                }
+
+                // [ATTENDANCE] Show only if the gym sends data (Pro/Elite gyms only)
+                if (data.attendance && (data.attendance.visits_this_plan > 0 || data.attendance.visits_this_month > 0 || data.attendance.last_visit)) {
+                    document.getElementById('visits-plan').textContent = data.attendance.visits_this_plan ?? 0;
+                    document.getElementById('visits-month').textContent = data.attendance.visits_this_month ?? 0;
+                    if (data.attendance.last_visit) {
+                        document.getElementById('last-visit').textContent = data.attendance.last_visit;
+                        document.getElementById('last-visit-row').style.display = 'block';
+                    }
+                    document.getElementById('attendance-card').style.display = 'block';
+                } else if (data.attendance) {
+                    // Gym has the feature but member has no visits yet —
+                    // still show the card with zeros + a gentle nudge.
+                    document.getElementById('visits-plan').textContent = '0';
+                    document.getElementById('visits-month').textContent = '0';
+                    document.getElementById('attendance-card').style.display = 'block';
+                }
+
+                // [ROUTINES] Show a 'View Class Schedule' button if the gym has routines
+                if (data.routines_available && data.gym_id) {
+                    const routinesBtn = document.getElementById('routines-btn');
+                    // Branch-specific link if the member belongs to a branch, otherwise gym-wide.
+                    routinesBtn.href = data.branch_id
+                        ? `member-routine.html?branch=${data.branch_id}`
+                        : `member-routine.html?gym=${data.gym_id}`;
+                    routinesBtn.style.display = 'block';
                 }
 
                 document.getElementById('loading').style.display = 'none';
