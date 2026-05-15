@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+Allow: /discover.html
+Allow: /g.html
+Allow: /pricing.html
+Allow: /login.html
+Allow: /signup.html
+
+# Hide dashboards and internal tools
+Disallow: /dashboard.html
+Disallow: /admin.html
+Disallow: /staff-dashboard.html
+Disallow: /customer-dashboard.html
+Disallow: /settings.html
+Disallow: /add-member.html
+Disallow: /attendance.html
+Disallow: /branches.html
+Disallow: /routines.html
+Disallow: /upgrade-plan.html
+Disallow: /members.html
+Disallow: /plans.html
+Disallow: /staff.html
+
+Sitemap: https://www.gymexec.com/sitemap.xml
