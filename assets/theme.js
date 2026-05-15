@@ -13,30 +13,34 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.body.setAttribute('data-tier', userTier);
         
-        // [TIER-NAV-HIDING — Option A]
-        const hideSelectors = (selectors) => {
+        // [TIER-NAV-LOCKING]
+        const lockSelectors = (selectors, tooltip) => {
             selectors.forEach(sel => {
-                document.querySelectorAll(sel).forEach(el => { el.style.display = 'none'; });
+                document.querySelectorAll(sel).forEach(el => { 
+                    el.classList.add('locked'); 
+                    el.title = tooltip;
+                });
             });
         };
 
         // Elite-only features: Branches + Staff management
         if (userTier !== 'elite') {
-            hideSelectors([
+            lockSelectors([
                 'a[href="branches.html"]',
                 'a[href="staff.html"]'
-            ]);
+            ], "Elite Feature — Upgrade to manage multiple branches and staff");
         }
 
         // Pro+Elite features: Attendance, Kiosk, QR check-in
         // Starter has no attendance at all
         if (userTier === 'starter' || !userTier) {
-            hideSelectors([
+            lockSelectors([
                 'a[href="attendance.html"]',
                 'a[href="kiosk.html"]',
                 'a[href="qr-checkin.html"]',
-                'a[href="qr-poster.html"]'
-            ]);
+                'a[href="qr-poster.html"]',
+                'a[href="routines.html"]'
+            ], "Pro Feature — Upgrade to track attendance and manage class schedules");
         }
     });
 

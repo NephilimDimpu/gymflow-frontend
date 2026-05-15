@@ -764,4 +764,31 @@ body[data-tier="elite"] .feature-elite-only {
     .mobile-nav-toggle,
     .mobile-nav-backdrop { display: none !important; }
     .sidebar { display: none !important; }
-}
+}
+
+/* [UI-PROGRESS-BAR] Global Top Loader */
+.top-loader {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    z-index: 9999;
+    width: 0%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+/* [UI-NAV-LOCKED] Teaser styles */
+.nav-link.locked {
+    opacity: 0.6;
+    position: relative;
+}
+.nav-link.locked::after {
+    content: '🔒';
+    font-size: 10px;
+    margin-left: auto;
+}
+.nav-link.locked:hover {
+    background: rgba(255,255,255,0.02) !important;
+    cursor: pointer;
+}
