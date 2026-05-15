@@ -252,6 +252,29 @@
             📋 View Class Schedule
         </a>
 
+        <!-- [PT-CARD] Visible only if member has PT assigned. -->
+        <div id="pt-card" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.1)); border: 1px solid rgba(16,185,129,0.2); border-radius: 20px;">
+            <div style="font-size: 11px; color: #34d399; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; margin-bottom: 14px; text-align: center;">🏋️ Personal Training</div>
+            
+            <div style="text-align: center; margin-bottom: 16px;">
+                <div style="font-size: 13px; color: #94a3b8; margin-bottom: 4px;">Your Coach</div>
+                <div id="pt-coach" style="font-size: 18px; font-weight: 800; color: #fff;">–</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 14px; text-align: center;">
+                <div id="pt-sessions" style="font-size: 32px; font-weight: 900; color: #10b981; line-height: 1;">–</div>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px;">Sessions Remaining</div>
+                
+                <div class="progress-track" style="margin-top: 14px; background: rgba(255,255,255,0.05);">
+                    <div id="pt-progress" class="progress-fill" style="width: 0%; background: #10b981;"></div>
+                </div>
+            </div>
+
+            <div id="pt-expiry-row" style="margin-top: 14px; text-align: center; font-size: 12px; color: #64748b; display: none;">
+                Package valid until <span id="pt-expiry" style="color: #94a3b8; font-weight: 600;">–</span>
+            </div>
+        </div>
+
         <a href="#" id="renew-btn" class="renew-btn" style="display: none;">💳 Renew Now</a>
 
         <div class="footer-note" id="footer-note">Save this link to check anytime.</div>
@@ -391,6 +414,21 @@
                         ? `member-routine.html?branch=${data.branch_id}`
                         : `member-routine.html?gym=${data.gym_id}`;
                     routinesBtn.style.display = 'block';
+                }
+
+                // [PERSONAL-TRAINING]
+                if (data.pt_info) {
+                    document.getElementById('pt-coach').textContent = data.pt_info.coach_name;
+                    document.getElementById('pt-sessions').textContent = data.pt_info.sessions_left;
+                    
+                    const pct = (data.pt_info.sessions_left / data.pt_info.sessions_total) * 100;
+                    document.getElementById('pt-progress').style.width = Math.max(0, Math.min(100, pct)) + '%';
+                    
+                    if (data.pt_info.pt_ends_at) {
+                        document.getElementById('pt-expiry').textContent = data.pt_info.pt_ends_at;
+                        document.getElementById('pt-expiry-row').style.display = 'block';
+                    }
+                    document.getElementById('pt-card').style.display = 'block';
                 }
 
                 document.getElementById('loading').style.display = 'none';

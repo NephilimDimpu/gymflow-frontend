@@ -125,6 +125,40 @@
                 </select>
             </div>
 
+                </div>
+            </div>
+
+            <!-- [PERSONAL-TRAINING-SECTION] -->
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <h3 style="font-size: 16px; font-weight: 700; color: #34d399; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                    <span>🏋️</span> Personal Training (Optional)
+                </h3>
+                
+                <div class="form-group">
+                    <label class="form-label" for="pt-coach">Assign Coach</label>
+                    <select id="pt-coach" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                        <option value="">No PT Coach</option>
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="pt-sessions-total">Total Sessions</label>
+                        <input type="number" id="pt-sessions-total" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. 12" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pt-sessions-used">Used Sessions</label>
+                        <input type="number" id="pt-sessions-used" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" value="0" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="pt-expiry">PT Package Expiry</label>
+                    <input type="date" id="pt-expiry" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                    <small style="color: #64748b; font-size: 11px;">Leave blank for no expiry</small>
+                </div>
+            </div>
+
             <!-- [FORM-GROUP-PAYMENT] Payment status -->
             <div class="form-group">
                 <label class="form-label">
@@ -197,6 +231,22 @@
         // Load branches for owner
         if (userRole === 'owner') {
             loadBranches();
+        }
+        
+        // Load staff/coaches for all
+        loadCoaches();
+
+        async function loadCoaches() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const staff = await res.json();
+                    const select = document.getElementById('pt-coach');
+                    select.innerHTML += staff.map(s => `<option value="${s.id}">${s.name} ${s.custom_role ? `(${s.custom_role})` : ''}</option>`).join('');
+                }
+            } catch (err) { console.error('[COACHES-LOAD]', err); }
         }
 
         async function loadBranches() {
@@ -346,7 +396,11 @@
                         email: email || null,
                         plan_id: planId,
                         payment_received: paymentStatus === 'paid',
-                        branch_id: document.getElementById('branch').value ? parseInt(document.getElementById('branch').value) : null
+                        branch_id: document.getElementById('branch').value ? parseInt(document.getElementById('branch').value) : null,
+                        pt_coach_id: document.getElementById('pt-coach').value ? parseInt(document.getElementById('pt-coach').value) : null,
+                        pt_sessions_total: parseInt(document.getElementById('pt-sessions-total').value) || 0,
+                        pt_sessions_used: parseInt(document.getElementById('pt-sessions-used').value) || 0,
+                        pt_ends_at: document.getElementById('pt-expiry').value || null
                     })
                 });
 
@@ -446,6 +500,17 @@
                             document.getElementById('status-paid').checked = true;
                         } else {
                             document.getElementById('status-pending').checked = true;
+                        }
+                    }
+
+                    // PT Fields
+                    if (member.pt_coach_id) {
+                        document.getElementById('pt-coach').value = member.pt_coach_id;
+                        document.getElementById('pt-sessions-total').value = member.pt_sessions_total || '';
+                        document.getElementById('pt-sessions-used').value = member.pt_sessions_used || 0;
+                        if (member.pt_ends_at) {
+                            // Backend returns YYYY-MM-DD from get_member now
+                            document.getElementById('pt-expiry').value = member.pt_ends_at;
                         }
                     }
                 } catch (error) {
