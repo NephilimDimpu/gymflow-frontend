@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Demo - GymExec</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --accent: #10b981;
+            --bg-dark: #020617;
+            --panel-bg: rgba(30, 41, 59, 0.5);
+        }
+
+        .demo-banner {
+            background: linear-gradient(90deg, #3b82f6, #6366f1);
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .demo-btn {
+            background: white;
+            color: #3b82f6;
+            padding: 6px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .demo-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .main-layout {
+            display: flex;
+            min-height: 100vh;
+            background: var(--bg-dark);
+            color: #f8fafc;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: rgba(15, 23, 42, 0.8);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            padding: 40px 20px;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 40px;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .demo-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .demo-modal {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 32px;
+            max-width: 400px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-banner">
+        <span>✨ You are viewing the <b>GymExec Interactive Demo</b>. Explore how it works!</span>
+        <a href="signup.html" class="demo-btn">GET STARTED FREE</a>
+    </div>
+
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div style="font-size: 24px; font-weight: 900; margin-bottom: 40px; color: #3b82f6;">💪 GymExec</div>
+            <nav style="display: flex; flex-direction: column; gap: 10px;">
+                <a href="#" class="nav-link active" onclick="showDemoInfo('Dashboard')">🏠 Dashboard</a>
+                <a href="#" class="nav-link" onclick="showDemoInfo('Members')">👥 Members</a>
+                <a href="#" class="nav-link" onclick="showDemoInfo('Plans')">📋 Plans</a>
+                <a href="#" class="nav-link" onclick="showDemoInfo('Personal Training')">🏋️ Personal Training</a>
+                <a href="#" class="nav-link" onclick="showDemoInfo('Attendance')">🕘 Attendance</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+                <div>
+                    <h1 style="font-size: 36px; font-weight: 900; letter-spacing: -1.5px;">Elite Gym & Fitness</h1>
+                    <p style="color: #94a3b8;">Demo Dashboard (Pro Plan)</p>
+                </div>
+                <button class="btn btn-primary" onclick="showDemoInfo('Add Member')">+ Add Member</button>
+            </header>
+
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #3b82f6;">158</div>
+                    <div class="stat-label">Active Members</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #fbbf24;">12</div>
+                    <div class="stat-label">Expiring Soon</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #ef4444;">4</div>
+                    <div class="stat-label">Unpaid Fees</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #10b981;">₹54,200</div>
+                    <div class="stat-label">Month Revenue</div>
+                </div>
+            </div>
+
+            <div class="glass-panel">
+                <h2 style="margin-bottom: 20px;">Recent Activity</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px;">
+                        <span>👤 Rahul Sharma checked in</span>
+                        <span style="color: #94a3b8; font-size: 12px;">2 mins ago</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px;">
+                        <span>🏋️ PT Session: Priya Patel with Coach Aryan</span>
+                        <span style="color: #94a3b8; font-size: 12px;">15 mins ago</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px;">
+                        <span>💰 Payment Received: ₹2,400 from Amit Singh</span>
+                        <span style="color: #94a3b8; font-size: 12px;">1 hour ago</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Demo Modal -->
+    <div id="demo-overlay" class="demo-overlay">
+        <div class="demo-modal">
+            <div style="font-size: 40px; margin-bottom: 20px;">⚡</div>
+            <h2 id="demo-title">Demo Feature</h2>
+            <p id="demo-text" style="color: #94a3b8; margin: 16px 0 24px; line-height: 1.6;">
+                In the full version, this allows you to manage your gym effortlessly.
+            </p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="hideDemo()">Got it!</button>
+            <a href="signup.html" style="display: block; margin-top: 20px; color: #3b82f6; text-decoration: none; font-weight: 600;">Start your free trial →</a>
+        </div>
+    </div>
+
+    <script>
+        function showDemoInfo(feature) {
+            document.getElementById('demo-title').textContent = feature;
+            let text = "";
+            if(feature === 'Members') text = "Manage your entire member database. Filter by status, send renewal reminders via WhatsApp, and track attendance with one tap.";
+            else if(feature === 'Add Member') text = "Quickly register new members, assign them a plan, and auto-send a welcome email with their personal login link.";
+            else if(feature === 'Personal Training') text = "Track PT sessions per member. Assign a coach, set session limits, and let members see their remaining sessions in real-time.";
+            else text = `The ${feature} module is fully interactive in the production version of GymExec. Create your gym today to try it!`;
+            
+            document.getElementById('demo-text').textContent = text;
+            document.getElementById('demo-overlay').style.display = 'flex';
+        }
+
+        function hideDemo() {
+            document.getElementById('demo-overlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
