@@ -103,21 +103,21 @@
             </div>
 
             <!-- Table Container -->
-            <div id="members-container" class="glass-panel" style="padding: 0; overflow: hidden;">
-                <table class="glass-table" id="members-table">
-                    <thead>
-                        <tr>
-                            <th>Member</th>
-                            <th>Contact</th>
-                            <th>Plan Details</th>
-                            <th>Status</th>
-                            <th style="text-align: right;">Actions</th>
-                        </tr>
-                    </thead>
-                <tbody id="members-tbody">
-                        <!-- Members load here -->
-                    </tbody>
-                </table>
+            <div id="members-container" class="glass-panel" style="display: none; padding: 0; overflow: hidden;">
+                <div class="table-wrap">
+                    <table class="glass-table mobile-card-view">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Contact</th>
+                                <th>Plan Details</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="active-members-tbody"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- [EMPTY-STATE] -->
@@ -199,7 +199,13 @@
             const container = document.getElementById('members-container');
             const empty = document.getElementById('empty-state');
 
-            if (members.length === 0) {
+        function renderTable(members) {
+            console.log("[MEMBERS-DEBUG] Rendering table with:", members.length, "members");
+            const container = document.getElementById('members-container');
+            const empty = document.getElementById('empty-state');
+            const tbody = document.getElementById('active-members-tbody');
+
+            if (!members || members.length === 0) {
                 container.style.display = 'none';
                 empty.style.display = 'block';
                 return;
@@ -207,29 +213,8 @@
 
             container.style.display = 'block';
             empty.style.display = 'none';
-            
-            // 1. Create the skeleton first
-            container.innerHTML = `
-                <div class="table-wrap">
-                    <table class="glass-table mobile-card-view">
-                        <thead>
-                            <tr>
-                                <th>Member</th>
-                                <th>Contact</th>
-                                <th>Plan Details</th>
-                                <th>Status</th>
-                                <th style="text-align: right;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="active-members-tbody"></tbody>
-                    </table>
-                </div>
-            `;
-            
-            // 2. NOW fetch the fresh tbody from the DOM
-            const tbody = document.getElementById('active-members-tbody');
 
-            // 3. Inject the rows
+            // Inject the rows
             tbody.innerHTML = members.map(m => `
                 <tr data-member-id="${m.id}">
                     <td data-label="Member">
@@ -238,7 +223,7 @@
                     </td>
                     <td data-label="Contact">
                         <div style="font-size: 14px;">${m.phone}</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">${m.phone ? 'Member' : 'No contact'}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">${m.phone ? 'Phone Verified' : 'No contact'}</div>
                     </td>
                     <td data-label="Plan">
                         ${m.current_plan ? `
