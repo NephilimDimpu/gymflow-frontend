@@ -64,3 +64,7 @@ const UX = {
 // Auto-init on script load
 document.addEventListener('DOMContentLoaded', () => UX.init());
 window.UX = UX;
+
+// Global shorthand for page scripts
+window.showTopLoader = () => UX.startLoading();
+window.hideTopLoader = () => UX.stopLoading();

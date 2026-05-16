@@ -187,8 +187,12 @@
                 showToast("Failed to load members", "error");
             } finally {
                 overlay.style.display = 'none';
+                if (typeof hideTopLoader === 'function') hideTopLoader();
             }
         }
+
+        // Trigger top loader on start
+        if (typeof showTopLoader === 'function') showTopLoader();
 
         function renderTable(members) {
             const tbody = document.getElementById('members-tbody');
@@ -262,6 +266,12 @@
         function formatStatus(s) {
             const map = { 'active': 'Active', 'expiring_soon': 'Expiring', 'expired': 'Expired', 'pending_payment': 'Pending' };
             return map[s] || s;
+        }
+
+        function reminderAgo(days) {
+            if (days === 0) return 'Today';
+            if (days === 1) return 'Yesterday';
+            return `${days} days ago`;
         }
 
         function filterMembers(status) {
