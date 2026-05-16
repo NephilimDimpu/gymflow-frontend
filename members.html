@@ -207,6 +207,8 @@
 
             container.style.display = 'block';
             empty.style.display = 'none';
+            
+            // 1. Create the skeleton first
             container.innerHTML = `
                 <div class="table-wrap">
                     <table class="glass-table mobile-card-view">
@@ -219,12 +221,15 @@
                                 <th style="text-align: right;">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="members-tbody"></tbody>
+                        <tbody id="active-members-tbody"></tbody>
                     </table>
                 </div>
             `;
-            const tbody = document.getElementById('members-tbody');
+            
+            // 2. NOW fetch the fresh tbody from the DOM
+            const tbody = document.getElementById('active-members-tbody');
 
+            // 3. Inject the rows
             tbody.innerHTML = members.map(m => `
                 <tr data-member-id="${m.id}">
                     <td data-label="Member">
@@ -233,7 +238,7 @@
                     </td>
                     <td data-label="Contact">
                         <div style="font-size: 14px;">${m.phone}</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">${m.email || 'No email'}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">${m.phone ? 'Member' : 'No contact'}</div>
                     </td>
                     <td data-label="Plan">
                         ${m.current_plan ? `
@@ -244,14 +249,14 @@
                     <td data-label="Status">
                         <span class="badge badge-${getStatusClass(m.status)}">${formatStatus(m.status)}</span>
                         ${m.days_since_last_reminder !== null && m.days_since_last_reminder !== undefined
-                            ? `<div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;" title="Last reminder: ${m.last_reminder_kind} on ${m.last_reminder_date}">📨 ${reminderAgo(m.days_since_last_reminder)}</div>`
+                            ? `<div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">📨 ${reminderAgo(m.days_since_last_reminder)}</div>`
                             : ''
                         }
                     </td>
                     <td style="text-align: right;">
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit</button>
-                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})" title="Send reminder email">🔔</button>
-                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(37, 211, 102, 0.1); color: #25D366;" onclick="sendWhatsAppReminder(${m.id})" title="WhatsApp">💬</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})">🔔</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(37, 211, 102, 0.1); color: #25D366;" onclick="sendWhatsAppReminder(${m.id})">💬</button>
                         ${userRole === 'owner' ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: #f87171;" onclick="deleteMember(${m.id})">🗑️</button>` : ''}
                     </td>
                 </tr>
