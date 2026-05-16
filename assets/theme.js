@@ -42,6 +42,16 @@
                 'a[href="routines.html"]'
             ], "Pro Feature — Upgrade to track attendance and manage class schedules");
         }
+
+        // [LOGO-INJECTION]
+        const logoUrl = localStorage.getItem('gym_logo');
+        if (logoUrl) {
+            document.querySelectorAll('.sidebar-logo').forEach(el => {
+                el.innerHTML = `<img src="${logoUrl}" style="height: 32px; width: 32px; object-fit: contain; margin-right: 10px; border-radius: 4px;"> ${el.textContent.replace('💪', '').trim()}`;
+                el.style.display = 'flex';
+                el.style.alignItems = 'center';
+            });
+        }
     });
 
     if (userTier === 'pro') {

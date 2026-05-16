@@ -196,6 +196,9 @@
 <body>
     <div class="status-card" id="status-container" style="display: none;">
         <div class="header-center">
+            <div id="gym-logo-container" style="display: none; margin-bottom: 16px; text-align: center;">
+                <img id="gym-logo" src="" style="height: 64px; max-width: 180px; object-fit: contain; border-radius: 8px;">
+            </div>
             <div class="gym-name" id="gym-name">Gym Name</div>
             <a href="#" class="gym-phone" id="gym-phone-link" style="display: none;">📞 <span id="gym-phone-text"></span></a>
 
@@ -210,6 +213,16 @@
             <div class="progress-track" style="margin-top: 12px;">
                 <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
             </div>
+        </div>
+
+        <!-- UPI Payment Section -->
+        <div id="upi-payment-section" style="display: none; margin: 24px 0; padding: 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; text-align: center;">
+            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">Pay via UPI to Renew</p>
+            <div id="upi-qr-container" style="margin: 0 auto 16px; background: #fff; padding: 12px; border-radius: 12px; width: 160px; height: 160px;">
+                <img id="upi-qr" src="" style="width: 100%; height: 100%;">
+            </div>
+            <p id="upi-id-text" style="font-size: 12px; font-family: monospace; color: #60a5fa;"></p>
+            <p style="font-size: 11px; color: #64748b; margin-top: 12px;">Share screenshot with gym after payment</p>
         </div>
 
         <div>
@@ -325,6 +338,26 @@
                 if (data.start_date) {
                     document.getElementById('start-date').textContent = data.start_date;
                     document.getElementById('row-start').style.display = 'flex';
+                }
+
+                // [LOGO-UPDATE]
+                if (data.gym_logo) {
+                    const logoContainer = document.getElementById('gym-logo-container');
+                    const logoImg = document.getElementById('gym-logo');
+                    logoImg.src = data.gym_logo;
+                    logoContainer.style.display = 'block';
+                }
+
+                // [UPI-PAYMENT-UPDATE] Show QR if expired or expiring soon (<= 7 days)
+                if (data.gym_upi && (data.days_left <= 7 || data.status === 'expired')) {
+                    const upiSection = document.getElementById('upi-payment-section');
+                    const upiQr = document.getElementById('upi-qr');
+                    const upiText = document.getElementById('upi-id-text');
+                    
+                    const upiUrl = `upi://pay?pa=${data.gym_upi}&pn=${encodeURIComponent(data.gym_name)}&am=0&cu=INR`;
+                    upiQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(upiUrl)}`;
+                    upiText.textContent = data.gym_upi;
+                    upiSection.style.display = 'block';
                 }
 
                 // Status logic

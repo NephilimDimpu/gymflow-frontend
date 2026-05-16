@@ -61,6 +61,29 @@
 
             <div style="max-width: 800px;">
                 <form id="settings-form">
+                    <!-- Branding Section -->
+                    <div class="glass-panel" style="padding: 32px; margin-bottom: 32px;">
+                        <h2 style="font-size: 20px; margin-bottom: 24px;">🎨 Branding</h2>
+                        
+                        <div style="display: flex; align-items: center; gap: 32px;">
+                            <div id="logo-preview-container" style="width: 120px; height: 120px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 2px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                <img id="logo-preview" src="" style="max-width: 100%; max-height: 100%; display: none;">
+                                <span id="logo-placeholder" style="font-size: 32px; opacity: 0.3;">🖼️</span>
+                            </div>
+                            
+                            <div style="flex: 1;">
+                                <label class="form-label" style="color: #fff;">Gym Logo</label>
+                                <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Upload your gym logo. This will be shown on your dashboard and member status pages.</p>
+                                
+                                <div style="display: flex; gap: 12px;">
+                                    <input type="file" id="logo-input" accept="image/*" style="display: none;" onchange="handleLogoChange(this)">
+                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-input').click()">Choose Image</button>
+                                    <button type="button" id="upload-logo-btn" class="btn btn-primary" style="display: none;" onclick="uploadLogo()">Upload & Save Logo</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Profile Section -->
                     <div class="glass-panel" style="padding: 32px; margin-bottom: 32px;">
                         <h2 style="font-size: 20px; margin-bottom: 24px;">🏢 Gym Profile</h2>
@@ -226,6 +249,56 @@
             ).join('');
         }
 
+        let currentLogoUrl = null;
+
+        function handleLogoChange(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('logo-preview');
+                    const placeholder = document.getElementById('logo-placeholder');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    placeholder.style.display = 'none';
+                    document.getElementById('upload-logo-btn').style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function uploadLogo() {
+            const input = document.getElementById('logo-input');
+            if (!input.files || !input.files[0]) return;
+
+            const btn = document.getElementById('upload-logo-btn');
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/upload-logo`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error('Logo upload failed');
+                
+                const data = await res.json();
+                currentLogoUrl = data.logo_url;
+                localStorage.setItem('gym_logo', currentLogoUrl);
+                showToast("Logo updated successfully", "success");
+                document.getElementById('upload-logo-btn').style.display = 'none';
+            } catch (err) {
+                showToast(err.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Upload & Save Logo';
+            }
+        }
+
         async function loadSettings() {
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/settings`, {
@@ -240,6 +313,16 @@
                     document.getElementById('phone').value = data.phone || '';
                     document.getElementById('upi_id').value = data.upi_id || '';
                     populateTimezones(data.timezone);
+
+                    if (data.logo_url) {
+                        currentLogoUrl = data.logo_url;
+                        localStorage.setItem('gym_logo', currentLogoUrl);
+                        const preview = document.getElementById('logo-preview');
+                        const placeholder = document.getElementById('logo-placeholder');
+                        preview.src = data.logo_url;
+                        preview.style.display = 'block';
+                        placeholder.style.display = 'none';
+                    }
                 } else {
                     populateTimezones(null);
                 }
