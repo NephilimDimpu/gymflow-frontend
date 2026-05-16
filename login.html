@@ -270,8 +270,13 @@
     <div class="ambient-bg"></div>
     
     <div class="auth-card">
+        <!-- Back to Home Link -->
+        <a href="index.html" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-muted); text-decoration: none; margin-bottom: 2rem; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Back to Home
+        </a>
         <div class="auth-header">
-            <div class="auth-logo">✦</div>
+            <a href="index.html" class="auth-logo" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0)); border: 1px solid var(--border); margin-bottom: 1.5rem; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); font-size: 24px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">✦</a>
             <h1>Welcome back</h1>
             <p>Log in to access your dashboard.</p>
         </div>
