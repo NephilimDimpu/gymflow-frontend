@@ -62,7 +62,15 @@
             <div style="max-width: 800px;">
                 <form id="settings-form">
                     <!-- Branding Section -->
-                    <div class="glass-panel" style="padding: 32px; margin-bottom: 32px;">
+                    <div id="branding-panel" class="glass-panel" style="padding: 32px; margin-bottom: 32px; position: relative;">
+                        <!-- Locked Overlay -->
+                        <div id="branding-locked-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 18, 0.7); backdrop-filter: blur(4px); z-index: 10; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                            <div style="font-size: 32px; margin-bottom: 12px;">🔒</div>
+                            <h3 style="color: #fff; margin-bottom: 8px;">White Label Branding</h3>
+                            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px; max-width: 250px;">Upload your own logo and white-label your gym dashboard.</p>
+                            <a href="upgrade-plan.html" class="btn btn-primary" style="padding: 8px 24px; font-size: 13px;">Upgrade to Pro</a>
+                        </div>
+
                         <h2 style="font-size: 20px; margin-bottom: 24px;">🎨 Branding</h2>
                         
                         <div style="display: flex; align-items: center; gap: 32px;">
@@ -555,6 +563,12 @@
         }
 
         loadSettings();
+        const brandingOverlay = document.getElementById('branding-locked-overlay');
+        if (gymTier === 'starter') {
+            brandingOverlay.style.display = 'flex';
+        } else {
+            brandingOverlay.style.display = 'none';
+        }
         if (gymTier === 'pro' || gymTier === 'elite') checkGeoStatus();
     </script>
 </body>
