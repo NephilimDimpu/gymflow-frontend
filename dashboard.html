@@ -539,6 +539,7 @@
         // [JS-FETCH-STATS] Load dashboard statistics
         // ============================================
         async function loadDashboard() {
+            if (typeof showTopLoader === 'function') showTopLoader();
             document.getElementById('loading-overlay').style.display = 'flex';
             try {
                 // Build URL with optional branch filter
