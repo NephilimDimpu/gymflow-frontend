@@ -1,150 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS Super Admin | GymExec</title>
+    <title>Control Tower | GymExec Admin</title>
     <link rel="stylesheet" href="assets/style.css">
-    <script src="assets/config.js"></script>
-    <script src="assets/toast.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        .admin-header {
-            background: #111827;
-            color: white;
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        :root {
+            --admin-primary: #ec4899; /* Pink for Super Admin */
+            --admin-bg: #0f172a;
         }
-
-        .admin-container {
-            padding: 40px;
-            max-width: 1200px;
-            margin: 0 auto;
+        body { background: var(--admin-bg); color: #fff; font-family: 'Outfit', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
         }
-
-        .gym-table {
-            width: 100%;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            border-collapse: collapse;
-        }
-
-        .gym-table th,
-        .gym-table td {
-            text-align: left;
-            padding: 16px 24px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .gym-table th {
-            background: #f9fafb;
+        .stat-card { padding: 24px; text-align: center; }
+        .stat-val { font-size: 32px; font-weight: 800; color: var(--admin-primary); }
+        .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+        th { text-align: left; padding: 16px; font-size: 12px; color: #64748b; text-transform: uppercase; }
+        td { padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+        
+        .tier-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
             font-weight: 600;
-            color: #4b5563;
             text-transform: uppercase;
-            font-size: 12px;
-            letter-spacing: 0.05em;
         }
+        .tier-starter { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+        .tier-pro { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+        .tier-elite { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+        
+        .btn-upgrade {
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .btn-upgrade:hover { background: var(--admin-primary); border-color: var(--admin-primary); }
     </style>
-    <script src="assets/theme.js"></script>
 </head>
-
-<body style="background: #f3f4f6;">
-
-    <div id="login-overlay"
-        style="position: fixed; inset: 0; background: #f3f4f6; display: flex; align-items: center; justify-content: center; z-index: 50;">
-        <div
-            style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center;">
-            <h2 style="margin-bottom: 24px;">SaaS Admin Logic</h2>
-            <input type="password" id="admin-pass" class="form-control" placeholder="Master Password"
-                style="margin-bottom: 16px;">
-            <button class="btn btn-primary" style="width: 100%;" onclick="loginAdmin()">Enter Dashboard</button>
-            <p id="admin-error" style="color: red; margin-top: 10px; display: none;">Invalid Password</p>
+<body>
+    <div id="login-overlay" style="position: fixed; inset: 0; background: var(--admin-bg); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+        <div class="glass-panel" style="padding: 40px; width: 400px; text-align: center;">
+            <h1 style="margin-bottom: 8px;">🛰️ Control Tower</h1>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 32px;">Enter Super Admin Key to access</p>
+            <input type="password" id="admin-key-input" class="form-input" placeholder="Secret Key..." style="text-align: center; margin-bottom: 20px;">
+            <button onclick="unlock()" class="btn btn-primary" style="width: 100%; background: var(--admin-primary);">Authorize Access</button>
         </div>
     </div>
 
-    <div class="admin-header">
-        <div style="font-size: 20px; font-weight: bold;">👑 SaaS Super Admin</div>
-        <div>
-            <span id="total-gyms" style="margin-right: 20px;">0 Tenants</span>
-            <button class="btn btn-secondary" onclick="location.reload()">Lock</button>
+    <div class="dashboard-layout" style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+            <div>
+                <h1 style="font-size: 32px; letter-spacing: -1px;">Platform Overview</h1>
+                <p style="color: #64748b; font-size: 14px;">Managing the GymExec SaaS Ecosystem</p>
+            </div>
+            <button onclick="localStorage.removeItem('super_admin_key'); location.reload();" class="btn-upgrade">Lock Tower</button>
+        </header>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 40px;">
+            <div class="glass-panel stat-card">
+                <div class="stat-label">Total Gyms</div>
+                <div class="stat-val" id="stat-gyms">0</div>
+            </div>
+            <div class="glass-panel stat-card">
+                <div class="stat-label">Total Members</div>
+                <div class="stat-val" id="stat-members">0</div>
+            </div>
+            <div class="glass-panel stat-card">
+                <div class="stat-label">Pro Users</div>
+                <div class="stat-val" id="stat-pro" style="color: #818cf8;">0</div>
+            </div>
+            <div class="glass-panel stat-card">
+                <div class="stat-label">Elite Users</div>
+                <div class="stat-val" id="stat-elite" style="color: #f472b6;">0</div>
+            </div>
+        </div>
+
+        <div class="glass-panel" style="padding: 32px;">
+            <h2 style="font-size: 20px;">Active Tenants</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Gym / Owner</th>
+                            <th>Tier</th>
+                            <th>Branches</th>
+                            <th>Members</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gym-table-body">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <div class="admin-container">
-        <h2 style="margin-bottom: 24px;">Registered Tenants (Gyms)</h2>
-
-        <table class="gym-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Gym Name</th>
-                    <th>Owner</th>
-                    <th>Contact</th>
-                    <th>Tier</th>
-                    <th>Total Members</th>
-                    <th>Revenue Processed</th>
-                    <th>Joined</th>
-                </tr>
-            </thead>
-            <tbody id="gym-list">
-                <!-- Gyms inserted here -->
-            </tbody>
-        </table>
-    </div>
-
+    <script src="assets/config.js"></script>
     <script>
-        let adminKey = "";
+        let adminKey = localStorage.getItem('super_admin_key');
+        if (adminKey) {
+            document.getElementById('login-overlay').style.display = 'none';
+            loadAdminData();
+        }
 
-        async function loginAdmin() {
-            const pass = document.getElementById('admin-pass').value;
-            adminKey = pass;
+        function unlock() {
+            const key = document.getElementById('admin-key-input').value;
+            if (!key) return;
+            localStorage.setItem('super_admin_key', key);
+            adminKey = key;
+            document.getElementById('login-overlay').style.display = 'none';
+            loadAdminData();
+        }
 
+        async function loadAdminData() {
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/api/admin/gyms`, {
-                    headers: {
-                        'x-admin-key': adminKey
-                    }
+                // Load Stats
+                const statsRes = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/stats`, {
+                    headers: { 'x-admin-key': adminKey }
                 });
+                if (!statsRes.ok) throw new Error();
+                const stats = await statsRes.json();
+                document.getElementById('stat-gyms').innerText = stats.total_gyms;
+                document.getElementById('stat-members').innerText = stats.total_active_members;
+                document.getElementById('stat-pro').innerText = stats.tier_distribution.pro;
+                document.getElementById('stat-elite').innerText = stats.tier_distribution.elite;
 
-                if (!response.ok) {
-                    document.getElementById('admin-error').style.display = 'block';
-                    return;
-                }
-
-                const gyms = await response.json();
-
-                // Hide login
-                document.getElementById('login-overlay').style.display = 'none';
-
-                // Render table
-                document.getElementById('total-gyms').textContent = `${gyms.length} Tenants Active`;
-
-                const list = document.getElementById('gym-list');
-                list.innerHTML = gyms.map(gym => `
+                // Load Gyms
+                const gymsRes = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/gyms`, {
+                    headers: { 'x-admin-key': adminKey }
+                });
+                const gyms = await gymsRes.json();
+                const tbody = document.getElementById('gym-table-body');
+                tbody.innerHTML = gyms.map(gym => `
                     <tr>
-                        <td style="color: #6b7280;">#${gym.id}</td>
-                        <td style="font-weight: 600;">${gym.name}</td>
-                        <td>${gym.owner}</td>
-                        <td style="font-size: 14px; color: #6b7280;">
-                            ${gym.email}<br>${gym.phone}
+                        <td>
+                            <div style="font-weight: 600;">${gym.name}</div>
+                            <div style="font-size: 12px; color: #64748b;">${gym.owner_name} (${gym.email})</div>
                         </td>
-                        <td><span class="badge badge-active">${gym.tier.toUpperCase()}</span></td>
-                        <td><strong>${gym.member_count}</strong></td>
-                        <td style="color: #10b981; font-weight: bold;">₹${gym.total_revenue_processed.toLocaleString()}</td>
-                        <td style="color: #6b7280; font-size: 14px;">${gym.joined_date}</td>
+                        <td><span class="tier-badge tier-${gym.tier}">${gym.tier}</span></td>
+                        <td>${gym.branch_count}</td>
+                        <td>${gym.member_count}</td>
+                        <td>${new Date(gym.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <select onchange="updateTier(${gym.id}, this.value)" class="btn-upgrade" style="background: rgba(0,0,0,0.2);">
+                                <option value="starter" ${gym.tier === 'starter' ? 'selected' : ''}>Starter</option>
+                                <option value="pro" ${gym.tier === 'pro' ? 'selected' : ''}>Pro</option>
+                                <option value="elite" ${gym.tier === 'elite' ? 'selected' : ''}>Elite</option>
+                            </select>
+                        </td>
                     </tr>
                 `).join('');
 
-            } catch (error) {
-                console.error(error);
-                document.getElementById('admin-error').style.display = 'block';
+            } catch (err) {
+                alert('Unauthorized or Session Expired');
+                localStorage.removeItem('super_admin_key');
+                location.reload();
+            }
+        }
+
+        async function updateTier(gymId, tier) {
+            if (!confirm(`Switch gym to ${tier.toUpperCase()} tier?`)) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/gyms/${gymId}/upgrade?tier=${tier}`, {
+                    method: 'POST',
+                    headers: { 'x-admin-key': adminKey }
+                });
+                if (res.ok) {
+                    alert('Tier updated successfully!');
+                    loadAdminData();
+                }
+            } catch (err) {
+                alert('Failed to update tier');
             }
         }
     </script>
 </body>
-
 </html>

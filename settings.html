@@ -73,20 +73,20 @@
 
                         <h2 style="font-size: 20px; margin-bottom: 24px;">🎨 Branding</h2>
                         
-                        <div style="display: flex; align-items: center; gap: 32px;">
-                            <div id="logo-preview-container" style="width: 120px; height: 120px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 2px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        <div class="settings-branding-row" style="display: flex; align-items: center; gap: 32px; flex-wrap: wrap;">
+                            <div id="logo-preview-container" style="width: 120px; height: 120px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 2px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
                                 <img id="logo-preview" src="" style="max-width: 100%; max-height: 100%; display: none;">
                                 <span id="logo-placeholder" style="font-size: 32px; opacity: 0.3;">🖼️</span>
                             </div>
                             
-                            <div style="flex: 1;">
+                            <div style="flex: 1; min-width: 200px;">
                                 <label class="form-label" style="color: #fff;">Gym Logo</label>
                                 <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Upload your gym logo. This will be shown on your dashboard and member status pages.</p>
                                 
-                                <div style="display: flex; gap: 12px;">
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                                     <input type="file" id="logo-input" accept="image/*" style="display: none;" onchange="handleLogoChange(this)">
-                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-input').click()">Choose Image</button>
-                                    <button type="button" id="upload-logo-btn" class="btn btn-primary" style="display: none;" onclick="uploadLogo()">Upload & Save Logo</button>
+                                    <button type="button" class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('logo-input').click()">Choose Image</button>
+                                    <button type="button" id="upload-logo-btn" class="btn btn-primary" style="flex:1; display: none;" onclick="uploadLogo()">Upload & Save Logo</button>
                                 </div>
                             </div>
                         </div>
@@ -96,7 +96,7 @@
                     <div class="glass-panel" style="padding: 32px; margin-bottom: 32px;">
                         <h2 style="font-size: 20px; margin-bottom: 24px;">🏢 Gym Profile</h2>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
                             <div class="form-group">
                                 <label class="form-label" style="color: #fff;">Gym Name</label>
                                 <input type="text" id="name" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>

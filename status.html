@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Membership · GymExec</title>
     <link rel="stylesheet" href="assets/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <script src="assets/config.js"></script>
     <script src="assets/toast.js"></script>
     <script src="assets/theme.js"></script>
@@ -18,9 +23,34 @@
             color: #f1f5f9;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
+            justify-content: flex-start;
+            padding: 24px 20px;
+        }
+
+        /* [DIGITAL-ID-CARD] Glassmorphism ID card style */
+        .id-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 440px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+        .id-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .status-card {
@@ -194,6 +224,26 @@
 </head>
 
 <body>
+    <!-- [DIGITAL-ID-CARD] High-end membership card -->
+    <div class="id-card" id="digital-id-card" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+            <div>
+                <div id="card-gym-name" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.7; margin-bottom: 4px;">GYM NAME</div>
+                <div id="card-member-name" style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">MEMBER NAME</div>
+            </div>
+            <div style="background: #fff; padding: 6px; border-radius: 8px;">
+                <img id="card-qr" src="" style="width: 64px; height: 64px; display: block;">
+            </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <div style="font-size: 10px; text-transform: uppercase; opacity: 0.6; margin-bottom: 2px;">Membership ID</div>
+                <div id="card-member-id" style="font-family: monospace; font-size: 14px; letter-spacing: 1px;">#000000</div>
+            </div>
+            <div id="card-status-pill" style="padding: 4px 12px; border-radius: 99px; font-size: 10px; font-weight: 800; text-transform: uppercase;">ACTIVE</div>
+        </div>
+    </div>
+
     <div class="status-card" id="status-container" style="display: none;">
         <div class="header-center">
             <div id="gym-logo-container" style="display: none; margin-bottom: 16px; text-align: center;">
@@ -348,6 +398,25 @@
                     logoContainer.style.display = 'block';
                 }
 
+                // [DIGITAL-ID-CARD-UPDATE]
+                const idCard = document.getElementById('digital-id-card');
+                idCard.style.display = 'block';
+                document.getElementById('card-gym-name').innerText = data.gym_name;
+                document.getElementById('card-member-name').innerText = data.member_name;
+                document.getElementById('card-member-id').innerText = `#${String(data.member_id).padStart(6, '0')}`;
+                document.getElementById('card-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CHECKIN:${data.member_id}`;
+                
+                const cardPill = document.getElementById('card-status-pill');
+                if (data.status === 'active') {
+                    cardPill.style.background = '#34d399';
+                    cardPill.style.color = '#064e3b';
+                    cardPill.innerText = 'ACTIVE';
+                } else {
+                    cardPill.style.background = '#f87171';
+                    cardPill.style.color = '#7f1d1d';
+                    cardPill.innerText = data.status.toUpperCase();
+                }
+
                 // [UPI-PAYMENT-UPDATE] Show QR if expired or expiring soon (<= 7 days)
                 if (data.gym_upi && (data.days_left <= 7 || data.status === 'expired')) {
                     const upiSection = document.getElementById('upi-payment-section');
@@ -439,14 +508,34 @@
                     document.getElementById('attendance-card').style.display = 'block';
                 }
 
-                // [ROUTINES] Show a 'View Class Schedule' button if the gym has routines
-                if (data.routines_available && data.gym_id) {
-                    const routinesBtn = document.getElementById('routines-btn');
-                    // Branch-specific link if the member belongs to a branch, otherwise gym-wide.
-                    routinesBtn.href = data.branch_id
-                        ? `member-routine.html?branch=${data.branch_id}`
-                        : `member-routine.html?gym=${data.gym_id}`;
-                    routinesBtn.style.display = 'block';
+                // [ROUTINES-UPDATE]
+                if (data.routines && data.routines.length > 0) {
+                    const btn = document.getElementById('routines-btn');
+                    btn.style.display = 'block';
+                    btn.textContent = '📋 View Workout Routines';
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        const routinesHtml = data.routines.map(r => `
+                            <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                                <img src="${r.image_data}" style="width: 100%; border-radius: 8px; margin-bottom: 8px;">
+                                <div style="font-weight: 600; font-size: 14px; color: #fff;">${r.label || 'Workout Routine'}</div>
+                                <div style="font-size: 11px; color: #64748b;">Posted: ${r.uploaded_at}</div>
+                            </div>
+                        `).join('');
+                        
+                        const win = window.open("", "_blank");
+                        win.document.write(`
+                            <html>
+                            <head><title>Workout Routines</title><style>body{background:#0f172a;color:#fff;font-family:sans-serif;padding:20px;line-height:1.6;}</style></head>
+                            <body>
+                                <h2 style="letter-spacing:-1px;">Workout Routines</h2>
+                                <p style="color:#64748b;font-size:14px;margin-bottom:24px;">Latest updates from your gym</p>
+                                ${routinesHtml}
+                                <button onclick="window.close()" style="width:100%;padding:14px;background:#6366f1;color:#fff;border:none;border-radius:12px;margin-top:24px;font-weight:700;cursor:pointer;">Close</button>
+                            </body>
+                            </html>
+                        `);
+                    };
                 }
 
                 // [PERSONAL-TRAINING]
@@ -471,6 +560,15 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
             }
+        }
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(reg => {
+                    console.log('SW Registered', reg);
+                }).catch(err => console.log('SW Registration Failed', err));
+            });
         }
 
         loadStatus();
