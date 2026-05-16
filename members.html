@@ -195,11 +195,6 @@
         if (typeof showTopLoader === 'function') showTopLoader();
 
         function renderTable(members) {
-            const tbody = document.getElementById('members-tbody');
-            const container = document.getElementById('members-container');
-            const empty = document.getElementById('empty-state');
-
-        function renderTable(members) {
             console.log("[MEMBERS-DEBUG] Rendering table with:", members.length, "members");
             const container = document.getElementById('members-container');
             const empty = document.getElementById('empty-state');
@@ -259,9 +254,10 @@
         }
 
         function reminderAgo(days) {
-            if (days === 0) return 'Today';
-            if (days === 1) return 'Yesterday';
-            return `${days} days ago`;
+            if (days === 0) return 'Reminded today';
+            if (days === 1) return 'Reminded yesterday';
+            if (days < 0) return `Reminder due in ${-days}d`;
+            return `Reminded ${days}d ago`;
         }
 
         function filterMembers(status) {
@@ -275,14 +271,6 @@
             const q = document.getElementById('search-input').value.toLowerCase();
             const results = filteredMembers.filter(m => m.name.toLowerCase().includes(q) || m.phone.includes(q));
             renderTable(results);
-        }
-
-        // Format "X days ago" for the last-reminder marker on each row.
-        function reminderAgo(days) {
-            if (days === 0) return 'Reminded today';
-            if (days === 1) return 'Reminded yesterday';
-            if (days < 0) return `Reminder due in ${-days}d`;  // shouldn't happen, defensive
-            return `Reminded ${days}d ago`;
         }
 
         // Open WhatsApp with a pre-filled reminder message — bypasses Meta API
