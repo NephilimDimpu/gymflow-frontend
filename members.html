@@ -150,7 +150,12 @@
         const userTier = localStorage.getItem('tier') || 'starter';
         if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
 
-        if (userRole === 'owner') loadBranchFilter();
+        // Branch filter only makes sense for ELITE gyms with MULTIPLE
+        // branches. branch_management is Elite-only — Starter/Pro can't
+        // create extra branches, and every gym has an auto-created
+        // "Main Headquarters", so a single-branch gym would otherwise see
+        // a pointless/confusing branch dropdown. Gate on tier + count.
+        if (userRole === 'owner' && userTier === 'elite') loadBranchFilter();
 
         async function loadBranchFilter() {
             try {
@@ -159,9 +164,11 @@
                 });
                 if (res.ok) {
                     const branches = await res.json();
-                    if (branches.length > 0) {
+                    // >1, not >0: hide the filter when there's only the
+                    // single auto-created HQ branch (nothing to filter).
+                    if (branches.length > 1) {
                         document.getElementById('branch-filter-row').style.display = 'block';
-                        document.getElementById('branch-filter').innerHTML += 
+                        document.getElementById('branch-filter').innerHTML +=
                             branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
                     }
                 }
