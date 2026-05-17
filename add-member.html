@@ -246,8 +246,8 @@
         // [JS-STATE] Store loaded plans
         let availablePlans = [];
 
-        // Load branches for owner
-        if (userRole === 'owner') {
+        // Load branches for owner ONLY if they are on the Elite tier
+        if (userRole === 'owner' && userTier === 'elite') {
             loadBranches();
         }
         
