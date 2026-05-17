@@ -66,7 +66,10 @@
                 <h1 style="font-size: 32px; letter-spacing: -1px;">Platform Overview</h1>
                 <p style="color: #64748b; font-size: 14px;">Managing the GymExec SaaS Ecosystem</p>
             </div>
-            <button onclick="localStorage.removeItem('super_admin_key'); location.reload();" class="btn-upgrade">Lock Tower</button>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="window.location.href='index.html'" class="btn-upgrade" style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1);">🏠 Back to Home</button>
+                <button onclick="localStorage.removeItem('super_admin_key'); location.reload();" class="btn-upgrade" style="background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;">🚪 Sign Out</button>
+            </div>
         </header>
 
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 40px;">
