@@ -349,16 +349,27 @@
         <div>Loading your membership…</div>
     </div>
     <div id="error" style="display: none; text-align: center; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 36px 24px; border-radius: 24px; max-width: 440px; width: 100%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px);">
-        <div style="font-size: 48px; margin-bottom: 16px;">👑</div>
-        <div style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">No Membership Context</div>
-        <p style="font-size: 14px; color: #94a3b8; margin-bottom: 24px; line-height: 1.5;">To check your membership status, scan your gym's QR poster or use the personalized link sent by your gym.</p>
-        
-        <button class="renew-btn" onclick="window.location.href='customer-login.html'" style="margin-top: 0; margin-bottom: 16px;">
-            🔑 Log In as a Gym Member
+        <div style="font-size: 48px; margin-bottom: 16px;">🪪</div>
+        <div style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">Your Membership Card</div>
+        <p style="font-size: 14px; color: #94a3b8; margin-bottom: 24px; line-height: 1.5;">
+            This is your gym membership portal. Open the personalized link your gym sent you,
+            or scan the QR poster at your gym to see your plan, days left, and visits.
+        </p>
+
+        <!-- Owner/staff who landed here by mistake (e.g. installed the member PWA)
+             get a direct route back to their own dashboard. Populated by JS. -->
+        <a id="owner-dash-link" href="#" class="renew-btn" style="display: none; margin-top: 0; margin-bottom: 14px;">
+            🏠 Go to your Gym Dashboard
+        </a>
+
+        <!-- Members who already set a password can log in. Secondary action. -->
+        <button class="renew-btn" onclick="window.location.href='customer-login.html'" style="margin-top: 0; margin-bottom: 16px; background: rgba(255,255,255,0.06); box-shadow: none;">
+            🔑 Member log in
         </button>
-        
-        <a href="index.html" style="display: inline-block; font-size: 13px; color: #64748b; text-decoration: none; margin-top: 8px; transition: color 0.2s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
-            ← Go back to GymExec Home
+        <p style="font-size: 12px; color: #64748b; margin: -6px 0 16px;">Haven't set a password? Ask your gym for your status link instead.</p>
+
+        <a id="error-back-link" href="customer-dashboard.html" style="display: inline-block; font-size: 13px; color: #64748b; text-decoration: none; margin-top: 8px; transition: color 0.2s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+            ← Back to dashboard
         </a>
     </div>
 
@@ -380,6 +391,27 @@
 
             if (!memberId) {
                 document.getElementById('loading').style.display = 'none';
+
+                // If an owner/manager/staff is logged in (e.g. they installed
+                // the member PWA by mistake, or opened status.html directly),
+                // route them back to THEIR dashboard instead of dead-ending
+                // them on a member login screen.
+                const role = localStorage.getItem('role');
+                const hasSession = !!localStorage.getItem('auth_token');
+                let ownerDash = null;
+                if (hasSession) {
+                    if (role === 'owner') ownerDash = 'dashboard.html';
+                    else if (role === 'manager') ownerDash = 'branch-dashboard.html';
+                    else if (role === 'staff') ownerDash = 'staff-dashboard.html';
+                }
+                if (ownerDash) {
+                    const ownerLink = document.getElementById('owner-dash-link');
+                    ownerLink.href = ownerDash;
+                    ownerLink.style.display = 'block';
+                    // Owner's "back" should also go to their dashboard, not the member one.
+                    document.getElementById('error-back-link').href = ownerDash;
+                }
+
                 document.getElementById('error').style.display = 'block';
                 return;
             }
