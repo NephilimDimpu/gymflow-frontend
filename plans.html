@@ -204,6 +204,11 @@
         if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
 
         let allPlans = [];
+        // The gym's public-page slug. The shareable "join link" must point
+        // to the working public gym page (g.html?s=<slug>) — NOT the old
+        // pay.html?id=<plan_token> which 422'd because pay.html expects a
+        // numeric member_id, not a plan token. Fetched in loadPlans().
+        let gymSlug = null;
 
         // ============================================
         // [TIER-FEATURES] Define what each tier has
@@ -295,6 +300,21 @@
                 });
                 if (!response.ok) throw new Error('Fetch failed');
                 allPlans = await response.json();
+
+                // Fetch the gym's public slug so the share link can point
+                // to the real working public page. Best-effort — if this
+                // fails, displayPlans() falls back to a clear "set up your
+                // public page" message instead of a broken link.
+                try {
+                    const gymRes = await fetch(`${CONFIG.API_BASE_URL}/api/gym/settings`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (gymRes.ok) {
+                        const gymData = await gymRes.json();
+                        gymSlug = gymData.gym_slug || null;
+                    }
+                } catch (_) { /* non-fatal — handled in displayPlans */ }
+
                 displayTierCard();
                 displayPlans();
             } catch (error) {
@@ -317,9 +337,35 @@
             grid.style.display = 'grid';
             emptyState.style.display = 'none';
 
+            // ONE share link per gym (not per plan): the public gym page,
+            // which lists every plan with a working WhatsApp "Chat to Join"
+            // button. This replaces the old per-plan pay.html?id=<token>
+            // link that always 422'd.
+            const joinPageLink = gymSlug
+                ? `${window.location.protocol}//${window.location.host}/g.html?s=${gymSlug}`
+                : null;
+
             grid.innerHTML = allPlans.map(plan => {
-                const realLink = `${window.location.protocol}//${window.location.host}/pay.html?id=${plan.payment_link_id}`;
-                
+                // Per-plan share box now shows the gym join page (or a
+                // setup hint if the gym hasn't created its public page yet).
+                const shareBlock = joinPageLink
+                    ? `
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                            <label style="font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; display: block; margin-bottom: 8px;">Share to recruit members</label>
+                            <div class="payment-link-box">${joinPageLink}</div>
+                            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="copyLink('${joinPageLink}')">📋 Copy</button>
+                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="shareLink('${joinPageLink}', '${plan.name.replace(/'/g, "\\'")}')">📤 Share</button>
+                            </div>
+                        </div>`
+                    : `
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                            <label style="font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; display: block; margin-bottom: 8px;">Share to recruit members</label>
+                            <div style="font-size: 13px; color: #94a3b8; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); border-radius: 8px; padding: 10px 12px;">
+                                Set up your gym's public page in <strong>Settings → Location</strong> to get a shareable join link.
+                            </div>
+                        </div>`;
+
                 return `
                     <div class="glass-panel plan-card">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -337,14 +383,7 @@
                             Valid for <strong>${plan.duration_days} days</strong>
                         </div>
 
-                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
-                            <label style="font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; display: block; margin-bottom: 8px;">Direct Join Link</label>
-                            <div class="payment-link-box">${realLink}</div>
-                            <div style="display: flex; gap: 8px; margin-top: 12px;">
-                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="copyLink('${realLink}')">📋 Copy</button>
-                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="shareLink('${realLink}', '${plan.name}')">📤 Share</button>
-                            </div>
-                        </div>
+                        ${shareBlock}
                     </div>
                 `;
             }).join('');
