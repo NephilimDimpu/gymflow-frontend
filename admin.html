@@ -157,11 +157,15 @@
                         <td>${gym.member_count}</td>
                         <td>${new Date(gym.created_at).toLocaleDateString()}</td>
                         <td>
-                            <select onchange="updateTier(${gym.id}, this.value)" class="btn-upgrade" style="background: rgba(0,0,0,0.2);">
-                                <option value="starter" ${gym.tier === 'starter' ? 'selected' : ''}>Starter</option>
-                                <option value="pro" ${gym.tier === 'pro' ? 'selected' : ''}>Pro</option>
-                                <option value="elite" ${gym.tier === 'elite' ? 'selected' : ''}>Elite</option>
-                            </select>
+                            <div style="display: flex; gap: 8px;">
+                                <select onchange="updateTier(${gym.id}, this.value)" class="btn-upgrade" style="background: rgba(0,0,0,0.2);">
+                                    <option value="starter" ${gym.tier === 'starter' ? 'selected' : ''}>Starter</option>
+                                    <option value="pro" ${gym.tier === 'pro' ? 'selected' : ''}>Pro</option>
+                                    <option value="elite" ${gym.tier === 'elite' ? 'selected' : ''}>Elite</option>
+                                </select>
+                                <button onclick="resetPassword(${gym.id}, '${gym.name}')" class="btn-upgrade" style="background: rgba(99, 102, 241, 0.2); border-color: #6366f1; color: #818cf8;" title="Reset Password">🔑</button>
+                                <button onclick="deleteGym(${gym.id}, '${gym.name}')" class="btn-upgrade" style="background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;" title="Delete Gym">🗑️</button>
+                            </div>
                         </td>
                     </tr>
                 `).join('');
@@ -170,6 +174,55 @@
                 alert('Unauthorized or Session Expired');
                 localStorage.removeItem('super_admin_key');
                 location.reload();
+            }
+        }
+
+        async function resetPassword(gymId, gymName) {
+            const newPassword = prompt(`Enter new password for ${gymName}:`);
+            if (!newPassword) return;
+            
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/gyms/${gymId}/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+                    body: JSON.stringify({ new_password: newPassword })
+                });
+                
+                if (res.ok) {
+                    alert(`Password reset successfully for ${gymName}.`);
+                } else {
+                    const data = await res.json();
+                    alert(`Failed: ${data.detail}`);
+                }
+            } catch (err) {
+                alert('Network error while resetting password.');
+            }
+        }
+
+        async function deleteGym(gymId, gymName) {
+            const confirmText = prompt(`WARNING: This will permanently delete the gym "${gymName}" and ALL its members, plans, and branches.
+
+Type "DELETE" to confirm:`);
+            if (confirmText !== "DELETE") {
+                alert("Deletion cancelled.");
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/gyms/${gymId}`, {
+                    method: 'DELETE',
+                    headers: { 'x-admin-key': adminKey }
+                });
+                
+                if (res.ok) {
+                    alert(`Gym ${gymName} deleted permanently.`);
+                    loadAdminData();
+                } else {
+                    const data = await res.json();
+                    alert(`Failed to delete: ${data.detail}`);
+                }
+            } catch (err) {
+                alert('Network error while deleting gym.');
             }
         }
 
