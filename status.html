@@ -348,16 +348,35 @@
         <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
         <div>Loading your membership…</div>
     </div>
-    <div id="error" style="display: none; text-align: center; color: #fca5a5; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 24px; border-radius: 16px; max-width: 400px;">
-        <div style="font-size: 32px; margin-bottom: 8px;">😕</div>
-        <div style="font-weight: 600; margin-bottom: 6px;">We couldn't find your membership.</div>
-        <div style="font-size: 13px; color: #f87171;">Please contact your gym for a new link.</div>
+    <div id="error" style="display: none; text-align: center; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 36px 24px; border-radius: 24px; max-width: 440px; width: 100%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px);">
+        <div style="font-size: 48px; margin-bottom: 16px;">👑</div>
+        <div style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">No Membership Context</div>
+        <p style="font-size: 14px; color: #94a3b8; margin-bottom: 24px; line-height: 1.5;">To check your membership status, scan your gym's QR poster or use the personalized link sent by your gym.</p>
+        
+        <button class="renew-btn" onclick="window.location.href='customer-login.html'" style="margin-top: 0; margin-bottom: 16px;">
+            🔑 Log In as a Gym Member
+        </button>
+        
+        <a href="index.html" style="display: inline-block; font-size: 13px; color: #64748b; text-decoration: none; margin-top: 8px; transition: color 0.2s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+            ← Go back to GymExec Home
+        </a>
     </div>
 
     <script>
         async function loadStatus() {
             const urlParams = new URLSearchParams(window.location.search);
-            const memberId = urlParams.get('id');
+            let memberId = urlParams.get('id');
+
+            // Fallback: If no ID in URL, check if logged in as a gym member
+            if (!memberId) {
+                const sessionToken = localStorage.getItem('auth_token');
+                const sessionMemberId = localStorage.getItem('member_id');
+                const sessionRole = localStorage.getItem('role');
+                
+                if (sessionToken && sessionMemberId && sessionRole === 'customer') {
+                    memberId = sessionMemberId;
+                }
+            }
 
             if (!memberId) {
                 document.getElementById('loading').style.display = 'none';
