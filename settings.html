@@ -414,9 +414,13 @@
 
         // [DISCOVERY] Geo-tag functions
         const gymTier = localStorage.getItem('tier') || 'starter';
-        if (gymTier === 'pro' || gymTier === 'elite') {
-            document.getElementById('geotag-section').style.display = 'block';
-        }
+        // Public gym page (Location & Discovery) is available on ALL tiers.
+        // It's a member-recruitment funnel: more prospects → more members →
+        // a Starter gym hits its 30-member cap faster → upgrades to Pro
+        // sooner. Gating growth behind a paywall on the cheapest tier would
+        // slow that funnel. The Pro differentiator for discovery is the
+        // richer Lead Inbox + click analytics, NOT the public page itself.
+        document.getElementById('geotag-section').style.display = 'block';
 
         // Auto-detect: GPS + reverse geocode → auto-fill address & city → save
         async function autoDetectLocation() {
@@ -572,7 +576,9 @@
         } else {
             brandingOverlay.style.display = 'none';
         }
-        if (gymTier === 'pro' || gymTier === 'elite') checkGeoStatus();
+        // All tiers: surface the "Location Set! Share your public profile"
+        // status box if a slug already exists (matches Change 1 above).
+        checkGeoStatus();
     </script>
 </body>
 
