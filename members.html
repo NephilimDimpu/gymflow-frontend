@@ -125,10 +125,10 @@
 
             <!-- [EMPTY-STATE] -->
             <div id="empty-state" class="empty-state" style="display: none;">
-                <span class="empty-icon">👥</span>
-                <h2 class="empty-title">No members found</h2>
-                <p class="empty-subtitle">Ready to grow? Add your first member or import your existing list to get started.</p>
-                <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
+                <span class="empty-icon" id="empty-icon">👥</span>
+                <h2 class="empty-title" id="empty-title">No members found</h2>
+                <p class="empty-subtitle" id="empty-subtitle">Ready to grow? Add your first member or import your existing list to get started.</p>
+                <div id="empty-buttons" style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
                     <button class="btn btn-primary" onclick="location.href='add-member.html'">+ Add First Member</button>
                     <button class="btn btn-secondary" onclick="location.href='import-members.html'">Import CSV</button>
                 </div>
@@ -213,6 +213,34 @@
             if (!members || members.length === 0) {
                 container.style.display = 'none';
                 empty.style.display = 'block';
+                
+                const title = document.getElementById('empty-title');
+                const subtitle = document.getElementById('empty-subtitle');
+                const btns = document.getElementById('empty-buttons');
+                const icon = document.getElementById('empty-icon');
+
+                if (currentFilter === 'all') {
+                    icon.textContent = '👥';
+                    title.textContent = 'No members found';
+                    subtitle.textContent = 'Ready to grow? Add your first member or import your existing list to get started.';
+                    btns.style.display = 'flex';
+                } else if (currentFilter === 'active') {
+                    icon.textContent = '⚡';
+                    title.textContent = 'No active members';
+                    subtitle.textContent = 'You do not have any active memberships right now.';
+                    btns.style.display = 'none';
+                } else if (currentFilter === 'expiring_soon') {
+                    icon.textContent = '⏳';
+                    title.textContent = 'No members expiring soon';
+                    subtitle.textContent = 'Great news! None of your members are expiring in the next 7 days.';
+                    btns.style.display = 'none';
+                } else if (currentFilter === 'expired') {
+                    icon.textContent = '✅';
+                    title.textContent = 'No expired members';
+                    subtitle.textContent = 'Awesome! Everyone is up to date and active.';
+                    btns.style.display = 'none';
+                }
+                
                 return;
             }
 
@@ -233,7 +261,7 @@
                     <td data-label="Plan">
                         ${m.current_plan ? `
                             <div style="font-weight: 600; color: #fff;">${m.current_plan}</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">Expires: ${m.expiry_date || 'N/A'}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Expires: ${m.expiry_date || 'N/A'} ${m.days_left !== undefined && m.days_left !== null ? `(<span style="color: ${m.days_left <= 7 ? (m.days_left < 0 ? '#f87171' : '#fbbf24') : 'inherit'};">${m.days_left} days left</span>)` : ''}</div>
                         ` : '<span style="color: #f87171; font-size: 12px;">INACTIVE</span>'}
                     </td>
                     <td data-label="Status">
