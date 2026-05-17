@@ -1,9 +1,9 @@
 const CACHE_NAME = 'gymexec-v1';
 const ASSETS = [
-  '/status.html',
-  '/assets/style.css',
-  '/assets/config.js',
-  '/assets/theme.js'
+  'status.html',
+  'assets/style.css',
+  'assets/config.js',
+  'assets/theme.js'
 ];
 
 self.addEventListener('install', (e) => {

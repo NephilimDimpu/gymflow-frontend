@@ -1,10 +1,10 @@
 {
-  "name": "GymExec Member Card",
-  "short_name": "GymExec",
-  "start_url": "status.html",
+  "name": "GymExec Admin Dashboard",
+  "short_name": "GymExec Admin",
+  "start_url": "login.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#6366f1",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "icons": [
     {
       "src": "assets/icons/icon-192.png",
