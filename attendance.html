@@ -445,20 +445,33 @@
                     </td></tr>`;
                     return;
                 }
-                tbody.innerHTML = logs.map(l => `
+                tbody.innerHTML = logs.map(l => {
+                    const open = l.check_in && !l.check_out;
+                    const isToday = l.date === today;
+                    // Prior-day shift with no check-out = staff forgot to
+                    // check out; they're not literally still on duty since
+                    // yesterday. Label it honestly so the owner knows it
+                    // needs cleanup (the Check Out button now works on it).
+                    const checkOutCell = l.check_out
+                        ? l.check_out
+                        : (open && !isToday
+                            ? '<span style="color:#f87171;">⚠ Not checked out</span>'
+                            : 'On duty');
+                    return `
                     <tr>
                         <td data-label="Staff" style="font-weight: 600; color: #f1f5f9;">${l.staff_name}</td>
                         <td data-label="Branch" style="color: #94a3b8;">${l.branch_name}</td>
                         <td data-label="Date" style="color: #94a3b8;">${l.date}</td>
                         <td data-label="Check-In" style="color: #4ade80;">${l.check_in || '—'}</td>
-                        <td data-label="Check-Out" style="color: ${l.check_out ? '#f59e0b' : '#475569'};">${l.check_out || 'On duty'}</td>
+                        <td data-label="Check-Out" style="color: ${l.check_out ? '#f59e0b' : '#475569'};">${checkOutCell}</td>
                         <td style="text-align: right;">
                             ${!l.check_in ? `<button class="admin-att-btn check-in" onclick="adminCheckIn(${l.staff_id})">Check In</button>` : ''}
-                            ${l.check_in && !l.check_out && l.date === today ? `<button class="admin-att-btn check-out" onclick="adminCheckOut(${l.staff_id})">Check Out</button>` : ''}
+                            ${open ? `<button class="admin-att-btn check-out" onclick="adminCheckOut(${l.staff_id})">${isToday ? 'Check Out' : 'Close Shift'}</button>` : ''}
                             ${l.check_out ? '<span style="font-size: 11px; color: #475569;">✅ Done</span>' : ''}
                         </td>
                     </tr>
-                `).join('');
+                `;
+                }).join('');
             } catch (err) { console.error('[STAFF-ATT]', err); }
         }
 
