@@ -221,8 +221,13 @@
 
             <div class="att-panel active" id="panel-staff">
                 <div class="filter-bar">
-                    <select id="staff-branch-filter" onchange="loadStaffAttendance()">
+                    <select id="staff-branch-filter" onchange="loadStaffAttendance()" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 8px 12px; border-radius: 8px;">
                         <option value="">All Branches</option>
+                    </select>
+                    <select id="staff-days-filter" onchange="loadStaffAttendance()" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 8px 12px; border-radius: 8px;">
+                        <option value="0" selected>Today Only (Live Roster)</option>
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
                     </select>
                 </div>
 
@@ -397,9 +402,9 @@
         // ============================================
         async function loadStaffAttendance() {
             const branchId = document.getElementById('staff-branch-filter').value;
-            const url = branchId
-                ? `${CONFIG.API_BASE_URL}/api/attendance/logs?branch_id=${branchId}`
-                : `${CONFIG.API_BASE_URL}/api/attendance/logs`;
+            const days = document.getElementById('staff-days-filter').value;
+            let url = `${CONFIG.API_BASE_URL}/api/attendance/logs?days=${days}`;
+            if (branchId) url += `&branch_id=${branchId}`;
             try {
                 const res = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
