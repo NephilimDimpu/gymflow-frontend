@@ -89,6 +89,7 @@
                                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                                     <input type="file" id="logo-input" accept="image/*" style="display: none;" onchange="handleLogoChange(this)">
                                     <button type="button" class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('logo-input').click()">Choose Image</button>
+                                    <button type="button" id="remove-logo-btn" class="btn btn-secondary" style="flex:1; display: none; background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5;" onclick="removeLogo()">Remove Logo</button>
                                     <button type="button" id="upload-logo-btn" class="btn btn-primary" style="flex:1; display: none;" onclick="uploadLogo()">Upload & Save Logo</button>
                                 </div>
                             </div>
@@ -272,6 +273,7 @@
                     preview.style.display = 'block';
                     placeholder.style.display = 'none';
                     document.getElementById('upload-logo-btn').style.display = 'block';
+                    document.getElementById('remove-logo-btn').style.display = 'none';
                 }
                 reader.readAsDataURL(input.files[0]);
             }
@@ -302,11 +304,54 @@
                 localStorage.setItem('gym_logo', currentLogoUrl);
                 showToast("Logo updated successfully", "success");
                 document.getElementById('upload-logo-btn').style.display = 'none';
+                document.getElementById('remove-logo-btn').style.display = 'block';
             } catch (err) {
                 showToast(err.message, "error");
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Upload & Save Logo';
+            }
+        }
+
+        async function removeLogo() {
+            if (!confirm("Are you sure you want to remove the custom gym logo?")) return;
+            const btn = document.getElementById('remove-logo-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Removing...';
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/logo`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.status === 403) {
+                    const data = await res.json();
+                    throw new Error(data.detail);
+                } else if (!res.ok) {
+                    throw new Error('Failed to remove logo');
+                }
+                
+                currentLogoUrl = null;
+                localStorage.removeItem('gym_logo');
+                
+                const preview = document.getElementById('logo-preview');
+                const placeholder = document.getElementById('logo-placeholder');
+                preview.src = '';
+                preview.style.display = 'none';
+                placeholder.style.display = 'block';
+                document.getElementById('upload-logo-btn').style.display = 'none';
+                document.getElementById('remove-logo-btn').style.display = 'none';
+                
+                // Clear the file input
+                document.getElementById('logo-input').value = "";
+                
+                showToast("Logo removed successfully", "success");
+            } catch (err) {
+                showToast(err.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
         }
 
@@ -333,6 +378,7 @@
                         preview.src = data.logo_url;
                         preview.style.display = 'block';
                         placeholder.style.display = 'none';
+                        document.getElementById('remove-logo-btn').style.display = 'block';
                     }
                 } else {
                     populateTimezones(null);
