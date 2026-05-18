@@ -481,9 +481,7 @@
                         <td data-label="Check-In" style="color: #4ade80;">${l.check_in || '—'}</td>
                         <td data-label="Check-Out" style="color: ${l.check_out ? '#f59e0b' : '#475569'};">${checkOutCell}</td>
                         <td style="text-align: right;">
-                            ${!l.check_in ? `<button class="admin-att-btn check-in" onclick="adminCheckIn(${l.staff_id})">Check In</button>` : ''}
-                            ${open ? `<button class="admin-att-btn check-out" onclick="adminCheckOut(${l.staff_id})">${isToday ? 'Check Out' : 'Close Shift'}</button>` : ''}
-                            ${l.check_out ? '<span style="font-size: 11px; color: #475569;">✅ Done</span>' : ''}
+                            ${l.check_out ? '<span style="font-size: 11px; color: #4ade80;">✅ Done</span>' : (open ? (isToday ? '<span style="font-size: 11px; color: #fbbf24;">⚡ On Duty</span>' : '<span style="font-size: 11px; color: #ef4444;">⚠ Missing Out</span>') : '')}
                         </td>
                     </tr>
                 `;
@@ -558,40 +556,6 @@
             } catch (err) { console.error('[MEMBER-ATT]', err); }
         }
 
-        // ============================================
-        // [JS-ADMIN-ACTIONS] Check-In / Check-Out
-        // ============================================
-        async function adminCheckIn(staffId) {
-            if (!confirm('Force check-in this staff member?')) return;
-            try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/attendance/admin-check-in/${staffId}`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.detail || 'Check-in failed');
-                }
-                showToast('Staff checked in successfully', 'success');
-                loadStaffAttendance();
-            } catch (err) { showToast(err.message, 'error'); }
-        }
-
-        async function adminCheckOut(staffId) {
-            if (!confirm('Force check-out this staff member?')) return;
-            try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/attendance/admin-check-out/${staffId}`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.detail || 'Check-out failed');
-                }
-                showToast('Staff checked out successfully', 'success');
-                loadStaffAttendance();
-            } catch (err) { showToast(err.message, 'error'); }
-        }
 
         // ============================================
         // [JS-INIT]

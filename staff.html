@@ -646,13 +646,13 @@
 
         function getAttendanceHtml(s) {
             if (!s.attendance_today || !s.attendance_today.status) {
-                return `<button class="btn btn-primary" style="padding: 4px 10px; font-size: 11px; background: #059669; border: none;" onclick="adminCheckIn(${s.id}, '${s.name}')">Check In</button>
-                        <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Absent today</div>`;
+                return `<button class="btn btn-primary" style="padding: 4px 10px; font-size: 11px; background: #059669; border: none;" onclick="adminCheckIn(${s.id}, '${s.name.replace("'", "\'")}')">Manual Check In</button>
+                        <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Not checked in today</div>`;
             } else if (s.attendance_today.status === 'checked_in') {
-                return `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #d97706; border: none; color: #fff;" onclick="adminCheckOut(${s.id}, '${s.name}')">Check Out</button>
+                return `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #d97706; border: none; color: #fff;" onclick="adminCheckOut(${s.id}, '${s.name.replace("'", "\'")}')">Manual Check Out</button>
                         <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">In: ${s.attendance_today.check_in}</div>`;
             } else {
-                return `<span class="role-badge" style="background: rgba(255,255,255,0.05); color: #cbd5e1;">Completed</span>
+                return `<span class="role-badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Shift Completed</span>
                         <div style="font-size: 10px; color: #64748b; margin-top: 4px;">In: ${s.attendance_today.check_in} | Out: ${s.attendance_today.check_out}</div>`;
             }
         }
