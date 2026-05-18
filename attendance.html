@@ -445,19 +445,35 @@
                     </td></tr>`;
                     return;
                 }
+                // Group by date. Logs arrive newest-date-first from the
+                // backend. A day-header row before each date makes it
+                // obvious these are DIFFERENT DAYS, not duplicate staff —
+                // the #1 source of "why 4 rows for 2 staff?" confusion.
+                let lastDate = null;
                 tbody.innerHTML = logs.map(l => {
                     const open = l.check_in && !l.check_out;
                     const isToday = l.date === today;
-                    // Prior-day shift with no check-out = staff forgot to
-                    // check out; they're not literally still on duty since
-                    // yesterday. Label it honestly so the owner knows it
-                    // needs cleanup (the Check Out button now works on it).
                     const checkOutCell = l.check_out
                         ? l.check_out
                         : (open && !isToday
                             ? '<span style="color:#f87171;">⚠ Not checked out</span>'
                             : 'On duty');
-                    return `
+
+                    let header = '';
+                    if (l.date !== lastDate) {
+                        lastDate = l.date;
+                        // Friendly label: "Today" / "Yesterday" / the date.
+                        const d = new Date(l.date + 'T00:00:00');
+                        const now = new Date(today + 'T00:00:00');
+                        const diffDays = Math.round((now - d) / 86400000);
+                        const rel = diffDays === 0 ? 'Today'
+                                  : diffDays === 1 ? 'Yesterday'
+                                  : '';
+                        const label = rel ? `${rel} · ${l.date}` : l.date;
+                        header = `<tr><td colspan="6" style="padding:14px 14px 8px; background:rgba(255,255,255,0.02); color:#818cf8; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;">📅 ${label}</td></tr>`;
+                    }
+
+                    return header + `
                     <tr>
                         <td data-label="Staff" style="font-weight: 600; color: #f1f5f9;">${l.staff_name}</td>
                         <td data-label="Branch" style="color: #94a3b8;">${l.branch_name}</td>
