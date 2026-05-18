@@ -272,6 +272,7 @@
                         }
                     </td>
                     <td style="text-align: right;">
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(99, 102, 241, 0.1); color: #818cf8; border-color: rgba(99, 102, 241, 0.2);" onclick="manualCheckIn(${m.id}, '${m.name.replace("'", "\'")}')" title="Manual Check-In">⏱️</button>
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit</button>
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})">🔔</button>
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(37, 211, 102, 0.1); color: #25D366;" onclick="sendWhatsAppReminder(${m.id})">💬</button>
@@ -296,6 +297,27 @@
             if (days === 1) return 'Reminded yesterday';
             if (days < 0) return `Reminder due in ${-days}d`;
             return `Reminded ${days}d ago`;
+        }
+
+        async function manualCheckIn(id, name) {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin/admin/${id}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message, 'success');
+                } else if (res.status === 403 && data.detail && data.detail.error === 'tier_required') {
+                    if (confirm(data.detail.message + '\n\nGo to Upgrade page now?')) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                } else {
+                    showToast(data.detail || 'Failed to check in', 'error');
+                }
+            } catch (err) {
+                showToast('Network error while checking in', 'error');
+            }
         }
 
         function filterMembers(status) {
