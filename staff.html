@@ -412,6 +412,7 @@
                             ${getAttendanceHtml(s)}
                         </td>
                         <td style="text-align: right;">
+                            ${s.phone ? `<a href="https://wa.me/${s.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${s.name}, please check in for today's shift. 💪`)}" target="_blank" rel="noopener" class="btn" style="background: rgba(37,211,102,0.12); color: #25d366; padding: 6px 10px; font-size: 12px; margin-right: 4px; text-decoration: none;">💬</a>` : ''}
                             <button class="btn" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; padding: 6px 10px; font-size: 12px; margin-right: 4px;" data-id="${s.id}" data-name="${s.name}" data-branch="${s.branch_name}" data-email="${s.email}" onclick="resendInvite(this)">📧 Invite</button>
                             <button class="btn" style="background: rgba(255,255,255,0.05); color: #fff; padding: 6px 10px; font-size: 12px;" onclick="openEditModal(${s.id}, '${s.name}', '${s.phone || ''}', ${s.branch_id}, '${s.role}', ${s.is_active}, '${s.custom_role || ''}')">Edit</button>
                             <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: #f87171; padding: 6px 10px; font-size: 12px; margin-left: 4px;" onclick="deactivateStaff(${s.id}, '${s.name}')">Remove</button>
