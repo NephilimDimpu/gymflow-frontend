@@ -170,8 +170,7 @@
         .btn-active {
             background: #10b981;
             color: white;
-            pointer-events: none;
-            cursor: default;
+            cursor: pointer;
         }
         .btn-disabled {
             background: rgba(255,255,255,0.03);
@@ -239,6 +238,18 @@
         </div>
         <div style="margin-top: 14px; padding: 16px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); border-radius: 12px; font-size: 13px; color: #cbd5e1;">
             <strong>💡 Quick guide:</strong> Solo trainers → <strong>Starter</strong> | Growing gyms → <strong>Pro</strong> (most popular) | Gym chains & franchises → <strong>Elite</strong>
+        </div>
+        <!-- Billing cycle toggle -->
+        <div style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 12px;">
+            <span id="label-monthly" style="font-size: 14px; font-weight: 700; color: #fff; cursor: pointer;" onclick="setBillingCycle('monthly')">Monthly</span>
+            <label style="position: relative; display: inline-block; width: 50px; height: 26px; cursor: pointer;">
+                <input type="checkbox" id="billing-toggle" onchange="handleBillingToggle()" style="opacity: 0; width: 0; height: 0;">
+                <span style="position: absolute; inset: 0; background: rgba(255,255,255,0.1); border-radius: 26px; transition: 0.3s;"></span>
+                <span id="toggle-knob" style="position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s;"></span>
+            </label>
+            <span id="label-annual" style="font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer;" onclick="setBillingCycle('annual')">
+                Annual <span style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-left: 4px;">SAVE 20%</span>
+            </span>
         </div>
     </header>
 
@@ -448,6 +459,68 @@
         if (urlParams.get('reason') === 'trial_expired') {
             showToast('⚠️ Your free trial and grace period have expired. Upgrade now to unlock all features.', 'error');
         }
+        if (urlParams.get('reason') === 'subscription_expired') {
+            showToast('⚠️ Your subscription has expired. Renew now to continue using GymExec.', 'error');
+        }
+
+        // ============================================
+        // [BILLING-CYCLE] Monthly / Annual toggle
+        // ============================================
+        let currentBilling = 'monthly';
+        const PRICES = {
+            monthly: { starter: '499', pro: '999', elite: '2,499' },
+            annual:  { starter: '4,788', pro: '9,588', elite: '23,988' }
+        };
+        const LIST_PRICES = {
+            monthly: { starter: '699', pro: '1,499', elite: '2,999' },
+            annual:  { starter: '6,708', pro: '14,388', elite: '29,988' }
+        };
+
+        function setBillingCycle(cycle) {
+            currentBilling = cycle;
+            document.getElementById('billing-toggle').checked = (cycle === 'annual');
+            updateToggleUI();
+            updatePriceDisplay();
+        }
+
+        function handleBillingToggle() {
+            currentBilling = document.getElementById('billing-toggle').checked ? 'annual' : 'monthly';
+            updateToggleUI();
+            updatePriceDisplay();
+        }
+
+        function updateToggleUI() {
+            const knob = document.getElementById('toggle-knob');
+            const labelM = document.getElementById('label-monthly');
+            const labelA = document.getElementById('label-annual');
+            if (currentBilling === 'annual') {
+                knob.style.left = '27px';
+                labelM.style.color = '#64748b'; labelM.style.fontWeight = '600';
+                labelA.style.color = '#fff'; labelA.style.fontWeight = '700';
+            } else {
+                knob.style.left = '3px';
+                labelM.style.color = '#fff'; labelM.style.fontWeight = '700';
+                labelA.style.color = '#64748b'; labelA.style.fontWeight = '600';
+            }
+        }
+
+        function updatePriceDisplay() {
+            const period = currentBilling === 'annual' ? '/year' : '/month';
+            ['starter', 'pro', 'elite'].forEach(tier => {
+                const card = document.getElementById(`card-${tier}`);
+                if (!card) return;
+                const priceBlock = card.querySelector('.price-block');
+                if (!priceBlock) return;
+                priceBlock.innerHTML = `
+                    <span class="price-currency">₹</span><span class="price-amount">${PRICES[currentBilling][tier]}</span><span class="price-period">${period}</span>
+                    <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
+                        <span style="text-decoration: line-through;">₹${LIST_PRICES[currentBilling][tier]}</span>
+                        <span style="margin-left: 6px; color: #fbbf24; font-weight: 600;">Founder rate locked-in</span>
+                    </div>
+                    ${currentBilling === 'annual' ? '<div style="font-size: 12px; color: #34d399; margin-top: 4px; font-weight: 600;">✨ Save ~20% vs monthly</div>' : ''}
+                `;
+            });
+        }
 
         if (!token || localStorage.getItem('role') !== 'owner') {
             window.location.href = 'login.html';
@@ -469,7 +542,9 @@
         if (btn) {
             btn.classList.remove('btn-outline', 'btn-primary-gradient');
             btn.classList.add('btn-active');
-            btn.innerText = '✓ Current Plan';
+            btn.innerText = '🔄 Renew Plan';
+            btn.style.cursor = 'pointer';
+            btn.style.pointerEvents = 'auto';
         }
 
         // If on Pro, show recommended badge only if NOT current
@@ -498,7 +573,9 @@
         // [JS-PAYMENT] Razorpay Payment Flow
         // ============================================
         async function initPayment(tier) {
-            if (tier === currentTier) return;
+            // Allow same-tier payment for renewals (subscription expired)
+            // Only block if same tier AND subscription still has >7 days left
+            // For simplicity, we allow all payments — backend handles the logic
 
             const clickedBtn = document.getElementById(`btn-${tier}`);
             clickedBtn.disabled = true;
@@ -512,7 +589,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ tier })
+                    body: JSON.stringify({ tier, billing_cycle: currentBilling })
                 });
 
                 if (!orderRes.ok) {
