@@ -450,10 +450,63 @@
         // [TRIAL-SYSTEM] Handle trial & grace periods
         // ============================================
         function renderTrialBanner(gym) {
-            if (gym.subscription_status === 'active' || !gym.trial_ends_at) return;
-
             const bannerContainer = document.getElementById('dynamic-banner');
             const now = new Date();
+
+            // ── PAID SUBSCRIPTION EXPIRY CHECK ──
+            if (gym.subscription_end) {
+                const subEnd = new Date(gym.subscription_end);
+                const subGrace = new Date(subEnd.getTime() + (24 * 60 * 60 * 1000));
+                const daysLeft = Math.ceil((subEnd - now) / (1000 * 60 * 60 * 24));
+
+                if (now > subGrace) {
+                    // Subscription + grace fully expired → lockout
+                    window.location.href = 'upgrade-plan.html?reason=subscription_expired';
+                    return;
+                }
+
+                if (now > subEnd) {
+                    // Grace period (24h after subscription_end)
+                    const hoursLeft = Math.ceil((subGrace - now) / (1000 * 60 * 60));
+                    bannerContainer.innerHTML = `
+                        <div class="grace-banner">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span style="font-size: 30px;">⚠️</span>
+                                <div class="banner-content">
+                                    <h4>URGENT: Subscription Expired</h4>
+                                    <p>Your 24-hour grace period is ending. You have <span class="banner-timer">${hoursLeft} hours</span> left before features are locked.</p>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="location.href='upgrade-plan.html'" style="background: #92400e; border: none;">Renew Now</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (daysLeft <= 7) {
+                    // Subscription expiring within 7 days → renewal nudge
+                    bannerContainer.innerHTML = `
+                        <div class="trial-banner" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 24px;">🔄</span>
+                                <div class="banner-content">
+                                    <h4 style="color: #92400e;">Subscription Renewing Soon</h4>
+                                    <p style="color: #b45309;">Your ${gym.tier ? gym.tier.toUpperCase() : ''} plan expires in <span class="banner-timer">${daysLeft} day${daysLeft !== 1 ? 's' : ''}</span>. Renew to keep your gym running smoothly.</p>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="location.href='upgrade-plan.html'" style="background: #d97706; border: none; padding: 8px 16px; font-size: 13px;">Renew Now</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Subscription active with >7 days left — no banner needed
+                return;
+            }
+
+            // ── TRIAL EXPIRY CHECK (no paid subscription yet) ──
+            if (gym.subscription_status === 'active' || !gym.trial_ends_at) return;
+
             const trialEnd = new Date(gym.trial_ends_at);
             const graceEnd = new Date(trialEnd.getTime() + (24 * 60 * 60 * 1000));
 
