@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - GymExec</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>Start Free Trial - GymExec</title>
+    <meta name="description" content="Create your GymExec account. 14-day free trial, no credit card required. Set up in 2 minutes.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="assets/config.js"></script>
     <script src="assets/toast.js"></script>
     <script src="assets/theme.js"></script>
-    
+
     <style>
         :root {
             --bg-color: #050505;
@@ -20,7 +21,6 @@
             --text-muted: #a1a1aa;
             --primary: #6366f1;
             --primary-glow: rgba(99, 102, 241, 0.4);
-            --radius: 16px;
         }
 
         * {
@@ -39,18 +39,14 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
             padding: 20px;
         }
 
         /* Ambient glowing background mesh */
         .ambient-bg {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100vw;
-            height: 100vh;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
             z-index: 0;
             pointer-events: none;
             overflow: hidden;
@@ -63,7 +59,7 @@
             height: 800px;
             border-radius: 50%;
             filter: blur(120px);
-            opacity: 0.15;
+            opacity: 0.12;
             animation: float 20s infinite alternate ease-in-out;
         }
 
@@ -85,18 +81,13 @@
             100% { transform: translate(100px, 50px); }
         }
 
-        /* The Glass Card */
-        .auth-card {
-            background: var(--surface);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 3rem;
+        /* ── Split Layout Container ── */
+        .signup-container {
+            display: flex;
             width: 100%;
-            max-width: 480px;
+            max-width: 960px;
             z-index: 10;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            gap: 0;
             animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
         }
 
@@ -105,65 +96,194 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .auth-header {
-            text-align: center;
+        /* ── Left: Value Proposition Panel ── */
+        .value-panel {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05));
+            border: 1px solid var(--border);
+            border-right: none;
+            border-radius: 24px 0 0 24px;
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+
+        .value-panel .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 2.5rem;
         }
 
-        .auth-logo {
-            display: inline-flex;
+        .value-panel .brand-row svg {
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .value-panel .brand-row span {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .value-panel h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+        }
+
+        .value-panel h2 .gradient-text {
+            background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .value-panel .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        /* Feature checklist */
+        .feature-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 2.5rem;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 0.88rem;
+            color: #d4d4d8;
+            line-height: 1.5;
+        }
+
+        .feature-list li .icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            display: flex;
             align-items: center;
             justify-content: center;
-            width: 48px;
-            height: 48px;
+            flex-shrink: 0;
+            font-size: 11px;
+            margin-top: 1px;
+        }
+
+        /* Founder banner */
+        .founder-banner {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(234, 88, 12, 0.08));
+            border: 1px solid rgba(245, 158, 11, 0.2);
             border-radius: 12px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0));
-            border: 1px solid var(--borderHighlight);
-            margin-bottom: 1.5rem;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
-            font-size: 24px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .auth-header h1 {
-            font-size: 1.75rem;
-            font-weight: 600;
-            letter-spacing: -0.03em;
-            margin-bottom: 0.5rem;
+        .founder-banner .fire { font-size: 20px; flex-shrink: 0; }
+        .founder-banner .text {
+            font-size: 0.8rem;
+            color: #fbbf24;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        .founder-banner .text strong {
+            color: #fde68a;
         }
 
-        .auth-header p {
+        /* ── Right: Form Panel ── */
+        .form-panel {
+            flex: 1;
+            background: var(--surface);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 0 24px 24px 0;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
             color: var(--text-muted);
-            font-size: 0.95rem;
+            text-decoration: none;
+            margin-bottom: 1.75rem;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: #fff; }
+
+        .form-header {
+            margin-bottom: 1.75rem;
+        }
+
+        .form-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.35rem;
+        }
+
+        .form-header p {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+
+        /* Plan context banner — visible when ?plan= is in URL */
+        .plan-context {
+            display: none;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 1.25rem;
+            font-size: 0.8rem;
+            color: #a5b4fc;
+            font-weight: 500;
         }
 
         /* Inputs */
         .input-group {
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
             text-align: left;
         }
 
         .input-group label {
             display: block;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 500;
             color: var(--text-muted);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
         }
 
         .modern-input {
             width: 100%;
-            padding: 0.875rem 1rem;
+            padding: 0.75rem 0.875rem;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 10px;
             color: var(--text-main);
-            font-size: 1rem;
+            font-size: 0.92rem;
             transition: all 0.2s ease;
         }
 
-        .modern-input::placeholder {
-            color: #52525b;
-        }
+        .modern-input::placeholder { color: #52525b; }
 
         .modern-input:focus {
             outline: none;
@@ -175,69 +295,71 @@
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: 0.75rem;
         }
 
         /* Submit Button */
         .submit-btn {
             width: 100%;
-            padding: 1rem;
+            padding: 0.875rem;
             border: none;
             border-radius: 12px;
-            background: var(--text-main);
-            color: #000;
-            font-weight: 600;
-            font-size: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.2s;
-            margin-top: 1rem;
+            margin-top: 0.75rem;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 15px var(--primary-glow);
+            letter-spacing: 0.01em;
         }
 
         .submit-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 10px 25px -5px rgba(255, 255, 255, 0.15);
-        }
-        
-        .submit-btn:active {
-            transform: translateY(1px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+            filter: brightness(1.05);
         }
 
-        /* Role Toggles for Login */
-        .role-toggles {
+        .submit-btn:active { transform: translateY(1px); }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Trust badges under button */
+        .trust-row {
             display: flex;
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 2rem;
-            border: 1px solid var(--border);
+            justify-content: center;
+            gap: 20px;
+            margin-top: 1rem;
+            flex-wrap: wrap;
         }
 
-        .role-btn {
-            flex: 1;
-            padding: 8px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
+        .trust-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.72rem;
+            color: #71717a;
             font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: transparent;
-            color: var(--text-muted);
         }
 
-        .role-btn.active {
-            background: var(--surface-hover);
-            color: var(--text-main);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            border: 1px solid var(--border);
+        .trust-badge svg {
+            width: 12px;
+            height: 12px;
+            color: #22c55e;
+            flex-shrink: 0;
         }
 
         .footer-link {
             text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
+            margin-top: 1.25rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
@@ -247,76 +369,170 @@
             font-weight: 500;
             transition: color 0.2s;
         }
-        
-        .footer-link a:hover {
-            text-decoration: underline;
-        }
+
+        .footer-link a:hover { text-decoration: underline; }
 
         #error-message {
             display: none;
             background: rgba(239, 68, 68, 0.1);
             color: #fca5a5;
             border: 1px solid rgba(239, 68, 68, 0.2);
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            font-size: 0.85rem;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.82rem;
             font-weight: 500;
         }
-    </style>
 
+        /* ── Mobile: stack vertically ── */
+        @media (max-width: 768px) {
+            body { padding: 16px; align-items: flex-start; padding-top: 24px; }
+
+            .signup-container {
+                flex-direction: column;
+                max-width: 480px;
+            }
+
+            .value-panel {
+                border-radius: 24px 24px 0 0;
+                border-right: 1px solid var(--border);
+                border-bottom: none;
+                padding: 2rem 1.75rem;
+            }
+
+            .value-panel h2 { font-size: 1.35rem; }
+
+            .form-panel {
+                border-radius: 0 0 24px 24px;
+                padding: 2rem 1.75rem;
+            }
+
+            .grid-2 { grid-template-columns: 1fr; }
+
+            .feature-list { margin-bottom: 1.5rem; }
+        }
+
+        @media (max-width: 420px) {
+            .trust-row { gap: 12px; }
+            .form-header h1 { font-size: 1.3rem; }
+        }
+    </style>
 </head>
 <body>
     <div class="ambient-bg"></div>
-    
-    <div class="auth-card">
-        <div class="auth-header">
-            <div class="auth-logo">✦</div>
-            <h1>Start your 14-day trial</h1>
-            <p>Track members, renewals, and payments before you pay.</p>
+
+    <div class="signup-container">
+
+        <!-- ── Left Panel: Value Proposition ── -->
+        <div class="value-panel">
+            <a href="index.html" class="brand-row" style="text-decoration: none; color: inherit;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <span>GymExec</span>
+            </a>
+
+            <h2>Stop chasing payments.<br><span class="gradient-text">Start growing your gym.</span></h2>
+            <p class="subtitle">Join gym owners who ditched spreadsheets and took back their time.</p>
+
+            <ul class="feature-list">
+                <li>
+                    <span class="icon">&#10003;</span>
+                    <span><strong style="color: #fff;">Member tracking</strong> — renewals, attendance, and payments in one place</span>
+                </li>
+                <li>
+                    <span class="icon">&#10003;</span>
+                    <span><strong style="color: #fff;">Auto reminders</strong> — WhatsApp & email nudges so you never chase payments again</span>
+                </li>
+                <li>
+                    <span class="icon">&#10003;</span>
+                    <span><strong style="color: #fff;">Public gym page</strong> — members find you, view plans, and join via WhatsApp</span>
+                </li>
+                <li>
+                    <span class="icon">&#10003;</span>
+                    <span><strong style="color: #fff;">Staff & branches</strong> — role-based access for trainers, managers, and multi-location</span>
+                </li>
+            </ul>
+
+            <div class="founder-banner" id="founder-banner">
+                <span class="fire">&#x1F525;</span>
+                <div class="text">
+                    <strong>Founder pricing — first 50 gyms only.</strong><br>
+                    Lock in discounted rates for life. Limited spots remaining.
+                </div>
+            </div>
         </div>
 
-        <div id="error-message"></div>
+        <!-- ── Right Panel: Signup Form ── -->
+        <div class="form-panel">
+            <a href="index.html" class="back-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Back to Home
+            </a>
 
-        <form id="signup-form">
-            <div class="input-group">
-                <label for="gym-name">Gym Name</label>
-                <input type="text" id="gym-name" class="modern-input" placeholder="e.g. Pulse Fitness" required>
+            <div class="form-header">
+                <h1>Create your account</h1>
+                <p>14-day free trial. Full access. No card needed.</p>
             </div>
 
-            <div class="grid-2">
-                <div class="input-group">
-                    <label for="owner-name">Owner Name</label>
-                    <input type="text" id="owner-name" class="modern-input" placeholder="First Last" required>
-                </div>
-                <div class="input-group">
-                    <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" class="modern-input" placeholder="9876543210" required>
-                </div>
-            </div>
+            <!-- Show which plan they clicked from (if ?plan= present) -->
+            <div class="plan-context" id="plan-context"></div>
 
-            <div class="input-group">
-                <label for="email">Business Email</label>
-                <input type="email" id="email" class="modern-input" placeholder="owner@gym.com" required autocomplete="email">
-            </div>
+            <div id="error-message"></div>
 
-            <div class="grid-2">
+            <form id="signup-form">
                 <div class="input-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" class="modern-input" placeholder="••••••••" required minlength="8" autocomplete="new-password">
+                    <label for="gym-name">Gym Name</label>
+                    <input type="text" id="gym-name" class="modern-input" placeholder="e.g. Pulse Fitness" required>
                 </div>
+
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label for="owner-name">Your Name</label>
+                        <input type="text" id="owner-name" class="modern-input" placeholder="First Last" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="phone">Phone</label>
+                        <input type="tel" id="phone" class="modern-input" placeholder="9876543210" required>
+                    </div>
+                </div>
+
                 <div class="input-group">
-                    <label for="confirm-password">Confirm Password</label>
-                    <input type="password" id="confirm-password" class="modern-input" placeholder="••••••••" required minlength="8" autocomplete="new-password">
+                    <label for="email">Business Email</label>
+                    <input type="email" id="email" class="modern-input" placeholder="you@gym.com" required autocomplete="email">
                 </div>
-            </div>
 
-            <button type="submit" class="submit-btn" id="signup-btn">Start 14-day free trial</button>
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" class="modern-input" placeholder="Min 8 characters" required minlength="8" autocomplete="new-password">
+                    </div>
+                    <div class="input-group">
+                        <label for="confirm-password">Confirm</label>
+                        <input type="password" id="confirm-password" class="modern-input" placeholder="Re-enter password" required minlength="8" autocomplete="new-password">
+                    </div>
+                </div>
 
-            <p class="footer-link">
-                Already have an account? <a href="login.html">Sign in</a>
-            </p>
-        </form>
+                <button type="submit" class="submit-btn" id="signup-btn">Start 14-day free trial</button>
+
+                <div class="trust-row">
+                    <span class="trust-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        No credit card
+                    </span>
+                    <span class="trust-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        2-min setup
+                    </span>
+                    <span class="trust-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        Cancel anytime
+                    </span>
+                </div>
+
+                <p class="footer-link">
+                    Already have an account? <a href="login.html">Sign in</a>
+                </p>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -326,13 +542,24 @@
         const existingToken = localStorage.getItem('auth_token');
         if (existingToken) {
             const r = localStorage.getItem('role') || 'owner';
-            if (r === 'owner') // window.location.href = 'dashboard.html';
-                setTimeout(() => window.location.href = 'dashboard.html', 1500);
+            if (r === 'owner') setTimeout(() => window.location.href = 'dashboard.html', 1500);
             else if (r === 'manager') window.location.href = 'branch-dashboard.html';
             else window.location.href = 'staff-dashboard.html';
         }
 
-
+        // ============================================
+        // [JS-PLAN-CONTEXT] Show selected plan if ?plan= present
+        // ============================================
+        const urlPlan = new URLSearchParams(window.location.search).get('plan');
+        if (urlPlan) {
+            const tierNames = { starter: 'Starter', pro: 'Pro', elite: 'Elite' };
+            const name = tierNames[urlPlan.toLowerCase()];
+            if (name) {
+                const ctx = document.getElementById('plan-context');
+                ctx.textContent = `You selected the ${name} plan — you can upgrade after your free trial ends.`;
+                ctx.style.display = 'block';
+            }
+        }
 
         // ============================================
         // [JS-SIGNUP] Handle signup form submission
@@ -355,7 +582,6 @@
             const confirmPassword = document.getElementById('confirm-password').value;
 
             // [VALIDATION] Validate form
-
             if (!gymName || gymName.length < 2) {
                 showError('Please enter a valid gym name');
                 return;
@@ -378,7 +604,6 @@
                 showError('Password must be at least 8 characters');
                 return;
             }
-
             if (password !== confirmPassword) {
                 showError('Passwords do not match');
                 return;
@@ -394,9 +619,7 @@
                 // [API-CALL] Submit signup request
                 const response = await fetch(`${CONFIG.API_BASE_URL}/api/signup`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name: gymName,
                         owner_name: ownerName,
@@ -426,9 +649,7 @@
                 }
 
                 // Show success message
-                showToast('🎉 Account created successfully! Welcome to GymExec!', 'success');
-
-                // window.location.href = 'dashboard.html';
+                showToast('Account created! Welcome to GymExec.', 'success');
                 setTimeout(() => window.location.href = 'dashboard.html', 1500);
 
             } catch (error) {
@@ -448,14 +669,12 @@
             const errorDiv = document.getElementById('error-message');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-
-            // Scroll to top to show error
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Scroll to error on mobile where form might be below fold
+            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function hideError() {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
         }
     </script>
 </body>
