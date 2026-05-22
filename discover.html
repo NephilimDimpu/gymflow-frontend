@@ -200,6 +200,13 @@
     </footer>
 
 <script>
+    // Sanitize user-generated strings before injecting into HTML
+    function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str || '';
+        return d.innerHTML;
+    }
+
     let map;
     let markers = [];
 
@@ -248,22 +255,22 @@
         list.innerHTML = gyms.map(g => `
             <div class="gym-card">
                 <div class="gym-info">
-                    <h3>${g.name}</h3>
+                    <h3>${esc(g.name)}</h3>
                     <div class="meta">
                         <span>📍</span>
-                        <span>${[g.address, g.city].filter(Boolean).join(', ') || 'Location available'}</span>
+                        <span>${esc([g.address, g.city].filter(Boolean).join(', ') || 'Location available')}</span>
                     </div>
                     <div class="meta" style="margin-top: 4px;">
                         <span>📋</span>
-                        <span>${g.plan_count} plan${g.plan_count !== 1 ? 's' : ''} available</span>
+                        <span>${parseInt(g.plan_count) || 0} plan${g.plan_count !== 1 ? 's' : ''} available</span>
                     </div>
                 </div>
                 <div class="gym-pricing">
                     ${g.starting_price ? `
                         <div class="from">Starting from</div>
-                        <div class="price">₹${g.starting_price.toLocaleString()}</div>
+                        <div class="price">₹${Number(g.starting_price).toLocaleString()}</div>
                     ` : '<div class="from">Contact gym</div>'}
-                    <a href="g.html?s=${g.slug}" class="view-btn">View Plans →</a>
+                    <a href="g.html?s=${encodeURIComponent(g.slug)}" class="view-btn">View Plans →</a>
                 </div>
             </div>
         `).join('');
@@ -281,10 +288,10 @@
             if (g.latitude && g.longitude) {
                 const marker = L.marker([g.latitude, g.longitude]).addTo(map);
                 marker.bindPopup(`
-                    <b>${g.name}</b><br>
-                    ${g.address || ''}<br>
-                    ${g.starting_price ? '₹' + g.starting_price.toLocaleString() + ' onwards' : ''}<br>
-                    <a href="g.html?s=${g.slug}" style="color: #2563eb; font-weight: 600;">View Plans →</a>
+                    <b>${esc(g.name)}</b><br>
+                    ${esc(g.address || '')}<br>
+                    ${g.starting_price ? '₹' + Number(g.starting_price).toLocaleString() + ' onwards' : ''}<br>
+                    <a href="g.html?s=${encodeURIComponent(g.slug)}" style="color: #2563eb; font-weight: 600;">View Plans →</a>
                 `);
                 markers.push(marker);
                 bounds.push([g.latitude, g.longitude]);

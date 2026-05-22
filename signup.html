@@ -291,7 +291,7 @@
                 </div>
                 <div class="input-group">
                     <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" class="modern-input" placeholder="+1 (555) 000-0000" required>
+                    <input type="tel" id="phone" class="modern-input" placeholder="9876543210" required>
                 </div>
             </div>
 
@@ -368,17 +368,13 @@
                 showError('Please enter a valid email address');
                 return;
             }
-            if (!phone || phone.length < 10 || !/^\+?[1-9]\d{1,14}$/.test(phone)) {
-                showError('Please enter a valid phone number');
+            // Strip spaces, dashes, parens before validating phone digits
+            const phoneDigits = phone.replace(/[\s\-()]/g, '');
+            if (!phoneDigits || phoneDigits.length < 10 || !/^\+?[1-9]\d{1,14}$/.test(phoneDigits)) {
+                showError('Please enter a valid phone number (e.g. 9876543210)');
                 return;
             }
             if (!password || password.length < 8) {
-                showError('Password must be at least 8 characters');
-                return;
-            }
-
-
-            if (password.length < 8) {
                 showError('Password must be at least 8 characters');
                 return;
             }

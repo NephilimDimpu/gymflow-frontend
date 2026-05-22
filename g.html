@@ -251,6 +251,13 @@
     </div>
 
 <script>
+    // Sanitize user-generated strings before injecting into HTML
+    function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str || '';
+        return d.innerHTML;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const slug = params.get('s');
 
@@ -384,7 +391,7 @@
                 [gym.address, gym.city].filter(Boolean).join(', ') || 'Location available';
             const phoneEl = document.getElementById('gym-phone');
             phoneEl.textContent = gym.phone;
-            phoneEl.href = `tel:${gym.phone}`;
+            phoneEl.href = `tel:${encodeURIComponent(gym.phone)}`;
 
             // Google Maps link
             if (gym.latitude && gym.longitude) {
@@ -415,7 +422,7 @@
 
                     L.marker([gym.latitude, gym.longitude])
                         .addTo(map)
-                        .bindPopup(`<b>${gym.name}</b><br>${gym.address || ''}`)
+                        .bindPopup(`<b>${esc(gym.name)}</b><br>${esc(gym.address || '')}`)
                         .openPopup();
 
                     // Force re-render to fix tile loading
@@ -463,15 +470,15 @@
                     return `
                     <div class="plan-card">
                         <div class="plan-info">
-                            <h3>${p.name}</h3>
-                            <div class="duration">${p.duration_days} days validity</div>
+                            <h3>${esc(p.name)}</h3>
+                            <div class="duration">${parseInt(p.duration_days) || 0} days validity</div>
                         </div>
                         <div class="plan-right">
-                            <div class="plan-price">₹${p.price.toLocaleString()}</div>
+                            <div class="plan-price">₹${Number(p.price).toLocaleString()}</div>
                             <a href="${link.href}" ${target} class="join-btn"
                                data-plid="${escAttr(p.payment_link_id)}"
                                data-wa="${escAttr(link.href)}"
-                               onclick="return handleJoinClick(event, this.dataset.plid, this.dataset.wa);">${link.label}</a>
+                               onclick="return handleJoinClick(event, this.dataset.plid, this.dataset.wa);">${esc(link.label)}</a>
                         </div>
                     </div>
                     `;
