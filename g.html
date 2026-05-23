@@ -6,6 +6,18 @@
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <title id="page-title">Gym Profile | GymExec</title>
     <meta name="description" id="page-desc" content="View plans and join this gym. Powered by GymExec.">
+    <!-- Open Graph / Social Sharing (updated dynamically by JS) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" id="og-title" content="Gym Profile | GymExec">
+    <meta property="og:description" id="og-desc" content="View plans and join this gym. Powered by GymExec.">
+    <meta property="og:url" id="og-url" content="https://www.gymexec.com/g.html">
+    <meta property="og:image" id="og-image" content="https://www.gymexec.com/assets/og-gym.png">
+    <meta property="og:site_name" content="GymExec">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" id="tw-title" content="Gym Profile | GymExec">
+    <meta name="twitter:description" id="tw-desc" content="View plans and join this gym. Powered by GymExec.">
+    <meta name="twitter:image" id="tw-image" content="https://www.gymexec.com/assets/og-gym.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -384,10 +396,20 @@
             if (!res.ok) throw new Error('Not found');
             const gym = await res.json();
 
-            // SEO
-            document.getElementById('page-title').textContent = `${gym.name} — Plans & Location | GymExec`;
-            document.getElementById('page-desc').content =
-                `Join ${gym.name} in ${gym.city || ''}. View plans starting from ₹${gym.plans[0]?.price || 'N/A'}. Powered by GymExec.`;
+            // SEO + Open Graph
+            const seoTitle = `${gym.name} — Plans & Location | GymExec`;
+            const seoDesc = `Join ${gym.name} in ${gym.city || ''}. View plans starting from ₹${gym.plans[0]?.price || 'N/A'}. Powered by GymExec.`;
+            const seoUrl = window.location.href;
+            const seoImage = gym.logo_url || 'https://www.gymexec.com/assets/og-gym.png';
+            document.getElementById('page-title').textContent = seoTitle;
+            document.getElementById('page-desc').content = seoDesc;
+            document.getElementById('og-title').content = seoTitle;
+            document.getElementById('og-desc').content = seoDesc;
+            document.getElementById('og-url').content = seoUrl;
+            document.getElementById('og-image').content = seoImage;
+            document.getElementById('tw-title').content = seoTitle;
+            document.getElementById('tw-desc').content = seoDesc;
+            document.getElementById('tw-image').content = seoImage;
 
             // Hero
             document.getElementById('gym-name').textContent = gym.name;

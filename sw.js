@@ -15,15 +15,16 @@
 // ============================================
 
 // Bump this whenever you want to force-drop all old caches.
-const CACHE_NAME = 'gymexec-v2';
+const CACHE_NAME = 'gymexec-v3';
 
-// Minimal offline shell — just enough for a member to still see
-// their (last-known) status page with no connection.
+// Minimal offline shell — member status page + customer dashboard.
 const ASSETS = [
   'status.html',
+  'customer-dashboard.html',
   'assets/style.css',
   'assets/config.js',
-  'assets/theme.js'
+  'assets/theme.js',
+  'assets/toast.js'
 ];
 
 self.addEventListener('install', (e) => {

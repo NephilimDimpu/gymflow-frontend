@@ -1,10 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Membership - GymExec</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="manifest" href="manifest-customer.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
     <link rel="stylesheet" href="assets/style.css">
     <script src="assets/config.js"></script>
     <script src="assets/toast.js"></script>
@@ -659,6 +665,45 @@
         loadMembership();
         loadHistory();
         loadVisitCounter();
+
+        // ── PWA Install Prompt ──
+        let deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Show a subtle install banner
+            const banner = document.createElement('div');
+            banner.id = 'pwa-install-banner';
+            banner.innerHTML = `
+                <div style="position:fixed;bottom:0;left:0;right:0;background:#1e1b4b;color:#e0e7ff;
+                    padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
+                    z-index:9999;font-size:14px;border-top:2px solid #6366f1;">
+                    <span>📲 Install GymExec for quick access</span>
+                    <div>
+                        <button onclick="installPWA()" style="background:#6366f1;color:#fff;border:none;
+                            padding:8px 18px;border-radius:8px;font-weight:600;cursor:pointer;margin-right:8px;">
+                            Install</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()"
+                            style="background:transparent;color:#94a3b8;border:1px solid #334155;
+                            padding:8px 14px;border-radius:8px;cursor:pointer;">Later</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(banner);
+        });
+
+        window.installPWA = async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const result = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.remove();
+        };
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
     </script>
 </body>
 
