@@ -330,12 +330,18 @@
                 </div>
             </div>
             <div class="input-group">
-                <label for="password">Password</label>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="password">Password</label>
+                    <a href="forgot-password.html" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">Forgot password?</a>
+                </div>
                 <input type="password" id="password" class="modern-input" placeholder="••••••••" required>
             </div>
             <button type="submit" class="submit-btn" id="login-btn">Log In</button>
             <p class="footer-link" style="margin-top: 1.25rem; font-size: 0.8rem;">
                 First time? Switch to <a href="#" onclick="switchTab('register'); return false;">First Time Setup</a> to set your password.
+            </p>
+            <p class="footer-link" style="margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">
+                No email? Ask your gym to reset your password.
             </p>
         </form>
 

@@ -284,6 +284,7 @@
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit</button>
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})">🔔</button>
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(37, 211, 102, 0.1); color: #25D366;" onclick="sendWhatsAppReminder(${m.id})">💬</button>
+                        ${userRole === 'owner' || userRole === 'manager' ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(251, 191, 36, 0.1); color: #fbbf24;" onclick="resetMemberPassword(${m.id}, '${m.name.replace(/'/g, "\\'")}')" title="Reset Portal Password">🔑</button>` : ''}
                         ${userRole === 'owner' ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: #f87171;" onclick="deleteMember(${m.id})">🗑️</button>` : ''}
                     </td>
                 </tr>
@@ -390,6 +391,25 @@
 
         function editMember(id) {
             window.location.href = `add-member.html?edit=${id}`;
+        }
+
+        async function resetMemberPassword(id, name) {
+            const newPw = prompt(`Set a new portal password for ${name}:\n(Min 6 characters — share it with the member)`);
+            if (!newPw) return;
+            if (newPw.length < 6) { window.showToast("Password must be at least 6 characters", "warning"); return; }
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${id}/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_password: newPw })
+                });
+                if (res.ok) {
+                    window.showToast(`Password reset for ${name}`, "success");
+                } else {
+                    const err = await res.json();
+                    window.showToast(err.detail || "Failed to reset", "error");
+                }
+            } catch (err) { window.showToast("Failed to reset password", "error"); }
         }
 
         async function deleteMember(id) {
