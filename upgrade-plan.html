@@ -252,6 +252,14 @@
                 Annual <span style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-left: 4px;">SAVE 20%</span>
             </span>
         </div>
+        <!-- Auto-renew toggle -->
+        <div id="auto-renew-row" style="margin-top: 14px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #94a3b8; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 16px;">
+                <input type="checkbox" id="auto-renew-toggle" style="accent-color: #6366f1; width: 16px; height: 16px; cursor: pointer;">
+                <span>Auto-renew <span style="color: #34d399; font-weight: 600;">(set & forget)</span></span>
+            </label>
+            <span id="auto-renew-status" style="font-size: 12px; color: #64748b;"></span>
+        </div>
     </header>
 
     <div class="pricing-container">
@@ -570,13 +578,53 @@
             }
         });
 
+        // Load auto-renew status on page load
+        async function loadAutoRenewStatus() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/subscription-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('auto-renew-toggle').checked = data.auto_renew;
+                    if (data.auto_renew) {
+                        document.getElementById('auto-renew-status').textContent = '✅ Active';
+                        document.getElementById('auto-renew-status').style.color = '#34d399';
+                    }
+                }
+            } catch(e) {}
+        }
+        loadAutoRenewStatus();
+
+        // Cancel auto-renew when toggle is unchecked
+        document.getElementById('auto-renew-toggle').addEventListener('change', async function() {
+            if (!this.checked) {
+                try {
+                    const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/cancel-subscription`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        showToast('Auto-renewal cancelled. Plan stays active until period ends.', 'success');
+                        document.getElementById('auto-renew-status').textContent = '';
+                    }
+                } catch(e) {
+                    showToast('Could not cancel auto-renew', 'error');
+                    this.checked = true;
+                }
+            }
+        });
+
         // ============================================
         // [JS-PAYMENT] Razorpay Payment Flow
         // ============================================
         async function initPayment(tier) {
-            // Allow same-tier payment for renewals (subscription expired)
-            // Only block if same tier AND subscription still has >7 days left
-            // For simplicity, we allow all payments — backend handles the logic
+            const autoRenew = document.getElementById('auto-renew-toggle').checked;
+
+            // Route to subscription flow if auto-renew is checked
+            if (autoRenew) {
+                return initSubscription(tier);
+            }
 
             const clickedBtn = document.getElementById(`btn-${tier}`);
             clickedBtn.disabled = true;
@@ -674,6 +722,97 @@
 
             } catch (error) {
                 console.error('[PAYMENT]', error);
+                showToast(error.message, 'error');
+                clickedBtn.disabled = false;
+                clickedBtn.innerText = `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+            }
+        }
+
+        // ============================================
+        // [JS-SUBSCRIPTION] Razorpay Subscription Flow
+        // ============================================
+        async function initSubscription(tier) {
+            const clickedBtn = document.getElementById(`btn-${tier}`);
+            clickedBtn.disabled = true;
+            clickedBtn.innerText = 'Processing...';
+
+            try {
+                // Step 1: Create subscription on backend
+                const subRes = await fetch(`${CONFIG.API_BASE_URL}/api/gym/create-subscription`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ tier, billing_cycle: currentBilling })
+                });
+
+                if (!subRes.ok) {
+                    const err = await subRes.json();
+                    throw new Error(err.detail || 'Could not create subscription');
+                }
+
+                const subData = await subRes.json();
+
+                // Step 2: Fetch Razorpay public key
+                const keyRes = await fetch(`${CONFIG.API_BASE_URL}/api/gym/razorpay-key`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const keyData = await keyRes.json();
+
+                // Step 3: Open Razorpay Checkout in subscription mode
+                const options = {
+                    key: keyData.key_id,
+                    subscription_id: subData.subscription_id,
+                    name: 'GymExec',
+                    description: `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan (Auto-renew ${currentBilling})`,
+                    theme: { color: '#6366f1' },
+                    handler: async function(response) {
+                        // Step 4: Verify subscription on backend
+                        try {
+                            const verifyRes = await fetch(`${CONFIG.API_BASE_URL}/api/gym/verify-subscription?` + new URLSearchParams({
+                                subscription_id: response.razorpay_subscription_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            }), {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+
+                            if (!verifyRes.ok) {
+                                const err = await verifyRes.json();
+                                throw new Error(err.detail || 'Verification failed');
+                            }
+
+                            const result = await verifyRes.json();
+                            localStorage.setItem('tier', result.tier);
+                            showToast(`🎉 ${result.message}`, 'success');
+
+                            setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+                        } catch (verifyErr) {
+                            showToast('Payment received but verification failed. Contact support.', 'error');
+                            console.error('[VERIFY-SUB]', verifyErr);
+                        }
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            clickedBtn.disabled = false;
+                            clickedBtn.innerText = `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+                            showToast('Payment cancelled', 'warning');
+                        }
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function(response) {
+                    showToast('Payment failed: ' + response.error.description, 'error');
+                    clickedBtn.disabled = false;
+                    clickedBtn.innerText = `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+                });
+                rzp.open();
+
+            } catch (error) {
+                console.error('[SUBSCRIPTION]', error);
                 showToast(error.message, 'error');
                 clickedBtn.disabled = false;
                 clickedBtn.innerText = `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
