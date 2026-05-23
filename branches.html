@@ -224,7 +224,10 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" style="color: #fff;">Contact Number</label>
-                    <input type="text" id="branch-phone" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. 9876543210">
+                    <div style="display:flex; align-items:stretch; border:1px solid rgba(255,255,255,0.1); border-radius:8px; overflow:hidden;">
+                        <span style="display:flex; align-items:center; padding:0 12px; background:rgba(255,255,255,0.05); color:#94a3b8; font-size:0.9rem; font-weight:500; border-right:1px solid rgba(255,255,255,0.1); white-space:nowrap; user-select:none;">🇮🇳 +91</span>
+                        <input type="tel" id="branch-phone" class="form-input" style="background:rgba(0,0,0,0.3); border:none; color:#fff; border-radius:0; flex:1;" placeholder="9876543210" maxlength="10" inputmode="numeric">
+                    </div>
                 </div>
 
                 <!-- Manager fields (shown only for new branches) -->

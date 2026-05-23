@@ -85,13 +85,13 @@
             <!-- [FORM-GROUP-PHONE] Phone number -->
             <div class="form-group">
                 <label class="form-label" for="phone">
-                    Phone Number (with country code) *
+                    Phone Number *
                 </label>
-                <input type="tel" id="phone" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="+919876543210" required
-                    pattern="^\+?[1-9]\d{1,14}$">
-                <small style="color: #6b7280; font-size: 12px;">
-                    Include country code (e.g., +91 for India)
-                </small>
+                <div style="display:flex; align-items:stretch; border:1px solid rgba(255,255,255,0.1); border-radius:8px; overflow:hidden;">
+                    <span style="display:flex; align-items:center; padding:0 12px; background:rgba(255,255,255,0.05); color:#94a3b8; font-size:0.9rem; font-weight:500; border-right:1px solid rgba(255,255,255,0.1); white-space:nowrap; user-select:none;">🇮🇳 +91</span>
+                    <input type="tel" id="phone" class="form-input" style="background:rgba(0,0,0,0.2); border:none; color:#fff; border-radius:0; flex:1;" placeholder="9876543210" required
+                        maxlength="10" inputmode="numeric" pattern="[0-9]{10}">
+                </div>
             </div>
 
             <!-- [FORM-GROUP-EMAIL] Email (optional) -->

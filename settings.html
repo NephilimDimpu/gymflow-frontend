@@ -119,7 +119,10 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label" style="color: #fff;">Phone Number</label>
-                                <input type="tel" id="phone" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
+                                <div style="display:flex; align-items:stretch; border:1px solid rgba(255,255,255,0.1); border-radius:8px; overflow:hidden;">
+                                    <span style="display:flex; align-items:center; padding:0 12px; background:rgba(255,255,255,0.05); color:#94a3b8; font-size:0.9rem; font-weight:500; border-right:1px solid rgba(255,255,255,0.1); white-space:nowrap; user-select:none;">🇮🇳 +91</span>
+                                    <input type="tel" id="phone" class="form-input" style="background:rgba(0,0,0,0.3); border:none; color:#fff; border-radius:0; flex:1;" maxlength="10" inputmode="numeric" required>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -367,7 +370,7 @@
                     document.getElementById('name').value = data.name || '';
                     document.getElementById('owner_name').value = data.owner_name || '';
                     document.getElementById('email').value = data.email || '';
-                    document.getElementById('phone').value = data.phone || '';
+                    document.getElementById('phone').value = (data.phone || '').replace(/^\+?91/, '').replace(/\D/g, '');
                     document.getElementById('upi_id').value = data.upi_id || '';
                     populateTimezones(data.timezone);
 

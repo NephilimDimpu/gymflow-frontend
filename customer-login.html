@@ -213,6 +213,71 @@
             transition: color 0.2s;
         }
 
+        /* Tab switcher */
+        .auth-tabs {
+            display: flex;
+            gap: 4px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 2rem;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .auth-tab.active {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-main);
+        }
+
+        /* Phone prefix */
+        .phone-wrapper {
+            display: flex;
+            align-items: stretch;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .phone-wrapper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+        .phone-prefix {
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-right: 1px solid var(--border);
+            user-select: none;
+            white-space: nowrap;
+        }
+        .phone-prefix-flag { margin-right: 6px; font-size: 1.1rem; }
+        .phone-input-clean {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            background: rgba(0,0,0,0.2);
+            border: none;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            font-family: inherit;
+        }
+        .phone-input-clean::placeholder { color: #52525b; }
+
         #error-message, #success-message {
             display: none;
             padding: 1rem;
@@ -245,40 +310,97 @@
             <h1>Member Portal</h1>
             <p>Ready to hit your goals today?</p>
         </div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchTab('login')">Log In</button>
+            <button class="auth-tab" onclick="switchTab('register')">First Time Setup</button>
+        </div>
+
         <div id="error-message"></div>
         <div id="success-message"></div>
+
+        <!-- LOGIN FORM -->
         <form id="customer-login-form">
             <div class="input-group">
                 <label for="phone">Phone Number</label>
-                <input type="tel" id="phone" class="modern-input" placeholder="Your registered phone number" required>
+                <div class="phone-wrapper">
+                    <span class="phone-prefix"><span class="phone-prefix-flag">🇮🇳</span> +91</span>
+                    <input type="tel" id="phone" class="phone-input-clean" placeholder="9876543210"
+                           maxlength="10" inputmode="numeric" pattern="[0-9]{10}" required>
+                </div>
             </div>
             <div class="input-group">
-                <div style="display: flex; justify-content: space-between;">
-                    <label for="password">Password</label>
-                </div>
+                <label for="password">Password</label>
                 <input type="password" id="password" class="modern-input" placeholder="••••••••" required>
             </div>
             <button type="submit" class="submit-btn" id="login-btn">Log In</button>
-            <p class="footer-link" style="margin-top: 2rem;">
-                Not a member? Check with your gym to get registered.
+            <p class="footer-link" style="margin-top: 1.25rem; font-size: 0.8rem;">
+                First time? Switch to <a href="#" onclick="switchTab('register'); return false;">First Time Setup</a> to set your password.
             </p>
-            <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-                <a href="login.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">
-                    Gym Staff? Sign in here
-                </a>
-            </div>
         </form>
+
+        <!-- REGISTER FORM -->
+        <form id="customer-register-form" style="display:none;">
+            <div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1.5rem; text-align: left;">
+                <p style="font-size: 0.82rem; color: #a5b4fc; line-height: 1.5; margin: 0;">
+                    Your gym must have already added you as a member. Enter the same phone number they registered you with.
+                </p>
+            </div>
+            <div class="input-group">
+                <label for="reg-phone">Phone Number</label>
+                <div class="phone-wrapper">
+                    <span class="phone-prefix"><span class="phone-prefix-flag">🇮🇳</span> +91</span>
+                    <input type="tel" id="reg-phone" class="phone-input-clean" placeholder="9876543210"
+                           maxlength="10" inputmode="numeric" pattern="[0-9]{10}" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="reg-email">Email <span style="color: var(--text-muted); font-weight: 400;">(optional)</span></label>
+                <input type="email" id="reg-email" class="modern-input" placeholder="you@email.com">
+            </div>
+            <div class="input-group">
+                <label for="reg-password">Create Password</label>
+                <input type="password" id="reg-password" class="modern-input" placeholder="Min 6 characters" required minlength="6">
+            </div>
+            <div class="input-group">
+                <label for="reg-confirm">Confirm Password</label>
+                <input type="password" id="reg-confirm" class="modern-input" placeholder="••••••••" required minlength="6">
+            </div>
+            <button type="submit" class="submit-btn" id="register-btn">Create Account</button>
+            <p class="footer-link" style="margin-top: 1.25rem; font-size: 0.8rem;">
+                Already set up? <a href="#" onclick="switchTab('login'); return false;">Log in here</a>
+            </p>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+            <a href="login.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">
+                Gym Owner / Staff? Sign in here
+            </a>
+        </div>
     </div>
 <script>
         // Get gym_id from URL (e.g., customer-login.html?gym_id=1)
         const urlParams = new URLSearchParams(window.location.search);
         const gymId = urlParams.get('gym_id') ? parseInt(urlParams.get('gym_id')) : null;
 
+        // Auto-switch to register tab if ?tab=register
+        if (urlParams.get('tab') === 'register') switchTab('register');
+
         // Check if already logged in as customer
         const existingToken = localStorage.getItem('auth_token');
         const existingRole = localStorage.getItem('role');
         if (existingToken && existingRole === 'customer') {
             window.location.href = 'customer-dashboard.html';
+        }
+
+        // ── Tab Switching ──
+        function switchTab(tab) {
+            hideMessages();
+            const tabs = document.querySelectorAll('.auth-tab');
+            tabs[0].classList.toggle('active', tab === 'login');
+            tabs[1].classList.toggle('active', tab === 'register');
+            document.getElementById('customer-login-form').style.display = tab === 'login' ? 'block' : 'none';
+            document.getElementById('customer-register-form').style.display = tab === 'register' ? 'block' : 'none';
         }
 
         function showError(msg) {
@@ -293,9 +415,12 @@
             if (s) s.style.display = 'none';
         }
 
-        // ============================================
-        // [JS-LOGIN] Handle login
-        // ============================================
+        // Strip non-digits on phone inputs
+        document.querySelectorAll('.phone-input-clean').forEach(el => {
+            el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, ''); });
+        });
+
+        // ── Login ──
         document.getElementById('customer-login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             hideMessages();
@@ -303,10 +428,8 @@
             const phone = document.getElementById('phone').value.trim();
             const password = document.getElementById('password').value;
 
-            if (!phone || !password) {
-                showError('Please enter both phone and password.');
-                return;
-            }
+            if (!phone || !password) { showError('Please enter both phone and password.'); return; }
+            if (phone.length !== 10) { showError('Enter a 10-digit phone number (without +91).'); return; }
 
             const btn = document.getElementById('login-btn');
             btn.disabled = true;
@@ -328,8 +451,6 @@
                 }
 
                 const data = await res.json();
-
-                // Store auth data
                 localStorage.setItem('auth_token', data.access_token);
                 localStorage.setItem('member_id', data.member_id);
                 localStorage.setItem('member_name', data.member_name);
@@ -344,6 +465,58 @@
                 showError(err.message);
                 btn.disabled = false;
                 btn.textContent = 'Log In';
+            }
+        });
+
+        // ── Register (First Time Setup) ──
+        document.getElementById('customer-register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const phone = document.getElementById('reg-phone').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirm = document.getElementById('reg-confirm').value;
+
+            if (!phone || phone.length !== 10) { showError('Enter your 10-digit phone number.'); return; }
+            if (!password || password.length < 6) { showError('Password must be at least 6 characters.'); return; }
+            if (password !== confirm) { showError('Passwords do not match.'); return; }
+            if (!gymId) { showError('Missing gym info. Please use the link your gym shared with you.'); return; }
+
+            const btn = document.getElementById('register-btn');
+            btn.disabled = true;
+            btn.textContent = 'Setting up...';
+
+            try {
+                const payload = { phone, password, gym_id: gymId };
+                if (email) payload.email = email;
+
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/customer/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Registration failed');
+                }
+
+                const data = await res.json();
+                localStorage.setItem('auth_token', data.access_token);
+                localStorage.setItem('member_id', data.member_id);
+                localStorage.setItem('member_name', data.member_name);
+                localStorage.setItem('gym_name', data.gym_name || '');
+                localStorage.setItem('branch_name', data.branch_name || '');
+                localStorage.setItem('user_type', 'customer');
+                localStorage.setItem('role', 'customer');
+
+                window.location.href = 'customer-dashboard.html';
+
+            } catch (err) {
+                showError(err.message);
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
             }
         });
     </script>
