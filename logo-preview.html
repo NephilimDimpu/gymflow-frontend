@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GymExec Logo Concepts</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #71717a;
+            font-size: 14px;
+            margin-bottom: 48px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .card {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .card:hover { border-color: rgba(99,102,241,0.4); }
+        .card-label {
+            padding: 16px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #a1a1aa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.02);
+        }
+        .card-label span {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            color: #52525b;
+            text-transform: none;
+            letter-spacing: 0;
+            margin-top: 4px;
+        }
+
+        /* Two preview rows per card: dark bg + light bg */
+        .preview-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 32px 20px;
+        }
+        .preview-dark { background: #050505; }
+        .preview-light { background: #f8fafc; border-top: 1px solid rgba(255,255,255,0.05); }
+
+        .logo-with-text {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-with-text .wordmark {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .dark-text { color: #ffffff; }
+        .light-text { color: #0f172a; }
+
+        /* Favicon size preview */
+        .favicon-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .fav-label { font-size: 10px; color: #52525b; text-align: center; }
+
+        .section-divider {
+            max-width: 1100px;
+            margin: 48px auto 32px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #a1a1aa;
+            letter-spacing: -0.5px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>GymExec Logo Concepts</h1>
+<p class="subtitle">G + Growth Chart theme &mdash; designed for dark SaaS UI</p>
+
+<div class="grid">
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- CONCEPT A: Clean Minimal G + Bars       -->
+    <!-- ════════════════════════════════════════ -->
+    <div class="card">
+        <div class="card-label">
+            Concept A &mdash; Minimal G + Bars
+            <span>Clean letter G with 3 ascending bars forming the crossbar</span>
+        </div>
+        <div class="preview-row preview-dark">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- G shape -->
+                    <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c8.28 0 15.43-5.04 18.5-12.2" stroke="#6366f1" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                    <!-- Horizontal bar of G -->
+                    <line x1="24" y1="24" x2="42" y2="24" stroke="#6366f1" stroke-width="4.5" stroke-linecap="round"/>
+                    <!-- Growth bars -->
+                    <rect x="28" y="20" width="3.5" height="4" rx="1" fill="#818cf8"/>
+                    <rect x="33" y="16" width="3.5" height="8" rx="1" fill="#a78bfa"/>
+                    <rect x="38" y="11" width="3.5" height="13" rx="1" fill="#c4b5fd"/>
+                </svg>
+                <span class="wordmark dark-text">GymExec</span>
+            </div>
+        </div>
+        <div class="preview-row preview-light">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c8.28 0 15.43-5.04 18.5-12.2" stroke="#4f46e5" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                    <line x1="24" y1="24" x2="42" y2="24" stroke="#4f46e5" stroke-width="4.5" stroke-linecap="round"/>
+                    <rect x="28" y="20" width="3.5" height="4" rx="1" fill="#6366f1"/>
+                    <rect x="33" y="16" width="3.5" height="8" rx="1" fill="#818cf8"/>
+                    <rect x="38" y="11" width="3.5" height="13" rx="1" fill="#a78bfa"/>
+                </svg>
+                <span class="wordmark light-text">GymExec</span>
+            </div>
+        </div>
+        <div class="favicon-row">
+            <div>
+                <svg width="16" height="16" viewBox="0 0 48 48" fill="none"><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c8.28 0 15.43-5.04 18.5-12.2" stroke="#6366f1" stroke-width="5" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="42" y2="24" stroke="#6366f1" stroke-width="5" stroke-linecap="round"/><rect x="28" y="19" width="4" height="5" rx="1" fill="#818cf8"/><rect x="33.5" y="15" width="4" height="9" rx="1" fill="#a78bfa"/><rect x="39" y="10" width="4" height="14" rx="1" fill="#c4b5fd"/></svg>
+                <div class="fav-label">16px</div>
+            </div>
+            <div>
+                <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c8.28 0 15.43-5.04 18.5-12.2" stroke="#6366f1" stroke-width="5" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="42" y2="24" stroke="#6366f1" stroke-width="5" stroke-linecap="round"/><rect x="28" y="19" width="4" height="5" rx="1" fill="#818cf8"/><rect x="33.5" y="15" width="4" height="9" rx="1" fill="#a78bfa"/><rect x="39" y="10" width="4" height="14" rx="1" fill="#c4b5fd"/></svg>
+                <div class="fav-label">32px</div>
+            </div>
+            <div>
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c8.28 0 15.43-5.04 18.5-12.2" stroke="#6366f1" stroke-width="4.5" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="42" y2="24" stroke="#6366f1" stroke-width="4.5" stroke-linecap="round"/><rect x="28" y="20" width="3.5" height="4" rx="1" fill="#818cf8"/><rect x="33" y="16" width="3.5" height="8" rx="1" fill="#a78bfa"/><rect x="38" y="11" width="3.5" height="13" rx="1" fill="#c4b5fd"/></svg>
+                <div class="fav-label">48px</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- CONCEPT B: Rounded Square + G Bars      -->
+    <!-- ════════════════════════════════════════ -->
+    <div class="card">
+        <div class="card-label">
+            Concept B &mdash; Badge Style
+            <span>Rounded square container with G + rising bars inside</span>
+        </div>
+        <div class="preview-row preview-dark">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Rounded square bg -->
+                    <rect x="2" y="2" width="44" height="44" rx="12" fill="#6366f1"/>
+                    <!-- G letter -->
+                    <path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+                    <line x1="24" y1="24" x2="36" y2="24" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+                    <!-- Bars -->
+                    <rect x="27" y="20.5" width="2.5" height="3.5" rx="0.8" fill="rgba(255,255,255,0.5)"/>
+                    <rect x="31" y="17.5" width="2.5" height="6.5" rx="0.8" fill="rgba(255,255,255,0.7)"/>
+                    <rect x="35" y="14" width="2.5" height="10" rx="0.8" fill="rgba(255,255,255,0.9)"/>
+                </svg>
+                <span class="wordmark dark-text">GymExec</span>
+            </div>
+        </div>
+        <div class="preview-row preview-light">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="44" height="44" rx="12" fill="#4f46e5"/>
+                    <path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+                    <line x1="24" y1="24" x2="36" y2="24" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+                    <rect x="27" y="20.5" width="2.5" height="3.5" rx="0.8" fill="rgba(255,255,255,0.5)"/>
+                    <rect x="31" y="17.5" width="2.5" height="6.5" rx="0.8" fill="rgba(255,255,255,0.7)"/>
+                    <rect x="35" y="14" width="2.5" height="10" rx="0.8" fill="rgba(255,255,255,0.9)"/>
+                </svg>
+                <span class="wordmark light-text">GymExec</span>
+            </div>
+        </div>
+        <div class="favicon-row">
+            <div>
+                <svg width="16" height="16" viewBox="0 0 48 48" fill="none"><rect x="2" y="2" width="44" height="44" rx="12" fill="#6366f1"/><path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="36" y2="24" stroke="#fff" stroke-width="4" stroke-linecap="round"/><rect x="27" y="20" width="3" height="4" rx="1" fill="rgba(255,255,255,0.5)"/><rect x="31" y="17" width="3" height="7" rx="1" fill="rgba(255,255,255,0.7)"/><rect x="35" y="13" width="3" height="11" rx="1" fill="rgba(255,255,255,0.9)"/></svg>
+                <div class="fav-label">16px</div>
+            </div>
+            <div>
+                <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><rect x="2" y="2" width="44" height="44" rx="12" fill="#6366f1"/><path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="36" y2="24" stroke="#fff" stroke-width="4" stroke-linecap="round"/><rect x="27" y="20" width="3" height="4" rx="1" fill="rgba(255,255,255,0.5)"/><rect x="31" y="17" width="3" height="7" rx="1" fill="rgba(255,255,255,0.7)"/><rect x="35" y="13" width="3" height="11" rx="1" fill="rgba(255,255,255,0.9)"/></svg>
+                <div class="fav-label">32px</div>
+            </div>
+            <div>
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="2" y="2" width="44" height="44" rx="12" fill="#6366f1"/><path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="36" y2="24" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><rect x="27" y="20.5" width="2.5" height="3.5" rx="0.8" fill="rgba(255,255,255,0.5)"/><rect x="31" y="17.5" width="2.5" height="6.5" rx="0.8" fill="rgba(255,255,255,0.7)"/><rect x="35" y="14" width="2.5" height="10" rx="0.8" fill="rgba(255,255,255,0.9)"/></svg>
+                <div class="fav-label">48px</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- CONCEPT C: Gradient G + Arrow Up        -->
+    <!-- ════════════════════════════════════════ -->
+    <div class="card">
+        <div class="card-label">
+            Concept C &mdash; Growth Arrow
+            <span>G with an integrated upward arrow replacing the bars</span>
+        </div>
+        <div class="preview-row preview-dark">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="gc1" x1="0" y1="48" x2="48" y2="0">
+                            <stop offset="0%" stop-color="#6366f1"/>
+                            <stop offset="100%" stop-color="#a78bfa"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- G arc -->
+                    <path d="M24 5C13.51 5 5 13.51 5 24s8.51 19 19 19c7.87 0 14.66-4.79 17.55-11.6" stroke="url(#gc1)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                    <!-- Crossbar -->
+                    <line x1="24" y1="24" x2="38" y2="24" stroke="url(#gc1)" stroke-width="4.5" stroke-linecap="round"/>
+                    <!-- Arrow pointing up from crossbar end -->
+                    <path d="M38 24V11" stroke="#a78bfa" stroke-width="3.5" stroke-linecap="round"/>
+                    <path d="M33 15.5L38 11L43 15.5" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="wordmark dark-text">GymExec</span>
+            </div>
+        </div>
+        <div class="preview-row preview-light">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="gc2" x1="0" y1="48" x2="48" y2="0">
+                            <stop offset="0%" stop-color="#4f46e5"/>
+                            <stop offset="100%" stop-color="#7c3aed"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M24 5C13.51 5 5 13.51 5 24s8.51 19 19 19c7.87 0 14.66-4.79 17.55-11.6" stroke="url(#gc2)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                    <line x1="24" y1="24" x2="38" y2="24" stroke="url(#gc2)" stroke-width="4.5" stroke-linecap="round"/>
+                    <path d="M38 24V11" stroke="#7c3aed" stroke-width="3.5" stroke-linecap="round"/>
+                    <path d="M33 15.5L38 11L43 15.5" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="wordmark light-text">GymExec</span>
+            </div>
+        </div>
+        <div class="favicon-row">
+            <div>
+                <svg width="16" height="16" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gc3" x1="0" y1="48" x2="48" y2="0"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><path d="M24 5C13.51 5 5 13.51 5 24s8.51 19 19 19c7.87 0 14.66-4.79 17.55-11.6" stroke="url(#gc3)" stroke-width="5" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="38" y2="24" stroke="url(#gc3)" stroke-width="5" stroke-linecap="round"/><path d="M38 24V11" stroke="#a78bfa" stroke-width="4" stroke-linecap="round"/><path d="M33 15.5L38 11L43 15.5" stroke="#a78bfa" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="fav-label">16px</div>
+            </div>
+            <div>
+                <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gc4" x1="0" y1="48" x2="48" y2="0"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><path d="M24 5C13.51 5 5 13.51 5 24s8.51 19 19 19c7.87 0 14.66-4.79 17.55-11.6" stroke="url(#gc4)" stroke-width="5" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="38" y2="24" stroke="url(#gc4)" stroke-width="5" stroke-linecap="round"/><path d="M38 24V11" stroke="#a78bfa" stroke-width="4" stroke-linecap="round"/><path d="M33 15.5L38 11L43 15.5" stroke="#a78bfa" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="fav-label">32px</div>
+            </div>
+            <div>
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gc5" x1="0" y1="48" x2="48" y2="0"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><path d="M24 5C13.51 5 5 13.51 5 24s8.51 19 19 19c7.87 0 14.66-4.79 17.55-11.6" stroke="url(#gc5)" stroke-width="4.5" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="38" y2="24" stroke="url(#gc5)" stroke-width="4.5" stroke-linecap="round"/><path d="M38 24V11" stroke="#a78bfa" stroke-width="3.5" stroke-linecap="round"/><path d="M33 15.5L38 11L43 15.5" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="fav-label">48px</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- CONCEPT D: Solid Filled G + Cutout Bars -->
+    <!-- ════════════════════════════════════════ -->
+    <div class="card">
+        <div class="card-label">
+            Concept D &mdash; Bold Filled
+            <span>Solid G shape with bars cut into the negative space</span>
+        </div>
+        <div class="preview-row preview-dark">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="gd1" x1="4" y1="44" x2="44" y2="4">
+                            <stop offset="0%" stop-color="#4f46e5"/>
+                            <stop offset="100%" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Thick G as a filled shape -->
+                    <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c9.06 0 16.72-6.02 19.2-14.28
+                             A2.5 2.5 0 0 0 40.8 26H26a2 2 0 0 1-2-2v0a2 2 0 0 1 2-2h14.8
+                             a2.5 2.5 0 0 0 2.4-3.28C40.12 10.8 32.7 4 24 4z"
+                          fill="url(#gd1)" fill-rule="evenodd"/>
+                    <!-- Cut-out center circle to make it a G ring -->
+                    <circle cx="24" cy="24" r="12" fill="#050505"/>
+                    <!-- Bars inside the G opening -->
+                    <rect x="27" y="17" width="3" height="5" rx="1.5" fill="#818cf8"/>
+                    <rect x="32" y="14" width="3" height="8" rx="1.5" fill="#a78bfa"/>
+                    <rect x="37" y="10" width="3" height="12" rx="1.5" fill="#c4b5fd"/>
+                </svg>
+                <span class="wordmark dark-text">GymExec</span>
+            </div>
+        </div>
+        <div class="preview-row preview-light">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="gd2" x1="4" y1="44" x2="44" y2="4">
+                            <stop offset="0%" stop-color="#4338ca"/>
+                            <stop offset="100%" stop-color="#7c3aed"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c9.06 0 16.72-6.02 19.2-14.28
+                             A2.5 2.5 0 0 0 40.8 26H26a2 2 0 0 1-2-2v0a2 2 0 0 1 2-2h14.8
+                             a2.5 2.5 0 0 0 2.4-3.28C40.12 10.8 32.7 4 24 4z"
+                          fill="url(#gd2)" fill-rule="evenodd"/>
+                    <circle cx="24" cy="24" r="12" fill="#f8fafc"/>
+                    <rect x="27" y="17" width="3" height="5" rx="1.5" fill="#6366f1"/>
+                    <rect x="32" y="14" width="3" height="8" rx="1.5" fill="#818cf8"/>
+                    <rect x="37" y="10" width="3" height="12" rx="1.5" fill="#a78bfa"/>
+                </svg>
+                <span class="wordmark light-text">GymExec</span>
+            </div>
+        </div>
+        <div class="favicon-row">
+            <div>
+                <svg width="16" height="16" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gd3" x1="4" y1="44" x2="44" y2="4"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c9.06 0 16.72-6.02 19.2-14.28A2.5 2.5 0 0 0 40.8 26H26a2 2 0 0 1-2-2v0a2 2 0 0 1 2-2h14.8a2.5 2.5 0 0 0 2.4-3.28C40.12 10.8 32.7 4 24 4z" fill="url(#gd3)" fill-rule="evenodd"/><circle cx="24" cy="24" r="12" fill="#050505"/><rect x="27" y="16" width="3.5" height="6" rx="1.5" fill="#818cf8"/><rect x="32" y="13" width="3.5" height="9" rx="1.5" fill="#a78bfa"/><rect x="37" y="9" width="3.5" height="13" rx="1.5" fill="#c4b5fd"/></svg>
+                <div class="fav-label">16px</div>
+            </div>
+            <div>
+                <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gd4" x1="4" y1="44" x2="44" y2="4"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c9.06 0 16.72-6.02 19.2-14.28A2.5 2.5 0 0 0 40.8 26H26a2 2 0 0 1-2-2v0a2 2 0 0 1 2-2h14.8a2.5 2.5 0 0 0 2.4-3.28C40.12 10.8 32.7 4 24 4z" fill="url(#gd4)" fill-rule="evenodd"/><circle cx="24" cy="24" r="12" fill="#050505"/><rect x="27" y="17" width="3" height="5" rx="1.5" fill="#818cf8"/><rect x="32" y="14" width="3" height="8" rx="1.5" fill="#a78bfa"/><rect x="37" y="10" width="3" height="12" rx="1.5" fill="#c4b5fd"/></svg>
+                <div class="fav-label">32px</div>
+            </div>
+            <div>
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gd5" x1="4" y1="44" x2="44" y2="4"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20c9.06 0 16.72-6.02 19.2-14.28A2.5 2.5 0 0 0 40.8 26H26a2 2 0 0 1-2-2v0a2 2 0 0 1 2-2h14.8a2.5 2.5 0 0 0 2.4-3.28C40.12 10.8 32.7 4 24 4z" fill="url(#gd5)" fill-rule="evenodd"/><circle cx="24" cy="24" r="12" fill="#050505"/><rect x="27" y="17" width="3" height="5" rx="1.5" fill="#818cf8"/><rect x="32" y="14" width="3" height="8" rx="1.5" fill="#a78bfa"/><rect x="37" y="10" width="3" height="12" rx="1.5" fill="#c4b5fd"/></svg>
+                <div class="fav-label">48px</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- CONCEPT E: Stacked G + Bars (App Icon)  -->
+    <!-- ════════════════════════════════════════ -->
+    <div class="card">
+        <div class="card-label">
+            Concept E &mdash; App Icon Style
+            <span>Circle container, centered G with 3 bars — optimized for PWA/app icon</span>
+        </div>
+        <div class="preview-row preview-dark">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="ge1" x1="0" y1="48" x2="48" y2="0">
+                            <stop offset="0%" stop-color="#4f46e5"/>
+                            <stop offset="50%" stop-color="#6366f1"/>
+                            <stop offset="100%" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="24" cy="24" r="22" fill="url(#ge1)"/>
+                    <!-- G stroke -->
+                    <path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/>
+                    <line x1="24" y1="24" x2="35" y2="24" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                    <!-- Ascending bars -->
+                    <rect x="26.5" y="20" width="2.5" height="4" rx="0.8" fill="rgba(255,255,255,0.45)"/>
+                    <rect x="30.5" y="17" width="2.5" height="7" rx="0.8" fill="rgba(255,255,255,0.65)"/>
+                    <rect x="34.5" y="13.5" width="2.5" height="10.5" rx="0.8" fill="rgba(255,255,255,0.85)"/>
+                </svg>
+                <span class="wordmark dark-text">GymExec</span>
+            </div>
+        </div>
+        <div class="preview-row preview-light">
+            <div class="logo-with-text">
+                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="ge2" x1="0" y1="48" x2="48" y2="0">
+                            <stop offset="0%" stop-color="#4338ca"/>
+                            <stop offset="50%" stop-color="#4f46e5"/>
+                            <stop offset="100%" stop-color="#7c3aed"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="24" cy="24" r="22" fill="url(#ge2)"/>
+                    <path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/>
+                    <line x1="24" y1="24" x2="35" y2="24" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                    <rect x="26.5" y="20" width="2.5" height="4" rx="0.8" fill="rgba(255,255,255,0.45)"/>
+                    <rect x="30.5" y="17" width="2.5" height="7" rx="0.8" fill="rgba(255,255,255,0.65)"/>
+                    <rect x="34.5" y="13.5" width="2.5" height="10.5" rx="0.8" fill="rgba(255,255,255,0.85)"/>
+                </svg>
+                <span class="wordmark light-text">GymExec</span>
+            </div>
+        </div>
+        <div class="favicon-row">
+            <div>
+                <svg width="16" height="16" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="ge3" x1="0" y1="48" x2="48" y2="0"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><circle cx="24" cy="24" r="22" fill="url(#ge3)"/><path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="35" y2="24" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><rect x="26.5" y="19.5" width="3" height="4.5" rx="1" fill="rgba(255,255,255,0.45)"/><rect x="30.5" y="16.5" width="3" height="7.5" rx="1" fill="rgba(255,255,255,0.65)"/><rect x="34.5" y="13" width="3" height="11" rx="1" fill="rgba(255,255,255,0.85)"/></svg>
+                <div class="fav-label">16px</div>
+            </div>
+            <div>
+                <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="ge4" x1="0" y1="48" x2="48" y2="0"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><circle cx="24" cy="24" r="22" fill="url(#ge4)"/><path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="35" y2="24" stroke="#fff" stroke-width="3" stroke-linecap="round"/><rect x="26.5" y="20" width="2.5" height="4" rx="0.8" fill="rgba(255,255,255,0.45)"/><rect x="30.5" y="17" width="2.5" height="7" rx="0.8" fill="rgba(255,255,255,0.65)"/><rect x="34.5" y="13.5" width="2.5" height="10.5" rx="0.8" fill="rgba(255,255,255,0.85)"/></svg>
+                <div class="fav-label">32px</div>
+            </div>
+            <div>
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="ge5" x1="0" y1="48" x2="48" y2="0"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><circle cx="24" cy="24" r="22" fill="url(#ge5)"/><path d="M24 10C16.27 10 10 16.27 10 24s6.27 14 14 14c5.8 0 10.8-3.53 12.95-8.54" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/><line x1="24" y1="24" x2="35" y2="24" stroke="#fff" stroke-width="3" stroke-linecap="round"/><rect x="26.5" y="20" width="2.5" height="4" rx="0.8" fill="rgba(255,255,255,0.45)"/><rect x="30.5" y="17" width="2.5" height="7" rx="0.8" fill="rgba(255,255,255,0.65)"/><rect x="34.5" y="13.5" width="2.5" height="10.5" rx="0.8" fill="rgba(255,255,255,0.85)"/></svg>
+                <div class="fav-label">48px</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="section-divider" style="margin-top: 56px; color: #52525b; font-size: 12px; font-weight: 500;">
+    Open this page at <code style="background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px;">http://localhost:3456/logo-preview.html</code> or directly in your browser from <code style="background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px;">C:\gym_saas\frontend\logo-preview.html</code>
+</div>
+
+</body>
+</html>
