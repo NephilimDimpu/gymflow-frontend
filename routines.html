@@ -312,6 +312,18 @@
             });
         }
 
+        // [TIER-GATE] Hide branch selectors for non-Elite users (branches = Elite feature)
+        if (userTier !== 'elite') {
+            window.addEventListener('DOMContentLoaded', () => {
+                // Hide branch dropdown in Add/Edit routine form
+                const branchGroup = document.getElementById('branch-select-group');
+                if (branchGroup) branchGroup.style.display = 'none';
+                // Hide branch selector in Board view — default to gym-wide
+                const boardBranch = document.getElementById('board-branch');
+                if (boardBranch) boardBranch.style.display = 'none';
+            });
+        }
+
         // Build sidebar based on role
         const nav = document.getElementById('sidebar-nav');
         if (userRole === 'owner') {
@@ -319,8 +331,8 @@
                 <a href="dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
                 <a href="members.html" class="nav-link"><span>👥</span> Members</a>
                 <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
-                <a href="staff.html" class="nav-link"><span>🔵</span> Staff</a>
-                <a href="branches.html" class="nav-link"><span>📍</span> Branches</a>
+                <a href="staff.html" class="nav-link"><span>🔵</span> Staff${userTier !== 'elite' ? ' 🔒' : ''}</a>
+                <a href="branches.html" class="nav-link"><span>📍</span> Branches${userTier !== 'elite' ? ' 🔒' : ''}</a>
                 <a href="attendance.html" class="nav-link"><span>🕘</span> Attendance</a>
                 <a href="routines.html" class="nav-link active"><span>📋</span> Routines</a>
                 <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
