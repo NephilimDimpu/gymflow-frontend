@@ -622,7 +622,10 @@
             const autoRenew = document.getElementById('auto-renew-toggle').checked;
 
             // Route to subscription flow if auto-renew is checked
-            if (autoRenew) {
+            // but only for upgrades/renewals — downgrades use one-time payment
+            const tierOrder = ['starter', 'pro', 'elite'];
+            const isDowngrade = tierOrder.indexOf(tier) < tierOrder.indexOf(currentTier);
+            if (autoRenew && !isDowngrade) {
                 return initSubscription(tier);
             }
 
