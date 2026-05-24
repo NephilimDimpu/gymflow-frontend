@@ -561,7 +561,7 @@
             document.getElementById('badge-pro').style.display = 'block';
         }
 
-        // Lower-tier buttons also go through payment (new month = new payment)
+        // Lower-tier buttons trigger free downgrade (scheduled for end of billing period)
         const tierOrder = ['starter', 'pro', 'elite'];
         const currentIndex = tierOrder.indexOf(currentTier);
         tierOrder.forEach((tier, idx) => {
@@ -571,14 +571,14 @@
                     downBtn.classList.remove('btn-outline', 'btn-primary-gradient');
                     downBtn.classList.add('btn-outline');
                     downBtn.innerText = `Switch to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
-                    downBtn.setAttribute('onclick', `initPayment('${tier}')`);
+                    downBtn.setAttribute('onclick', `requestDowngrade('${tier}')`);
                     downBtn.style.borderColor = '#f59e0b';
                     downBtn.style.color = '#f59e0b';
                 }
             }
         });
 
-        // Load auto-renew status on page load
+        // Load auto-renew status + show pending downgrade banner
         async function loadAutoRenewStatus() {
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/subscription-status`, {
@@ -591,10 +591,76 @@
                         document.getElementById('auto-renew-status').textContent = '✅ Active';
                         document.getElementById('auto-renew-status').style.color = '#34d399';
                     }
+                    // Show pending downgrade banner
+                    if (data.scheduled_tier) {
+                        const endDate = data.subscription_end ? new Date(data.subscription_end).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'period end';
+                        const banner = document.createElement('div');
+                        banner.id = 'downgrade-banner';
+                        banner.style.cssText = 'padding: 16px 24px; margin-bottom: 20px; background: linear-gradient(135deg, rgba(251,191,36,0.1), rgba(245,158,11,0.1)); border: 1px solid rgba(251,191,36,0.4); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;';
+                        banner.innerHTML = `
+                            <div>
+                                <strong style="color: #fbbf24;">Downgrade scheduled</strong>
+                                <p style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">Your ${currentTier.toUpperCase()} plan stays active until <strong style="color:#fff;">${endDate}</strong>. After that, you'll move to <strong style="color:#fff;">${data.scheduled_tier.toUpperCase()}</strong>.</p>
+                            </div>
+                            <button onclick="cancelDowngrade()" class="btn btn-outline" style="border-color: #f59e0b; color: #f59e0b; white-space: nowrap; padding: 8px 16px; font-size: 13px;">Cancel downgrade</button>
+                        `;
+                        const mainContent = document.querySelector('.pricing-header');
+                        if (mainContent) mainContent.after(banner);
+                    }
                 }
             } catch(e) {}
         }
         loadAutoRenewStatus();
+
+        // [DOWNGRADE] Request a free tier downgrade
+        async function requestDowngrade(tier) {
+            const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
+            if (!confirm(`Switch to ${tierLabel}? Your current ${currentTier.toUpperCase()} plan will stay active until the end of your billing period. No charge.`)) return;
+
+            const btn = document.getElementById(`btn-${tier}`);
+            if (btn) { btn.disabled = true; btn.innerText = 'Processing...'; }
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/downgrade`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ tier, billing_cycle: currentBilling })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Downgrade failed');
+
+                if (data.scheduled_tier) {
+                    // Scheduled for later
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    // Immediate switch
+                    localStorage.setItem('tier', data.tier);
+                    showToast(data.message, 'success');
+                    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+                }
+            } catch(e) {
+                showToast(e.message, 'error');
+                if (btn) { btn.disabled = false; btn.innerText = `Switch to ${tierLabel}`; }
+            }
+        }
+
+        // Cancel a scheduled downgrade
+        async function cancelDowngrade() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/gym/cancel-downgrade`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed');
+                showToast(data.message, 'success');
+                const banner = document.getElementById('downgrade-banner');
+                if (banner) banner.remove();
+            } catch(e) {
+                showToast(e.message, 'error');
+            }
+        }
 
         // Cancel auto-renew when toggle is unchecked
         document.getElementById('auto-renew-toggle').addEventListener('change', async function() {
@@ -622,10 +688,7 @@
             const autoRenew = document.getElementById('auto-renew-toggle').checked;
 
             // Route to subscription flow if auto-renew is checked
-            // but only for upgrades/renewals — downgrades use one-time payment
-            const tierOrder = ['starter', 'pro', 'elite'];
-            const isDowngrade = tierOrder.indexOf(tier) < tierOrder.indexOf(currentTier);
-            if (autoRenew && !isDowngrade) {
+            if (autoRenew) {
                 return initSubscription(tier);
             }
 
