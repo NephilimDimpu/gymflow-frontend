@@ -436,14 +436,14 @@
 
             if (!phone || !password) { showError('Please enter both phone and password.'); return; }
             if (phone.length !== 10) { showError('Enter a 10-digit phone number (without +91).'); return; }
+            if (!gymId) { showError('Missing gym info. Please use the login link provided by your gym.'); return; }
 
             const btn = document.getElementById('login-btn');
             btn.disabled = true;
             btn.textContent = 'Logging in...';
 
             try {
-                const payload = { phone, password };
-                if (gymId) payload.gym_id = gymId;
+                const payload = { phone, password, gym_id: gymId };
 
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/customer/login`, {
                     method: 'POST',
