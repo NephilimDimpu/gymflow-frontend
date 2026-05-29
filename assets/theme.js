@@ -74,20 +74,22 @@ function applyTierTheme(tier) {
         });
     };
 
+    // Branches = Elite only
     if (tier !== 'elite') {
         lockSelectors([
-            'a[href="branches.html"]',
-            'a[href="staff.html"]'
-        ], "Elite Feature — Upgrade to manage multiple branches and staff");
+            'a[href="branches.html"]'
+        ], "Elite Feature — Upgrade to manage multiple branches");
     }
+    // Staff, Attendance, Routines = Pro + Elite (locked for Starter)
     if (tier === 'starter' || !tier) {
         lockSelectors([
+            'a[href="staff.html"]',
             'a[href="attendance.html"]',
             'a[href="kiosk.html"]',
             'a[href="qr-checkin.html"]',
             'a[href="qr-poster.html"]',
             'a[href="routines.html"]'
-        ], "Pro Feature — Upgrade to track attendance and manage class schedules");
+        ], "Pro Feature — Upgrade to unlock staff management, attendance, and routines");
     }
 }
 
