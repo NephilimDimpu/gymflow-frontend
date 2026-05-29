@@ -381,7 +381,7 @@
             throw new Error('redirecting to login');
         }
 
-        const userTier = localStorage.getItem('tier') || 'starter';
+        let userTier = localStorage.getItem('tier') || 'starter';
 
         // ============================================
         // [DYNAMIC-BANNERS] Setup dashboard upgrade pitches
@@ -583,7 +583,13 @@
                 }
                 document.getElementById('gym-name').innerHTML = `${gym.name || 'Your Gym'}${tierHtml}`;
                 localStorage.setItem('gym_name', gym.name || 'Your Gym');
-                if (gym.tier) localStorage.setItem('tier', gym.tier);
+                if (gym.tier) {
+                    localStorage.setItem('tier', gym.tier);
+                    // Re-apply theme colors + sidebar locks with the real tier
+                    userTier = gym.tier;
+                    if (window.applyTierTheme) window.applyTierTheme(gym.tier);
+                    applyBanners(gym.tier);
+                }
 
                 // Check trial status
                 renderTrialBanner(gym);
