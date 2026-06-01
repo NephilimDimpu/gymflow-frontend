@@ -146,11 +146,20 @@
                     <span>🏋️</span> Personal Training (Optional)
                 </h3>
                 
-                <div class="form-group">
-                    <label class="form-label" for="pt-coach">Assign Coach</label>
-                    <select id="pt-coach" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
-                        <option value="">No PT Coach</option>
-                    </select>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="pt-coach">Assign Coach</label>
+                        <select id="pt-coach" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                            <option value="">No PT Coach</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pt-plan">PT Billing Plan</label>
+                        <select id="pt-plan" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                            <option value="">No separate billing</option>
+                        </select>
+                        <small style="color: #64748b; font-size: 11px;">Creates a separate billing record — group plan stays untouched</small>
+                    </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -323,12 +332,17 @@
         // ============================================
         function displayPlans() {
             const planSelect = document.getElementById('plan');
+            const ptPlanSelect = document.getElementById('pt-plan');
 
             availablePlans.forEach(plan => {
                 const option = document.createElement('option');
                 option.value = plan.id;
                 option.textContent = `${plan.name} - ${formatINR(plan.price)} (${plan.duration_days} days)`;
                 planSelect.appendChild(option);
+
+                // Also populate PT billing plan dropdown
+                const ptOption = option.cloneNode(true);
+                ptPlanSelect.appendChild(ptOption);
             });
         }
 
@@ -417,6 +431,7 @@
                         payment_received: paymentStatus === 'paid',
                         branch_id: document.getElementById('branch').value ? parseInt(document.getElementById('branch').value) : null,
                         pt_coach_id: document.getElementById('pt-coach').value ? parseInt(document.getElementById('pt-coach').value) : null,
+                        pt_plan_id: document.getElementById('pt-plan').value ? parseInt(document.getElementById('pt-plan').value) : null,
                         pt_sessions_total: parseInt(document.getElementById('pt-sessions-total').value) || 0,
                         pt_sessions_used: parseInt(document.getElementById('pt-sessions-used').value) || 0,
                         pt_ends_at: document.getElementById('pt-expiry').value || null
