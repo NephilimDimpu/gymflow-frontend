@@ -261,8 +261,8 @@
             loadBranches();
         }
         
-        // Load staff/coaches for all
-        loadCoaches();
+        // loadCoaches is called inside initPage() to ensure coaches
+        // are loaded before edit-mode prefill sets the dropdown value.
 
         async function loadCoaches() {
             try {
@@ -498,6 +498,7 @@
 
         async function initPage() {
             await loadPlans();
+            await loadCoaches();
 
             const urlParams = new URLSearchParams(window.location.search);
             editMemberId = urlParams.get('edit');
