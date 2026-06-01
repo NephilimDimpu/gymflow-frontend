@@ -80,6 +80,18 @@
                 </div>
             </header>
 
+            <!-- Main Tabs: Members vs Personal Training -->
+            <div style="display: flex; gap: 0; margin-bottom: 24px; border-bottom: 2px solid rgba(255,255,255,0.06);">
+                <button class="main-tab active" id="tab-members" onclick="switchMainTab('members')" style="padding: 12px 24px; background: none; border: none; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 2px solid #6366f1; margin-bottom: -2px;">
+                    👥 Members
+                </button>
+                <button class="main-tab" id="tab-pt" onclick="switchMainTab('pt')" style="padding: 12px 24px; background: none; border: none; color: var(--text-muted); font-size: 15px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px;">
+                    🏋️ Personal Training <span id="pt-count" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; display: none;">0</span>
+                </button>
+            </div>
+
+            <!-- ======= MEMBERS VIEW ======= -->
+            <div id="view-members">
             <!-- Filters & Search -->
             <div class="glass-panel" style="margin-bottom: 32px; display: flex; flex-direction: column; gap: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
@@ -140,6 +152,37 @@
             <div id="loading-overlay" class="spinner-overlay" style="display: none;">
                 <div class="glass-spinner"></div>
             </div>
+            </div><!-- /view-members -->
+
+            <!-- ======= PERSONAL TRAINING VIEW ======= -->
+            <div id="view-pt" style="display: none;">
+                <div id="pt-members-container" class="glass-panel" style="display: none; padding: 0; overflow: hidden;">
+                    <div class="table-wrap">
+                        <table class="glass-table mobile-card-view">
+                            <thead>
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Coach</th>
+                                    <th>Sessions</th>
+                                    <th>PT Expires</th>
+                                    <th>Group Plan</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pt-members-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="pt-empty-state" class="empty-state" style="display: none;">
+                    <span class="empty-icon">🏋️</span>
+                    <h2 class="empty-title">No personal training members</h2>
+                    <p class="empty-subtitle">Assign a PT coach to any member via Edit to start tracking personal training sessions.</p>
+                    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
+                        <button class="btn btn-primary" onclick="switchMainTab('members')">Go to Members</button>
+                    </div>
+                </div>
+            </div><!-- /view-pt -->
         </main>
     </div>
 
@@ -195,6 +238,16 @@
                 allMembers = await response.json();
                 filteredMembers = allMembers;
                 renderTable(allMembers);
+
+                // Update PT badge count
+                const ptCount = allMembers.filter(m => m.pt_coach_id).length;
+                const ptBadge = document.getElementById('pt-count');
+                if (ptCount > 0) {
+                    ptBadge.textContent = ptCount;
+                    ptBadge.style.display = 'inline';
+                } else {
+                    ptBadge.style.display = 'none';
+                }
             } catch (error) {
                 showToast("Failed to load members", "error");
             } finally {
@@ -476,6 +529,104 @@
         function logout() {
             localStorage.clear();
             window.location.href = 'login.html';
+        }
+
+        // ============================================
+        // [MAIN-TABS] Members vs Personal Training
+        // ============================================
+        function switchMainTab(tab) {
+            const membersTab = document.getElementById('tab-members');
+            const ptTab = document.getElementById('tab-pt');
+            const membersView = document.getElementById('view-members');
+            const ptView = document.getElementById('view-pt');
+
+            if (tab === 'pt') {
+                membersTab.style.color = 'var(--text-muted)';
+                membersTab.style.borderBottomColor = 'transparent';
+                membersTab.style.fontWeight = '600';
+                ptTab.style.color = '#fff';
+                ptTab.style.borderBottomColor = '#fbbf24';
+                ptTab.style.fontWeight = '700';
+                membersView.style.display = 'none';
+                ptView.style.display = 'block';
+                renderPTTable();
+            } else {
+                ptTab.style.color = 'var(--text-muted)';
+                ptTab.style.borderBottomColor = 'transparent';
+                ptTab.style.fontWeight = '600';
+                membersTab.style.color = '#fff';
+                membersTab.style.borderBottomColor = '#6366f1';
+                membersTab.style.fontWeight = '700';
+                ptView.style.display = 'none';
+                membersView.style.display = 'block';
+            }
+        }
+
+        function renderPTTable() {
+            const ptMembers = allMembers.filter(m => m.pt_coach_id);
+            const container = document.getElementById('pt-members-container');
+            const empty = document.getElementById('pt-empty-state');
+            const tbody = document.getElementById('pt-members-tbody');
+
+            // Update PT count badge
+            const countBadge = document.getElementById('pt-count');
+            if (ptMembers.length > 0) {
+                countBadge.textContent = ptMembers.length;
+                countBadge.style.display = 'inline';
+            } else {
+                countBadge.style.display = 'none';
+            }
+
+            if (ptMembers.length === 0) {
+                container.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+
+            container.style.display = 'block';
+            empty.style.display = 'none';
+
+            tbody.innerHTML = ptMembers.map(m => {
+                const sessionsLeft = Math.max(0, (m.pt_sessions_total || 0) - (m.pt_sessions_used || 0));
+                const sessionsPercent = m.pt_sessions_total ? Math.round((m.pt_sessions_used / m.pt_sessions_total) * 100) : 0;
+                const isLow = sessionsLeft <= 2 && m.pt_sessions_total > 0;
+                const ptExpired = m.pt_ends_at && new Date(m.pt_ends_at) < new Date();
+
+                return `
+                <tr>
+                    <td data-label="Member">
+                        <div style="font-weight: 700;">${m.name}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">${m.phone}</div>
+                    </td>
+                    <td data-label="Coach">
+                        <div style="font-weight: 600; color: #a78bfa;">${m.pt_coach_name || 'Unassigned'}</div>
+                    </td>
+                    <td data-label="Sessions">
+                        <div style="font-weight: 700; color: ${isLow ? '#f87171' : '#34d399'};">${m.pt_sessions_used || 0} / ${m.pt_sessions_total || 0}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">${sessionsLeft} remaining</div>
+                        ${m.pt_sessions_total > 0 ? `
+                            <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; width: 80px;">
+                                <div style="height: 100%; border-radius: 4px; width: ${sessionsPercent}%; background: ${isLow ? '#f87171' : '#34d399'};"></div>
+                            </div>
+                        ` : ''}
+                    </td>
+                    <td data-label="PT Expires">
+                        ${m.pt_ends_at ? `
+                            <div style="font-weight: 600; color: ${ptExpired ? '#f87171' : '#fff'};">${m.pt_ends_at}</div>
+                            ${ptExpired ? '<div style="font-size: 11px; color: #f87171;">Expired</div>' : ''}
+                        ` : '<span style="color: var(--text-muted);">No expiry set</span>'}
+                    </td>
+                    <td data-label="Group Plan">
+                        ${m.current_plan ? `
+                            <div style="font-size: 13px; color: #fff;">${m.current_plan}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">${m.expiry_date || ''}</div>
+                        ` : '<span style="font-size: 12px; color: #64748b;">No group plan</span>'}
+                    </td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit PT</button>
+                    </td>
+                </tr>`;
+            }).join('');
         }
 
         loadMembers();
