@@ -276,6 +276,15 @@ body[data-tier="elite"] .feature-elite-only {
     background: white;
 }
 
+/* [DROPDOWN-OPTIONS] The native option list uses the OS background (often
+   light gray), so white option text became invisible. Force a dark
+   background + light text on every dropdown option, app-wide. */
+select option,
+.form-select option {
+    background-color: #1e293b;
+    color: #ffffff;
+}
+
 /* [MOBILE] Responsive design */
 @media (max-width: 768px) {
     .container {
