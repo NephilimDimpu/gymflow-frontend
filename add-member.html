@@ -133,50 +133,16 @@
                 </div>
             </div>
 
-            <!-- [PERSONAL-TRAINING-SECTION] -->
-            <div id="pt-section" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); position: relative;">
-                <div id="pt-lock-overlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 10; border-radius: 12px; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 20px;">
-                    <div style="font-size: 24px; margin-bottom: 12px;">🔒</div>
-                    <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">Personal Training is a Pro Feature</div>
-                    <div style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">Upgrade to track sessions, assign coaches, and show progress to members.</div>
-                    <button type="button" class="btn btn-primary" onclick="window.location.href='upgrade-plan.html'" style="font-size: 12px; padding: 8px 16px;">⭐ Upgrade to Pro</button>
-                </div>
-
-                <h3 style="font-size: 16px; font-weight: 700; color: #34d399; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                    <span>🏋️</span> Personal Training (Optional)
-                </h3>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="form-group">
-                        <label class="form-label" for="pt-coach">Assign Coach</label>
-                        <select id="pt-coach" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
-                            <option value="">No PT Coach</option>
-                        </select>
+            <!-- [PERSONAL-TRAINING-NOTE] PT is now managed in the dedicated
+                 Personal Training tab so one member can have multiple coaches
+                 for different disciplines (BJJ, Boxing, S&C). -->
+            <div id="pt-note" style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.2); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <span style="font-size: 24px;">🏋️</span>
+                    <div>
+                        <div style="font-weight: 700; color: #fbbf24; margin-bottom: 2px;">Adding Personal Training?</div>
+                        <div style="font-size: 13px; color: #94a3b8;">Save this member first, then open the <strong>Personal Training</strong> tab on the Members page to assign one or more private coaches (BJJ, Boxing, S&amp;C) — each with their own sessions and expiry.</div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label" for="pt-plan">PT Billing Plan</label>
-                        <select id="pt-plan" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
-                            <option value="">No separate billing</option>
-                        </select>
-                        <small style="color: #64748b; font-size: 11px;">Creates a separate billing record — group plan stays untouched</small>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="form-group">
-                        <label class="form-label" for="pt-sessions-total">Total Sessions</label>
-                        <input type="number" id="pt-sessions-total" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. 12" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="pt-sessions-used">Used Sessions</label>
-                        <input type="number" id="pt-sessions-used" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" value="0" min="0">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="pt-expiry">PT Package Expiry</label>
-                    <input type="date" id="pt-expiry" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
-                    <small style="color: #64748b; font-size: 11px;">Leave blank for no expiry</small>
                 </div>
             </div>
 
@@ -248,11 +214,6 @@
             throw new Error('redirecting to login');
         }
 
-        // [TIER-GATING] Lock PT for Starter
-        if (userTier === 'starter') {
-            document.getElementById('pt-lock-overlay').style.display = 'flex';
-        }
-
         // [JS-STATE] Store loaded plans
         let availablePlans = [];
 
@@ -261,22 +222,6 @@
             loadBranches();
         }
         
-        // loadCoaches is called inside initPage() to ensure coaches
-        // are loaded before edit-mode prefill sets the dropdown value.
-
-        async function loadCoaches() {
-            try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const staff = await res.json();
-                    const select = document.getElementById('pt-coach');
-                    select.innerHTML += staff.map(s => `<option value="${s.id}">${s.name} ${s.custom_role ? `(${s.custom_role})` : ''}</option>`).join('');
-                }
-            } catch (err) { console.error('[COACHES-LOAD]', err); }
-        }
-
         async function loadBranches() {
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/branches`, {
@@ -332,17 +277,12 @@
         // ============================================
         function displayPlans() {
             const planSelect = document.getElementById('plan');
-            const ptPlanSelect = document.getElementById('pt-plan');
 
             availablePlans.forEach(plan => {
                 const option = document.createElement('option');
                 option.value = plan.id;
                 option.textContent = `${plan.name} - ${formatINR(plan.price)} (${plan.duration_days} days)`;
                 planSelect.appendChild(option);
-
-                // Also populate PT billing plan dropdown
-                const ptOption = option.cloneNode(true);
-                ptPlanSelect.appendChild(ptOption);
             });
         }
 
@@ -429,12 +369,7 @@
                         email: email || null,
                         plan_id: planId,
                         payment_received: paymentStatus === 'paid',
-                        branch_id: document.getElementById('branch').value ? parseInt(document.getElementById('branch').value) : null,
-                        pt_coach_id: document.getElementById('pt-coach').value ? parseInt(document.getElementById('pt-coach').value) : null,
-                        pt_plan_id: document.getElementById('pt-plan').value ? parseInt(document.getElementById('pt-plan').value) : null,
-                        pt_sessions_total: parseInt(document.getElementById('pt-sessions-total').value) || 0,
-                        pt_sessions_used: parseInt(document.getElementById('pt-sessions-used').value) || 0,
-                        pt_ends_at: document.getElementById('pt-expiry').value || null
+                        branch_id: document.getElementById('branch').value ? parseInt(document.getElementById('branch').value) : null
                     })
                 });
 
@@ -498,7 +433,6 @@
 
         async function initPage() {
             await loadPlans();
-            await loadCoaches();
 
             const urlParams = new URLSearchParams(window.location.search);
             editMemberId = urlParams.get('edit');
@@ -538,16 +472,7 @@
                         }
                     }
 
-                    // PT Fields
-                    if (member.pt_coach_id) {
-                        document.getElementById('pt-coach').value = member.pt_coach_id;
-                        document.getElementById('pt-sessions-total').value = member.pt_sessions_total || '';
-                        document.getElementById('pt-sessions-used').value = member.pt_sessions_used || 0;
-                        if (member.pt_ends_at) {
-                            // Backend returns YYYY-MM-DD from get_member now
-                            document.getElementById('pt-expiry').value = member.pt_ends_at;
-                        }
-                    }
+                    // PT is now managed in the dedicated Personal Training tab.
                 } catch (error) {
                     console.error('[LOAD-MEMBER-ERROR]', error);
                     showToast('Error loading member details. Returning to member list.', 'error');

@@ -156,16 +156,21 @@
 
             <!-- ======= PERSONAL TRAINING VIEW ======= -->
             <div id="view-pt" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <p style="font-size: 14px; color: var(--text-muted); margin: 0;">Track private coaching packages. A member can have multiple coaches for different disciplines (BJJ, Boxing, S&C).</p>
+                    <button class="btn btn-primary" onclick="openPTModal()" style="white-space: nowrap;">+ Add PT Package</button>
+                </div>
+
                 <div id="pt-members-container" class="glass-panel" style="display: none; padding: 0; overflow: hidden;">
                     <div class="table-wrap">
                         <table class="glass-table mobile-card-view">
                             <thead>
                                 <tr>
                                     <th>Member</th>
+                                    <th>Discipline</th>
                                     <th>Coach</th>
                                     <th>Sessions</th>
-                                    <th>PT Expires</th>
-                                    <th>Group Plan</th>
+                                    <th>Expires</th>
                                     <th style="text-align: right;">Actions</th>
                                 </tr>
                             </thead>
@@ -176,13 +181,73 @@
 
                 <div id="pt-empty-state" class="empty-state" style="display: none;">
                     <span class="empty-icon">🏋️</span>
-                    <h2 class="empty-title">No personal training members</h2>
-                    <p class="empty-subtitle">Assign a PT coach to any member via Edit to start tracking personal training sessions.</p>
+                    <h2 class="empty-title">No personal training packages yet</h2>
+                    <p class="empty-subtitle">Add a PT package to assign a private coach and track sessions. A member can have several packages with different coaches.</p>
                     <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
-                        <button class="btn btn-primary" onclick="switchMainTab('members')">Go to Members</button>
+                        <button class="btn btn-primary" onclick="openPTModal()">+ Add First PT Package</button>
                     </div>
                 </div>
             </div><!-- /view-pt -->
+
+            <!-- ======= PT PACKAGE MODAL ======= -->
+            <div id="pt-modal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+                <div class="glass-panel" style="max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h2 id="pt-modal-title" style="font-size: 22px; margin: 0;">🏋️ Add PT Package</h2>
+                        <button onclick="closePTModal()" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer;">&times;</button>
+                    </div>
+                    <input type="hidden" id="pt-edit-id">
+
+                    <div class="form-group" id="pt-member-group">
+                        <label class="form-label" for="pt-modal-member">Member *</label>
+                        <select id="pt-modal-member" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                            <option value="">Select member...</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="pt-modal-discipline">Discipline *</label>
+                            <input type="text" id="pt-modal-discipline" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. BJJ Private, Boxing" value="Personal Training">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="pt-modal-coach">Coach</label>
+                            <select id="pt-modal-coach" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                                <option value="">No coach assigned</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="pt-modal-total">Total Sessions</label>
+                            <input type="number" id="pt-modal-total" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g. 12" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="pt-modal-used">Used Sessions</label>
+                            <input type="number" id="pt-modal-used" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" value="0" min="0">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="pt-modal-expiry">Expiry Date</label>
+                            <input type="date" id="pt-modal-expiry" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="pt-modal-plan">Billing Plan</label>
+                            <select id="pt-modal-plan" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                                <option value="">No billing record</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 8px;">
+                        <button class="btn btn-primary" onclick="savePTPackage()" style="flex: 1;">Save Package</button>
+                        <button class="btn btn-secondary" onclick="closePTModal()" style="background: rgba(255,255,255,0.05);">Cancel</button>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -238,16 +303,6 @@
                 allMembers = await response.json();
                 filteredMembers = allMembers;
                 renderTable(allMembers);
-
-                // Update PT badge count
-                const ptCount = allMembers.filter(m => m.pt_coach_id).length;
-                const ptBadge = document.getElementById('pt-count');
-                if (ptCount > 0) {
-                    ptBadge.textContent = ptCount;
-                    ptBadge.style.display = 'inline';
-                } else {
-                    ptBadge.style.display = 'none';
-                }
             } catch (error) {
                 showToast("Failed to load members", "error");
             } finally {
@@ -562,74 +617,234 @@
             }
         }
 
-        function renderPTTable() {
-            const ptMembers = allMembers.filter(m => m.pt_coach_id);
-            const container = document.getElementById('pt-members-container');
-            const empty = document.getElementById('pt-empty-state');
-            const tbody = document.getElementById('pt-members-tbody');
+        // ============================================
+        // [PT-PACKAGES] Multi-coach Personal Training
+        // ============================================
+        let ptPackages = [];
+        let ptCoaches = [];
+        let ptModalReady = false;
 
-            // Update PT count badge
+        async function loadPTPackages() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/pt-packages`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 403) { ptPackages = []; return; }
+                if (res.ok) ptPackages = await res.json();
+            } catch (err) { console.error('[PT-LOAD]', err); ptPackages = []; }
+
+            // Update badge
             const countBadge = document.getElementById('pt-count');
-            if (ptMembers.length > 0) {
-                countBadge.textContent = ptMembers.length;
+            if (ptPackages.length > 0) {
+                countBadge.textContent = ptPackages.length;
                 countBadge.style.display = 'inline';
             } else {
                 countBadge.style.display = 'none';
             }
+        }
 
-            if (ptMembers.length === 0) {
+        async function renderPTTable() {
+            await loadPTPackages();
+            const container = document.getElementById('pt-members-container');
+            const empty = document.getElementById('pt-empty-state');
+            const tbody = document.getElementById('pt-members-tbody');
+
+            if (ptPackages.length === 0) {
                 container.style.display = 'none';
                 empty.style.display = 'block';
                 return;
             }
-
             container.style.display = 'block';
             empty.style.display = 'none';
 
-            tbody.innerHTML = ptMembers.map(m => {
-                const sessionsLeft = Math.max(0, (m.pt_sessions_total || 0) - (m.pt_sessions_used || 0));
-                const sessionsPercent = m.pt_sessions_total ? Math.round((m.pt_sessions_used / m.pt_sessions_total) * 100) : 0;
-                const isLow = sessionsLeft <= 2 && m.pt_sessions_total > 0;
-                const ptExpired = m.pt_ends_at && new Date(m.pt_ends_at) < new Date();
-
+            tbody.innerHTML = ptPackages.map(p => {
+                const left = p.sessions_left;
+                const pct = p.sessions_total ? Math.round((p.sessions_used / p.sessions_total) * 100) : 0;
+                const isLow = left <= 2 && p.sessions_total > 0;
                 return `
                 <tr>
                     <td data-label="Member">
-                        <div style="font-weight: 700;">${m.name}</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">${m.phone}</div>
+                        <div style="font-weight: 700;">${p.member_name || '—'}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">${p.member_phone || ''}</div>
+                    </td>
+                    <td data-label="Discipline">
+                        <span style="font-weight: 600; color: #fbbf24;">${p.name}</span>
                     </td>
                     <td data-label="Coach">
-                        <div style="font-weight: 600; color: #a78bfa;">${m.pt_coach_name || 'Unassigned'}</div>
+                        <div style="font-weight: 600; color: #a78bfa;">${p.coach_name || 'Unassigned'}</div>
                     </td>
                     <td data-label="Sessions">
-                        <div style="font-weight: 700; color: ${isLow ? '#f87171' : '#34d399'};">${m.pt_sessions_used || 0} / ${m.pt_sessions_total || 0}</div>
-                        <div style="font-size: 11px; color: var(--text-muted);">${sessionsLeft} remaining</div>
-                        ${m.pt_sessions_total > 0 ? `
+                        <div style="font-weight: 700; color: ${isLow ? '#f87171' : '#34d399'};">${p.sessions_used} / ${p.sessions_total}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">${left} remaining</div>
+                        ${p.sessions_total > 0 ? `
                             <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; width: 80px;">
-                                <div style="height: 100%; border-radius: 4px; width: ${sessionsPercent}%; background: ${isLow ? '#f87171' : '#34d399'};"></div>
-                            </div>
-                        ` : ''}
+                                <div style="height: 100%; border-radius: 4px; width: ${pct}%; background: ${isLow ? '#f87171' : '#34d399'};"></div>
+                            </div>` : ''}
                     </td>
-                    <td data-label="PT Expires">
-                        ${m.pt_ends_at ? `
-                            <div style="font-weight: 600; color: ${ptExpired ? '#f87171' : '#fff'};">${m.pt_ends_at}</div>
-                            ${ptExpired ? '<div style="font-size: 11px; color: #f87171;">Expired</div>' : ''}
-                        ` : '<span style="color: var(--text-muted);">No expiry set</span>'}
+                    <td data-label="Expires">
+                        ${p.end_date ? `
+                            <div style="font-weight: 600; color: ${p.expired ? '#f87171' : '#fff'};">${p.end_date}</div>
+                            ${p.expired ? '<div style="font-size: 11px; color: #f87171;">Expired</div>' : ''}
+                        ` : '<span style="color: var(--text-muted);">No expiry</span>'}
                     </td>
-                    <td data-label="Group Plan">
-                        ${m.current_plan ? `
-                            <div style="font-size: 13px; color: #fff;">${m.current_plan}</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">${m.expiry_date || ''}</div>
-                        ` : '<span style="font-size: 12px; color: #64748b;">No group plan</span>'}
-                    </td>
-                    <td style="text-align: right;">
-                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit PT</button>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(52,211,153,0.1); color:#34d399;" onclick="logSession(${p.id})" title="Mark one session used">+1 Session</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editPTPackage(${p.id})">Edit</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(239,68,68,0.1); color:#f87171;" onclick="deletePTPackage(${p.id})">🗑️</button>
                     </td>
                 </tr>`;
             }).join('');
         }
 
+        // ----- PT Modal -----
+        async function ensurePTModalData() {
+            if (ptModalReady) return;
+            // Load coaches
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) ptCoaches = await res.json();
+            } catch (e) { ptCoaches = []; }
+            const coachSel = document.getElementById('pt-modal-coach');
+            coachSel.innerHTML = '<option value="">No coach assigned</option>' +
+                ptCoaches.map(c => `<option value="${c.id}">${c.name}${c.custom_role ? ` (${c.custom_role})` : ''}</option>`).join('');
+
+            // Load plans for billing
+            let plans = [];
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) plans = await res.json();
+            } catch (e) {}
+            document.getElementById('pt-modal-plan').innerHTML = '<option value="">No billing record</option>' +
+                plans.map(p => `<option value="${p.id}">${p.name} - ₹${p.price.toLocaleString('en-IN')} (${p.duration_days}d)</option>`).join('');
+
+            // Members dropdown
+            document.getElementById('pt-modal-member').innerHTML = '<option value="">Select member...</option>' +
+                allMembers.map(m => `<option value="${m.id}">${m.name} (${m.phone})</option>`).join('');
+
+            ptModalReady = true;
+        }
+
+        async function openPTModal() {
+            await ensurePTModalData();
+            document.getElementById('pt-modal-title').textContent = '🏋️ Add PT Package';
+            document.getElementById('pt-edit-id').value = '';
+            document.getElementById('pt-member-group').style.display = 'block';
+            document.getElementById('pt-modal-member').value = '';
+            document.getElementById('pt-modal-discipline').value = 'Personal Training';
+            document.getElementById('pt-modal-coach').value = '';
+            document.getElementById('pt-modal-total').value = '';
+            document.getElementById('pt-modal-used').value = '0';
+            document.getElementById('pt-modal-expiry').value = '';
+            document.getElementById('pt-modal-plan').value = '';
+            document.getElementById('pt-modal').style.display = 'flex';
+        }
+
+        async function editPTPackage(id) {
+            await ensurePTModalData();
+            const p = ptPackages.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('pt-modal-title').textContent = '🏋️ Edit PT Package';
+            document.getElementById('pt-edit-id').value = id;
+            document.getElementById('pt-member-group').style.display = 'none'; // can't change member on edit
+            document.getElementById('pt-modal-discipline').value = p.name;
+            document.getElementById('pt-modal-coach').value = p.coach_id || '';
+            document.getElementById('pt-modal-total').value = p.sessions_total || '';
+            document.getElementById('pt-modal-used').value = p.sessions_used || 0;
+            // Convert "15 Aug 2026" back to yyyy-mm-dd for the date input
+            document.getElementById('pt-modal-expiry').value = p.end_date ? new Date(p.end_date).toISOString().split('T')[0] : '';
+            document.getElementById('pt-modal-plan').value = ''; // billing only on create
+            document.getElementById('pt-modal').style.display = 'flex';
+        }
+
+        function closePTModal() {
+            document.getElementById('pt-modal').style.display = 'none';
+        }
+
+        async function savePTPackage() {
+            const editId = document.getElementById('pt-edit-id').value;
+            const discipline = document.getElementById('pt-modal-discipline').value.trim() || 'Personal Training';
+            const coachId = document.getElementById('pt-modal-coach').value;
+            const total = parseInt(document.getElementById('pt-modal-total').value) || 0;
+            const used = parseInt(document.getElementById('pt-modal-used').value) || 0;
+            const expiry = document.getElementById('pt-modal-expiry').value || null;
+            const planId = document.getElementById('pt-modal-plan').value;
+
+            try {
+                let res;
+                if (editId) {
+                    res = await fetch(`${CONFIG.API_BASE_URL}/api/pt-packages/${editId}`, {
+                        method: 'PUT',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coach_id: coachId ? parseInt(coachId) : null,
+                            name: discipline,
+                            sessions_total: total,
+                            sessions_used: used,
+                            end_date: expiry || ''
+                        })
+                    });
+                } else {
+                    const memberId = document.getElementById('pt-modal-member').value;
+                    if (!memberId) { showToast('Please select a member', 'error'); return; }
+                    res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${memberId}/pt-packages`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coach_id: coachId ? parseInt(coachId) : null,
+                            plan_id: planId ? parseInt(planId) : null,
+                            name: discipline,
+                            sessions_total: total,
+                            sessions_used: used,
+                            end_date: expiry,
+                            payment_received: true
+                        })
+                    });
+                }
+                const d = await res.json().catch(() => ({}));
+                if (res.status === 403) {
+                    if (confirm('PT tracking is a Pro feature. Upgrade now?')) window.location.href = 'upgrade-plan.html';
+                    return;
+                }
+                if (!res.ok) { showToast((typeof d.detail === 'string' ? d.detail : 'Failed to save'), 'error'); return; }
+                showToast(editId ? 'PT package updated' : 'PT package added', 'success');
+                closePTModal();
+                renderPTTable();
+            } catch (err) { showToast('Network error', 'error'); }
+        }
+
+        async function logSession(id) {
+            const p = ptPackages.find(x => x.id === id);
+            if (!p) return;
+            if (p.sessions_total && p.sessions_used >= p.sessions_total) {
+                showToast('All sessions already used', 'warning');
+                return;
+            }
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/pt-packages/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessions_used: (p.sessions_used || 0) + 1 })
+                });
+                if (res.ok) { showToast('Session logged', 'success'); renderPTTable(); }
+                else showToast('Failed to log session', 'error');
+            } catch (err) { showToast('Network error', 'error'); }
+        }
+
+        async function deletePTPackage(id) {
+            if (!confirm('Remove this PT package?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/pt-packages/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) { showToast('PT package removed', 'success'); renderPTTable(); }
+                else showToast('Failed to remove', 'error');
+            } catch (err) { showToast('Network error', 'error'); }
+        }
+
         loadMembers();
+        // Preload PT package count for the badge on first load
+        loadPTPackages();
 
         // Export button: visible for everyone, but Starter sees an upgrade
         // prompt on click (handled in exportMembersCSV). The button label
