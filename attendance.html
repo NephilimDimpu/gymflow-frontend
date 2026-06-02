@@ -390,6 +390,15 @@
                     allBranches = await res.json();
                     const staffSel = document.getElementById('staff-branch-filter');
                     const memberSel = document.getElementById('member-branch-filter');
+
+                    // Branch filter only makes sense for multi-branch (Elite) gyms.
+                    // Every gym has one auto-created branch, so a single-branch
+                    // gym would otherwise see a pointless filter with one option.
+                    if (allBranches.length <= 1) {
+                        staffSel.style.display = 'none';
+                        memberSel.style.display = 'none';
+                        return;
+                    }
                     allBranches.forEach(b => {
                         staffSel.innerHTML += `<option value="${b.id}">${b.name}</option>`;
                         memberSel.innerHTML += `<option value="${b.id}">${b.name}</option>`;
