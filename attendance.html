@@ -142,6 +142,9 @@
             gap: 16px;
             margin-bottom: 24px;
         }
+        /* Branch-related UI is an Elite (multi-branch) feature. Hidden for
+           single-branch gyms via the .single-branch body class. */
+        body.single-branch .branch-col { display: none !important; }
         .summary-card {
             background: rgba(255,255,255,0.02);
             border: 1px solid rgba(255,255,255,0.05);
@@ -238,7 +241,7 @@
                         <thead>
                             <tr>
                                 <th>Staff Member</th>
-                                <th>Branch</th>
+                                <th class="branch-col">Branch</th>
                                 <th>Date</th>
                                 <th>Check-In</th>
                                 <th>Check-Out</th>
@@ -275,7 +278,7 @@
                             <tr>
                                 <th>Member</th>
                                 <th>Phone</th>
-                                <th>Branch</th>
+                                <th class="branch-col">Branch</th>
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Status</th>
@@ -391,14 +394,17 @@
                     const staffSel = document.getElementById('staff-branch-filter');
                     const memberSel = document.getElementById('member-branch-filter');
 
-                    // Branch filter only makes sense for multi-branch (Elite) gyms.
-                    // Every gym has one auto-created branch, so a single-branch
-                    // gym would otherwise see a pointless filter with one option.
+                    // Branch UI (filter, column, "Branches Active" stat) only
+                    // makes sense for multi-branch (Elite) gyms. Every gym has
+                    // one auto-created branch, so single-branch gyms hide it all
+                    // via the .single-branch body class.
                     if (allBranches.length <= 1) {
+                        document.body.classList.add('single-branch');
                         staffSel.style.display = 'none';
                         memberSel.style.display = 'none';
                         return;
                     }
+                    document.body.classList.remove('single-branch');
                     allBranches.forEach(b => {
                         staffSel.innerHTML += `<option value="${b.id}">${b.name}</option>`;
                         memberSel.innerHTML += `<option value="${b.id}">${b.name}</option>`;
@@ -491,7 +497,7 @@
                     return header + `
                     <tr>
                         <td data-label="Staff" style="font-weight: 600; color: #f1f5f9;">${l.staff_name}</td>
-                        <td data-label="Branch" style="color: #94a3b8;">${l.branch_name}</td>
+                        <td class="branch-col" data-label="Branch" style="color: #94a3b8;">${l.branch_name}</td>
                         <td data-label="Date" style="color: #94a3b8;">${l.date}</td>
                         <td data-label="Check-In" style="color: #4ade80;">${l.check_in || '—'}</td>
                         <td data-label="Check-Out" style="color: ${l.check_out ? '#f59e0b' : '#475569'};">${checkOutCell}</td>
@@ -538,7 +544,7 @@
                         <div class="num" style="color: #4ade80;">${uniqueMembers}</div>
                         <div class="label">Unique Members</div>
                     </div>
-                    <div class="summary-card">
+                    <div class="summary-card branch-col">
                         <div class="num" style="color: #f59e0b;">${uniqueBranches}</div>
                         <div class="label">Branches Active</div>
                     </div>
@@ -558,7 +564,7 @@
                         <tr>
                             <td data-label="Member" style="font-weight: 600; color: #f1f5f9;">${l.member_name}</td>
                             <td data-label="Phone" style="color: #94a3b8;">${l.member_phone}</td>
-                            <td data-label="Branch" style="color: #94a3b8;">${l.branch_name}</td>
+                            <td class="branch-col" data-label="Branch" style="color: #94a3b8;">${l.branch_name}</td>
                             <td data-label="Date" style="color: #94a3b8;">${l.check_in_date}</td>
                             <td data-label="Time" style="color: #cbd5e1;">${l.check_in_time}</td>
                             <td data-label="Status">
