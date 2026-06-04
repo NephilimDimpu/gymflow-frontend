@@ -121,6 +121,7 @@
                     <p style="font-size: 13px; color: var(--text-muted);">Print this poster and display it at your gym entrance. Members scan to check in.</p>
                 </div>
                 <div style="display: flex; gap: 10px;" class="print-hide">
+                    <a id="staff-qr-btn" href="staff-qr-poster.html" class="btn btn-secondary" style="display:none; background: rgba(99,102,241,0.12); color:#a5b4fc; border-color: rgba(99,102,241,0.3);">🛡️ Staff QR Poster</a>
                     <button class="btn btn-secondary" onclick="copyLink()">🔗 Copy Link</button>
                     <button class="btn btn-primary" onclick="window.print()">🖨️ Print</button>
                 </div>
@@ -201,6 +202,10 @@
 
     async function init() {
         if (!hasMemberAttendance) return;
+
+        // Staff QR poster is available to anyone with staff management (Pro+).
+        const staffBtn = document.getElementById('staff-qr-btn');
+        if (staffBtn) staffBtn.style.display = 'inline-flex';
 
         // [PRO] Gym-wide QR — no branch concept at all
         if (gymTier === 'pro') {

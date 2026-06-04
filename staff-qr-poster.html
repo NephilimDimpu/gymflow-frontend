@@ -118,11 +118,11 @@
             <!-- Tier gate -->
             <div id="tier-gate" style="display:none; text-align:center; padding: 80px 40px;">
                 <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
-                <h2 style="font-size: 26px; font-weight: 700; margin-bottom: 12px;">Staff QR requires the Elite plan</h2>
+                <h2 style="font-size: 26px; font-weight: 700; margin-bottom: 12px;">Staff QR requires the Pro plan</h2>
                 <p style="color: var(--text-muted); font-size: 15px; max-width: 480px; margin: 0 auto 32px;">
-                    Staff shift check-in, multi-branch roles, and per-branch analytics are part of Elite.
+                    Staff shift check-in via QR is part of the Pro plan and above.
                 </p>
-                <a href="upgrade-plan.html" class="btn btn-primary" style="padding: 14px 36px; font-weight: 700;">⭐ Upgrade to Elite</a>
+                <a href="upgrade-plan.html" class="btn btn-primary" style="padding: 14px 36px; font-weight: 700;">⭐ Upgrade to Pro</a>
             </div>
 
             <!-- Branch picker -->
@@ -178,8 +178,8 @@
     if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
     if (userType === 'staff' && userRole !== 'manager') { window.location.href = 'dashboard.html'; throw new Error('redirecting'); }
 
-    // Elite-only gate
-    if (gymTier !== 'elite') {
+    // Staff QR = staff management, which is Pro+ (Starter is gated out).
+    if (gymTier === 'starter') {
         document.getElementById('tier-gate').style.display = 'block';
     } else {
         document.getElementById('pin-reminder').style.display = 'block';
@@ -212,7 +212,11 @@
                     sel.disabled = true;
                 }
             }
-            document.getElementById('branch-controls').style.display = 'flex';
+            // Single-branch gyms (Pro): one auto-created branch — hide the picker,
+            // it's auto-selected. Only multi-branch (Elite) gyms need to choose.
+            if (branches.length > 1) {
+                document.getElementById('branch-controls').style.display = 'flex';
+            }
             renderPoster();
         } catch (e) {
             console.error(e);

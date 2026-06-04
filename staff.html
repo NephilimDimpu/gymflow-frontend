@@ -10,6 +10,9 @@
     <script src="assets/config.js"></script>
     <script src="assets/toast.js"></script>
     <style>
+        /* Branch UI is an Elite (multi-branch) concept. Single-branch gyms
+           hide it via the .single-branch body class. */
+        body.single-branch .branch-col { display: none !important; }
         .staff-table {
             width: 100%;
             border-collapse: collapse;
@@ -209,7 +212,7 @@
                         <thead>
                             <tr>
                                 <th>Staff Member</th>
-                                <th>Branch</th>
+                                <th class="branch-col">Branch</th>
                                 <th>Role</th>
                                 <th>Contact</th>
                                 <th>Status</th>
@@ -277,7 +280,7 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="form-group">
+                    <div class="form-group branch-col">
                         <label class="form-label" style="color: #fff;">Assign Branch</label>
                         <select id="staff-branch" class="form-select" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
                             <option value="">Select branch...</option>
@@ -361,6 +364,12 @@
                     select.innerHTML = '<option value="">Select branch...</option>' +
                         allBranches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
 
+                    // [SINGLE-BRANCH] Hide all branch UI (column + assign dropdown)
+                    // for single-branch gyms — branch is an Elite multi-branch
+                    // concept. The one auto-created branch is still auto-assigned
+                    // on save, so staff still get a valid branch_id.
+                    document.body.classList.toggle('single-branch', allBranches.length <= 1);
+
                     // [UX-FIX] Show warning banner if no branches exist
                     const warning = document.getElementById('no-branch-warning');
                     if (warning) {
@@ -401,7 +410,7 @@
                             <div style="font-weight: 600; color: #fff;">${s.name}</div>
                             <div style="font-size: 12px; color: #64748b;">${s.email}</div>
                         </td>
-                        <td style="color: #94a3b8;">${s.branch_name}</td>
+                        <td class="branch-col" style="color: #94a3b8;">${s.branch_name}</td>
                         <td>
                             <span class="role-badge role-${s.role}">${s.custom_role || s.role}</span>
                             ${s.custom_role ? `<span style="font-size: 10px; color: #475569; display: block; margin-top: 2px;">${s.role} access</span>` : ''}
