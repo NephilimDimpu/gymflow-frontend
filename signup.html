@@ -264,6 +264,42 @@
             font-weight: 500;
         }
 
+        /* Tier selector */
+        .tier-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        .tier-opt {
+            position: relative;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 10px 12px;
+            cursor: pointer;
+            text-align: center;
+            background: rgba(255,255,255,0.02);
+            transition: all 0.18s;
+        }
+        .tier-opt:hover { border-color: rgba(99,102,241,0.5); }
+        .tier-opt.selected {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.1);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+        .tier-opt .t-name { font-weight: 700; font-size: 0.95rem; color: #fff; }
+        .tier-opt .t-price { font-size: 1.05rem; font-weight: 800; color: #a5b4fc; margin-top: 2px; }
+        .tier-opt .t-price span { font-size: 0.7rem; font-weight: 500; color: #71717a; }
+        .tier-opt .t-desc { font-size: 0.68rem; color: #a1a1aa; margin-top: 4px; line-height: 1.3; }
+        .tier-opt .t-badge {
+            position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary), #8b5cf6); color: #fff;
+            font-size: 0.55rem; font-weight: 800; letter-spacing: 0.5px;
+            padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+        }
+        @media (max-width: 420px) {
+            .tier-opt .t-desc { display: none; }
+        }
+
         /* Inputs */
         .input-group {
             margin-bottom: 1rem;
@@ -520,6 +556,28 @@
                     </div>
                 </div>
 
+                <div class="input-group">
+                    <label>Choose your plan <span style="color:#a1a1aa; font-weight:400; font-size:0.78rem;">— 14-day free trial of any plan, no card</span></label>
+                    <div class="tier-grid" id="tier-selector">
+                        <div class="tier-opt" data-tier="starter" onclick="selectTier('starter')">
+                            <div class="t-name">Starter</div>
+                            <div class="t-price">₹499<span>/mo</span></div>
+                            <div class="t-desc">Up to 30 members</div>
+                        </div>
+                        <div class="tier-opt selected" data-tier="pro" onclick="selectTier('pro')">
+                            <div class="t-badge">POPULAR</div>
+                            <div class="t-name">Pro</div>
+                            <div class="t-price">₹999<span>/mo</span></div>
+                            <div class="t-desc">Unlimited + staff + WhatsApp</div>
+                        </div>
+                        <div class="tier-opt" data-tier="elite" onclick="selectTier('elite')">
+                            <div class="t-name">Elite</div>
+                            <div class="t-price">₹2,499<span>/mo</span></div>
+                            <div class="t-desc">Multi-branch + AI</div>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" class="submit-btn" id="signup-btn">Start 14-day free trial</button>
 
                 <div class="trust-row">
@@ -557,17 +615,21 @@
         }
 
         // ============================================
-        // [JS-PLAN-CONTEXT] Show selected plan if ?plan= present
+        // [JS-TIER-SELECTOR] Pick which tier to trial. Default Pro;
+        // pre-select from ?plan= if a pricing-page CTA sent one.
         // ============================================
+        let selectedTier = 'pro';
+
+        function selectTier(tier) {
+            selectedTier = tier;
+            document.querySelectorAll('.tier-opt').forEach(el => {
+                el.classList.toggle('selected', el.dataset.tier === tier);
+            });
+        }
+
         const urlPlan = new URLSearchParams(window.location.search).get('plan');
-        if (urlPlan) {
-            const tierNames = { starter: 'Starter', pro: 'Pro', elite: 'Elite' };
-            const name = tierNames[urlPlan.toLowerCase()];
-            if (name) {
-                const ctx = document.getElementById('plan-context');
-                ctx.textContent = `You selected the ${name} plan — you can upgrade after your free trial ends.`;
-                ctx.style.display = 'block';
-            }
+        if (urlPlan && ['starter', 'pro', 'elite'].includes(urlPlan.toLowerCase())) {
+            selectTier(urlPlan.toLowerCase());
         }
 
         // ============================================
@@ -576,11 +638,10 @@
         document.getElementById('signup-form').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            // The ?plan= URL param is informational only — used by pricing.html
-            // CTAs to track which plan a prospect was eyeing. The backend
-            // ignores client-supplied tier and always creates new gyms as
-            // 'starter' (security fix in commit a3eb538). Tier upgrades
-            // happen exclusively through the Razorpay payment flow.
+            // [TRIAL-TIER] selectedTier is sent to the backend, which starts a
+            // 14-day TRIAL of that tier (subscription_status="trial"). It's
+            // safe: the trial is time-limited and 402-locks after it expires,
+            // so they must pay to continue. The value is re-validated server-side.
 
             // [GET-VALUES] Get form values
             const gymName = document.getElementById('gym-name').value.trim();
@@ -635,6 +696,7 @@
                         email: email,
                         phone: phone,
                         password: password,
+                        trial_tier: selectedTier,
                         // Auto-detect browser tz so reminders fire at local 9 AM from day one.
                         // Owner can change this later in Settings.
                         timezone: (Intl.DateTimeFormat().resolvedOptions().timeZone) || 'Asia/Kolkata'
