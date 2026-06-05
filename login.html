@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <link rel="manifest" href="manifest-admin.json">
@@ -293,15 +293,15 @@
 
         <div class="role-toggles" style="display: flex; gap: 4px;">
             <button type="button" id="toggle-gym" class="role-btn active" onclick="setLoginType('gym')" style="flex: 1;">
-                <span style="display: block; font-size: 14px;">🏢</span>
+                <span style="display: block; font-size: 14px;">ðŸ¢</span>
                 <span style="font-size: 11px;">Gym Owner</span>
             </button>
             <button type="button" id="toggle-manager" class="role-btn" onclick="setLoginType('manager')" style="flex: 1;">
-                <span style="display: block; font-size: 14px;">📍</span>
+                <span style="display: block; font-size: 14px;">ðŸ“</span>
                 <span style="font-size: 11px;">Branch Manager</span>
             </button>
             <button type="button" id="toggle-staff" class="role-btn" onclick="setLoginType('staff')" style="flex: 1;">
-                <span style="display: block; font-size: 14px;">👤</span>
+                <span style="display: block; font-size: 14px;">ðŸ‘¤</span>
                 <span style="font-size: 11px;">Staff</span>
             </button>
         </div>
@@ -319,20 +319,20 @@
                     <label for="password">Password</label>
                     <a href="forgot-password.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">Forgot password?</a>
                 </div>
-                <input type="password" id="password" class="modern-input" placeholder="••••••••" required autocomplete="current-password">
+                <input type="password" id="password" class="modern-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required autocomplete="current-password">
             </div>
 
             <button type="submit" class="submit-btn" id="login-btn">Sign In</button>
 
             <!-- Role-specific footer messages -->
             <p class="footer-link role-footer" id="footer-gym" style="margin-top: 2rem;">
-                No account? <a href="signup.html">Start your 14-day free trial</a>
+                No account? <a href="signup.html">Start your 30-day free trial</a>
             </p>
             <p class="footer-link role-footer" id="footer-manager" style="margin-top: 2rem; display: none;">
-                <span style="font-size: 0.8rem; color: var(--text-muted);">📍 Your gym owner creates your account when adding a branch.<br>Check your email for login credentials.</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">ðŸ“ Your gym owner creates your account when adding a branch.<br>Check your email for login credentials.</span>
             </p>
             <p class="footer-link role-footer" id="footer-staff" style="margin-top: 2rem; display: none;">
-                <span style="font-size: 0.8rem; color: var(--text-muted);">🔑 Your gym owner or branch manager creates your account.<br>Ask them for your email and password.</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">ðŸ”‘ Your gym owner or branch manager creates your account.<br>Ask them for your email and password.</span>
             </p>
 
             <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
