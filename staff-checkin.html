@@ -99,8 +99,8 @@
 
         <div id="form-section">
             <div class="form-group">
-                <label for="email">Work Email</label>
-                <input type="email" id="email" autocomplete="email" placeholder="you@gym.com" required>
+                <label for="identifier">Work Email or Phone</label>
+                <input type="text" id="identifier" placeholder="you@gym.com or phone" required>
             </div>
             <div class="form-group">
                 <label for="pin">4–6 Digit PIN</label>
@@ -139,11 +139,11 @@
         }
 
         async function submitCheckin(action) {
-            const email = document.getElementById('email').value.trim();
+            const identifier = document.getElementById('identifier').value.trim();
             const pin = document.getElementById('pin').value.trim();
 
-            if (!email || !pin) {
-                showStatus('Email and PIN are required.', 'error');
+            if (!identifier || !pin) {
+                showStatus('Email/Phone and PIN are required.', 'error');
                 return;
             }
 
@@ -156,7 +156,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        email, pin, action,
+                        identifier, pin, action,
                         branch_id: parseInt(branchId, 10)
                     })
                 });
