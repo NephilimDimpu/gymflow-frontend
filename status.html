@@ -435,7 +435,7 @@
                 idCard.style.display = 'block';
                 document.getElementById('card-gym-name').innerText = data.gym_name;
                 document.getElementById('card-member-name').innerText = data.member_name;
-                document.getElementById('card-member-id').innerText = `#${String(data.member_id).padStart(6, '0')}`;
+                document.getElementById('card-member-id').innerText = `#${data.member_id}`;
                 document.getElementById('card-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CHECKIN:${data.member_id}`;
                 
                 const cardPill = document.getElementById('card-status-pill');
