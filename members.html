@@ -71,6 +71,9 @@
                     <p id="context-info" style="font-size: 14px; color: var(--text-muted);">Manage your gym community and subscriptions.</p>
                 </div>
                 <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="goImport()" id="import-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Import members from a CSV/Excel file (or a photo on Elite)">
+                        <span style="margin-right: 6px;">⬆️</span> Import
+                    </button>
                     <button class="btn btn-secondary" onclick="exportMembersCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Download as Excel-compatible CSV — opens directly in Microsoft Excel or Google Sheets">
                         <span style="margin-right: 6px;">⬇️</span> Export to Excel
                     </button>
@@ -584,6 +587,19 @@
         function logout() {
             localStorage.clear();
             window.location.href = 'login.html';
+        }
+
+        // Import members (CSV/Excel, or photo-OCR on Elite). CSV import is a
+        // Pro+ feature; Starter gyms see an upgrade prompt.
+        function goImport() {
+            const tier = localStorage.getItem('tier') || 'starter';
+            if (tier === 'starter') {
+                if (confirm("Importing members (CSV/Excel) is a Pro feature. See upgrade options?")) {
+                    window.location.href = 'upgrade-plan.html';
+                }
+                return;
+            }
+            window.location.href = 'import-members.html';
         }
 
         // ============================================
