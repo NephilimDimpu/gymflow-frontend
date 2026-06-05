@@ -197,7 +197,7 @@
                     <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">🕘 Attendance</h1>
                     <p style="font-size: 14px; color: var(--text-muted);">Track staff and member attendance across all branches.</p>
                 </div>
-                <a href="qr-poster.html" class="btn btn-primary" style="padding: 10px 20px; font-weight: 600;">🖨️ Print QR Poster</a>
+                <a id="qr-poster-btn" href="staff-qr-poster.html" class="btn btn-primary" style="padding: 10px 20px; font-weight: 600;">🖨️ Print Staff QR Poster</a>
             </header>
 
             <!-- Tabs -->
@@ -379,6 +379,19 @@
             document.getElementById('staff-upgrade-nudge').style.display = 'none';
             document.getElementById(`tab-${tab}`).classList.add('active');
             document.getElementById(`panel-${tab}`).classList.add('active');
+
+            // [CONTEXT-AWARE-QR] The Print QR button follows the active tab:
+            // Staff tab → Staff QR poster, Members tab → Member QR poster.
+            const qrBtn = document.getElementById('qr-poster-btn');
+            if (qrBtn) {
+                if (tab === 'staff') {
+                    qrBtn.href = 'staff-qr-poster.html';
+                    qrBtn.innerHTML = '🖨️ Print Staff QR Poster';
+                } else {
+                    qrBtn.href = 'qr-poster.html';
+                    qrBtn.innerHTML = '🖨️ Print Member QR Poster';
+                }
+            }
         }
 
         // ============================================
