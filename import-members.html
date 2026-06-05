@@ -146,8 +146,8 @@
                 <p style="color: #6b7280; margin-bottom: 20px;">
                     Upload a CSV file containing members. Required columns: <strong>name, phone</strong>.
                     Optional columns: <strong>email, plan_name</strong> (e.g. "Monthly") <em>or</em> <strong>plan_id</strong>,
-                    <strong>payment_received</strong> (true/false).<br>
-                    <span style="color:#9ca3af; font-size:13px;">💡 Tip: Using <code>plan_name</code> is easier — just type the plan name exactly as it appears on your Plans page.</span>
+                    <strong>payment_received</strong> (true/false), <strong>start_date</strong> (YYYY-MM-DD).<br>
+                    <span style="color:#9ca3af; font-size:13px;">💡 Tip: Using <code>plan_name</code> is easier — just type the plan name exactly as it appears on your Plans page. Add a <code>start_date</code> column (e.g. <code>2026-05-15</code>) for members who joined earlier, so their expiry is correct.</span>
                 </p>
                 <p style="margin-bottom: 15px;">
                     <a href="sample-members.csv" download style="color:#60a5fa; font-size:14px;">⬇️ Download sample CSV</a>
@@ -373,6 +373,9 @@
                     };
                     if (row.plan_id && !isNaN(parseInt(row.plan_id))) m.plan_id = parseInt(row.plan_id);
                     if (row.plan_name && row.plan_name.trim()) m.plan_name = row.plan_name.trim();
+                    // Optional start_date column (YYYY-MM-DD) for migrating
+                    // members who joined earlier — backend computes expiry from it.
+                    if (row.start_date && String(row.start_date).trim()) m.start_date = String(row.start_date).trim();
                     return m;
                 });
 

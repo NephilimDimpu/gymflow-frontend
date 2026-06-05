@@ -120,6 +120,16 @@
                 </div>
             </div>
 
+            <!-- [FORM-GROUP-START-DATE] When the membership begins. Defaults to
+                 today; set a past date when migrating an existing member who
+                 joined earlier (or a future date to pre-register). Expiry is
+                 calculated from this date + the plan duration. -->
+            <div class="form-group">
+                <label class="form-label" for="start-date">Membership Start Date</label>
+                <input type="date" id="start-date" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                <small style="color: #64748b; font-size: 11px;">Defaults to today. Set an earlier date for members who already joined — expiry is calculated from here.</small>
+            </div>
+
             <!-- [FORM-GROUP-BRANCH] Branch assignment (owner only) -->
             <div class="form-group" id="branch-group" style="display: none;">
                 <label class="form-label" for="branch">
@@ -369,7 +379,8 @@
                         email: email || null,
                         plan_id: planId,
                         payment_received: paymentStatus === 'paid',
-                        branch_id: document.getElementById('branch').value ? parseInt(document.getElementById('branch').value) : null
+                        branch_id: document.getElementById('branch').value ? parseInt(document.getElementById('branch').value) : null,
+                        start_date: document.getElementById('start-date').value || null
                     })
                 });
 
@@ -433,6 +444,11 @@
 
         async function initPage() {
             await loadPlans();
+
+            // Default the membership start date to today (owner can change it
+            // to a past date when migrating an existing member).
+            const sd = document.getElementById('start-date');
+            if (sd) sd.value = new Date().toISOString().split('T')[0];
 
             const urlParams = new URLSearchParams(window.location.search);
             editMemberId = urlParams.get('edit');
