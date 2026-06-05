@@ -137,7 +137,7 @@
 
         <div class="tabs">
             <div class="tab active" onclick="switchTab('csv')">CSV Import</div>
-            <div class="tab" onclick="switchTab('ocr')">Image/Receipt OCR</div>
+            <div class="tab" id="ocr-tab" onclick="switchTab('ocr')">📷 Image/Receipt OCR</div>
         </div>
 
         <!-- CSV IMPORT TAB -->
@@ -249,6 +249,16 @@
         const token = localStorage.getItem('auth_token');
         if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
 
+        // [TIER-GATE] AI Receipt OCR is an Elite-only feature.
+        const gymTier = localStorage.getItem('tier') || 'starter';
+        const hasOCR = gymTier === 'elite';
+        if (!hasOCR) {
+            const ocrTab = document.getElementById('ocr-tab');
+            if (ocrTab) {
+                ocrTab.innerHTML = '📷 Image/Receipt OCR <span style="font-size:10px;background:rgba(251,191,36,0.2);color:#fbbf24;padding:2px 7px;border-radius:8px;margin-left:4px;font-weight:700;">🔒 ELITE</span>';
+            }
+        }
+
         let csvDataToImport = [];
         let availablePlans = [];
 
@@ -273,6 +283,13 @@
         }
 
         function switchTab(tabId) {
+            // AI Receipt OCR is Elite-only — block + offer upgrade for others.
+            if (tabId === 'ocr' && !hasOCR) {
+                if (confirm('📷 AI Receipt OCR is an Elite feature.\n\nIt reads a photo of your member register/receipt and fills in the details automatically.\n\nUpgrade to Elite to unlock it?')) {
+                    window.location.href = 'upgrade-plan.html';
+                }
+                return;  // stay on the current tab
+            }
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
