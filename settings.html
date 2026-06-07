@@ -193,6 +193,15 @@
                                     style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #a78bfa; font-size: 13px; font-family: monospace; flex: 1;">
                                 <button type="button" class="btn btn-secondary" onclick="copyPublicLink()" style="white-space: nowrap; padding: 10px 16px;">📋 Copy</button>
                             </div>
+
+                            <!-- [SHARE-LOCATION] One-tap location share for phone enquiries -->
+                            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.07);">
+                                <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 10px 0;">📍 Got an enquiry? Send your exact location instantly:</p>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <button type="button" class="btn" onclick="shareLocationWhatsApp()" style="background: linear-gradient(135deg, #25D366, #128C7E); color:#fff; border:none; padding: 10px 16px; font-weight: 700; white-space: nowrap;">💬 Share Location on WhatsApp</button>
+                                    <button type="button" class="btn btn-secondary" onclick="copyMapsLink()" style="white-space: nowrap; padding: 10px 16px;">🗺️ Copy Maps Link</button>
+                                </div>
+                            </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -610,6 +619,12 @@
                 });
                 if (res.ok) {
                     const data = await res.json();
+                    // Stash location for the one-tap share buttons.
+                    window._gymGeo = {
+                        lat: data.latitude, lng: data.longitude,
+                        address: data.address, city: data.city,
+                        name: data.name || 'our gym'
+                    };
                     if (data.gym_slug) {
                         showGeotagStatus(data.gym_slug);
                         if (data.address) document.getElementById('geo-address').value = data.address;
@@ -617,6 +632,31 @@
                     }
                 }
             } catch(e) { /* ignore */ }
+        }
+
+        // Build a Google Maps link from GPS coords (preferred) or the address.
+        function gymMapsLink() {
+            const g = window._gymGeo || {};
+            if (g.lat && g.lng) return `https://www.google.com/maps?q=${g.lat},${g.lng}`;
+            const q = [g.address, g.city].filter(Boolean).join(', ');
+            if (q) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+            return null;
+        }
+
+        // Open WhatsApp with the location pre-typed — owner picks the contact and sends.
+        function shareLocationWhatsApp() {
+            const link = gymMapsLink();
+            if (!link) { showToast('Set your gym location first', 'warning'); return; }
+            const name = (window._gymGeo && window._gymGeo.name) || 'our gym';
+            const text = `📍 Find ${name} here: ${link}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+        }
+
+        // Copy just the maps link (to paste anywhere).
+        function copyMapsLink() {
+            const link = gymMapsLink();
+            if (!link) { showToast('Set your gym location first', 'warning'); return; }
+            navigator.clipboard.writeText(link).then(() => showToast('Maps link copied!', 'success'));
         }
 
         loadSettings();
