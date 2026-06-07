@@ -92,6 +92,16 @@
             </div>
         </div>
 
+        <!-- [BROADCAST] Send an announcement to all gyms' dashboards -->
+        <div class="glass-panel" style="padding: 32px; margin-bottom: 40px;">
+            <h2 style="font-size: 20px; margin-bottom: 6px;">📢 Broadcast Announcement</h2>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 16px;">Shows up in every gym's dashboard notification bell.</p>
+            <input type="text" id="ann-title" placeholder="Title (e.g. New: WhatsApp auto-reminders are live!)" style="width:100%; padding:12px 14px; margin-bottom:10px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff;">
+            <textarea id="ann-body" placeholder="Message…" rows="3" style="width:100%; padding:12px 14px; margin-bottom:12px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; resize:vertical;"></textarea>
+            <button onclick="sendAnnouncement()" class="btn btn-primary" style="background: var(--admin-primary);">Send to All Gyms</button>
+            <div id="ann-list" style="margin-top:20px;"></div>
+        </div>
+
         <div class="glass-panel" style="padding: 32px;">
             <h2 style="font-size: 20px;">Active Tenants</h2>
             <div style="overflow-x: auto;">
@@ -131,8 +141,61 @@
             loadAdminData();
         }
 
+        // ===== Announcements (broadcast to all gyms) =====
+        async function sendAnnouncement() {
+            const title = document.getElementById('ann-title').value.trim();
+            const body = document.getElementById('ann-body').value.trim();
+            if (!title || !body) { alert('Enter a title and message.'); return; }
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/announcements`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+                    body: JSON.stringify({ title, body })
+                });
+                if (!res.ok) throw new Error();
+                document.getElementById('ann-title').value = '';
+                document.getElementById('ann-body').value = '';
+                alert('Announcement sent to all gyms!');
+                loadAnnouncements();
+            } catch (e) { alert('Failed to send announcement.'); }
+        }
+
+        async function loadAnnouncements() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/announcements`, {
+                    headers: { 'x-admin-key': adminKey }
+                });
+                if (!res.ok) return;
+                const list = await res.json();
+                const el = document.getElementById('ann-list');
+                if (!list.length) { el.innerHTML = ''; return; }
+                el.innerHTML = '<div style="font-size:13px; color:#64748b; margin-bottom:8px;">Sent announcements:</div>' +
+                    list.map(a => `
+                        <div style="display:flex; justify-content:space-between; align-items:start; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.03); border-radius:8px; margin-bottom:6px;">
+                            <div>
+                                <div style="font-weight:600; font-size:13px;">${a.title}</div>
+                                <div style="font-size:12px; color:#94a3b8;">${a.body}</div>
+                                <div style="font-size:11px; color:#64748b; margin-top:3px;">${a.created_at || ''}</div>
+                            </div>
+                            <button onclick="deleteAnnouncement(${a.id})" style="background:rgba(239,68,68,0.15); color:#f87171; border:none; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:12px; white-space:nowrap;">Remove</button>
+                        </div>
+                    `).join('');
+            } catch (e) { /* ignore */ }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm('Remove this announcement?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/announcements/${id}`, {
+                    method: 'DELETE', headers: { 'x-admin-key': adminKey }
+                });
+                if (res.ok) loadAnnouncements();
+            } catch (e) { /* ignore */ }
+        }
+
         async function loadAdminData() {
             try {
+                loadAnnouncements();
                 // Load Stats
                 const statsRes = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/stats`, {
                     headers: { 'x-admin-key': adminKey }
