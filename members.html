@@ -591,8 +591,14 @@
 
         // Import members (CSV/Excel, or photo-OCR on Elite). CSV import is a
         // Pro+ feature; Starter gyms see an upgrade prompt.
+        //
+        // IMPORTANT: only block when we KNOW the gym is Starter. If the tier is
+        // missing/blank/unknown in localStorage (e.g. an older session saved
+        // before login started returning tier), let them through — the backend
+        // is the source of truth and will still enforce the tier on /members/bulk.
+        // This prevents a stale localStorage from wrongly blocking a Pro gym.
         function goImport() {
-            const tier = localStorage.getItem('tier') || 'starter';
+            const tier = (localStorage.getItem('tier') || '').toLowerCase();
             if (tier === 'starter') {
                 if (confirm("Importing members (CSV/Excel) is a Pro feature. See upgrade options?")) {
                     window.location.href = 'upgrade-plan.html';
