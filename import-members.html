@@ -17,6 +17,8 @@
     <script src="assets/toast.js"></script>
     <!-- Use PapaParse for parsing CSVs securely in the browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- SheetJS (xlsx) for parsing Excel files client-side -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .tabs {
             display: flex;
@@ -144,19 +146,19 @@
         <div id="tab-csv" class="tab-content active">
             <div class="glass-panel" style="padding: 30px;">
                 <p style="color: #6b7280; margin-bottom: 20px;">
-                    Upload a CSV file containing members. Required columns: <strong>name, phone</strong>.
+                    Upload a <strong>CSV or Excel</strong> file containing members. Required columns: <strong>name, phone</strong>.
                     Optional columns: <strong>email, plan_name</strong> (e.g. "Monthly") <em>or</em> <strong>plan_id</strong>,
                     <strong>payment_received</strong> (true/false), <strong>start_date</strong> (YYYY-MM-DD).<br>
-                    <span style="color:#9ca3af; font-size:13px;">💡 Only <strong>name</strong> and <strong>phone</strong> are required — a bare list works. Members with no plan import as contacts (they'll show under <strong>Expired</strong>) so you can assign a plan when they next pay. Add <code>start_date</code> (e.g. <code>2026-05-15</code>) for members who joined earlier so their expiry is correct.</span>
+                    <span style="color:#9ca3af; font-size:13px;">💡 Only <strong>name</strong> and <strong>phone</strong> are required — a bare list works. Members with no plan import as contacts (they'll show under <strong>Expired</strong>) so you can assign a plan when they next pay. Add <code>start_date</code> (e.g. <code>2026-05-15</code>) for members who joined earlier so their expiry is correct.<br>📊 <strong>Excel works too</strong> — just upload your <code>.xlsx</code> file directly, no need to convert to CSV first.</span>
                 </p>
                 <p style="margin-bottom: 15px;">
                     <a href="sample-members.csv" download style="color:#60a5fa; font-size:14px;">⬇️ Download sample CSV</a>
                 </p>
                 <div class="upload-area" onclick="document.getElementById('csv-file').click()">
-                    <h3 style="margin-bottom: 8px;">Click to select CSV file</h3>
-                    <p style="color: #6b7280; font-size: 14px;">or drag and drop here</p>
+                    <h3 style="margin-bottom: 8px;">Click to select CSV or Excel file</h3>
+                    <p style="color: #6b7280; font-size: 14px;">.csv, .xlsx, .xls — or drag and drop here</p>
                 </div>
-                <input type="file" id="csv-file" accept=".csv" style="display: none;" onchange="handleCSVSelect(event)">
+                <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleCSVSelect(event)">
 
                 <div id="csv-preview" style="display: none; margin-top: 30px;">
                     <h3 style="margin-bottom: 15px;">Preview</h3>
@@ -297,24 +299,76 @@
             document.getElementById(`tab-${tabId}`).classList.add('active');
         }
 
-        // --- CSV Logic ---
+        // --- CSV / Excel Logic ---
         function handleCSVSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             document.getElementById('csv-errors').textContent = '';
 
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function (results) {
-                    csvDataToImport = results.data;
+            const name = (file.name || '').toLowerCase();
+            const isExcel = name.endsWith('.xlsx') || name.endsWith('.xls');
+
+            if (isExcel) {
+                parseExcel(file);
+            } else {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        csvDataToImport = results.data;
+                        renderCSVPreview();
+                    },
+                    error: function (err) {
+                        document.getElementById('csv-errors').textContent = "Failed to parse CSV: " + err.message;
+                    }
+                });
+            }
+        }
+
+        // Parse an .xlsx/.xls workbook into the same row shape PapaParse produces:
+        // an array of objects keyed by the (lowercased, trimmed) header row.
+        function parseExcel(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    if (!firstSheet) {
+                        document.getElementById('csv-errors').textContent = "Excel file has no sheets.";
+                        return;
+                    }
+                    // raw rows as arrays so we can normalize headers ourselves
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: false, defval: '' });
+                    if (!rows.length) {
+                        document.getElementById('csv-errors').textContent = "Excel sheet is empty.";
+                        return;
+                    }
+                    // Normalize headers: lowercase + trim so "Name", "PHONE " all map correctly
+                    const headers = rows[0].map(h => String(h || '').trim().toLowerCase());
+                    csvDataToImport = rows.slice(1).map(r => {
+                        const obj = {};
+                        headers.forEach((h, i) => {
+                            if (!h) return;
+                            let val = r[i];
+                            // Excel dates can come back as Date objects — convert to YYYY-MM-DD
+                            if (val instanceof Date && !isNaN(val)) {
+                                val = val.toISOString().slice(0, 10);
+                            }
+                            obj[h] = val === undefined || val === null ? '' : String(val).trim();
+                        });
+                        return obj;
+                    }).filter(obj => Object.values(obj).some(v => v !== '')); // drop fully-blank rows
                     renderCSVPreview();
-                },
-                error: function (err) {
-                    document.getElementById('csv-errors').textContent = "Failed to parse CSV: " + err.message;
+                } catch (err) {
+                    document.getElementById('csv-errors').textContent = "Failed to parse Excel: " + err.message;
                 }
-            });
+            };
+            reader.onerror = function () {
+                document.getElementById('csv-errors').textContent = "Could not read the Excel file.";
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         function renderCSVPreview() {
