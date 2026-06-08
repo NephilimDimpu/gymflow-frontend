@@ -694,7 +694,15 @@
             document.getElementById('onboarding-checklist').style.display = 'none';
         }
 
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function logout() {
+            // Preserve UI preferences so tour + notifications don't reset on every login.
+            const keep = ['tour_seen', 'ann_seen_id', 'onboarding_dismissed'];
+            const saved = {};
+            keep.forEach(k => { const v = localStorage.getItem(k); if (v !== null) saved[k] = v; });
+            localStorage.clear();
+            keep.forEach(k => { if (saved[k] !== undefined) localStorage.setItem(k, saved[k]); });
+            window.location.href = 'login.html';
+        }
 
         // ============================================
         // [NOTIFICATIONS] Founder broadcast updates (bell in header).
@@ -1311,13 +1319,7 @@
             });
         }
 
-        // ============================================
-        // [JS-LOGOUT] Logout function
-        // ============================================
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        }
+        // [JS-LOGOUT] defined earlier — intentionally not redefined here.
 
     </script>
 

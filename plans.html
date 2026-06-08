@@ -71,7 +71,10 @@
                     <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">Membership Plans</h1>
                     <p id="context-info" style="font-size: 14px; color: var(--text-muted);">Define your offerings and share checkout links with members.</p>
                 </div>
-                <div style="display: flex; gap: 12px;">
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="shareAllPlans()" id="share-all-btn" style="background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.3); color: #6ee7b7; font-weight: 600;" title="Send all your plans in one WhatsApp/share message">
+                        <span style="margin-right: 6px;">📤</span> Share All Plans
+                    </button>
                     <button class="btn btn-secondary" onclick="exportPlansCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Download as Excel-compatible CSV — opens directly in Microsoft Excel or Google Sheets">
                         <span style="margin-right: 6px;">⬇️</span> Export to Excel
                     </button>
@@ -489,6 +492,33 @@
                     loadPlans();
                 }
             } catch (err) { window.showToast("Error deleting", "error"); }
+        }
+
+        function shareAllPlans() {
+            if (!allPlans || allPlans.length === 0) {
+                window.showToast('No plans to share yet.', 'error');
+                return;
+            }
+            const gymName = localStorage.getItem('gym_name') || 'Our Gym';
+            const planLines = allPlans.map(p => {
+                const days = p.duration_days >= 365
+                    ? `${Math.round(p.duration_days / 365)} year`
+                    : p.duration_days >= 30
+                        ? `${Math.round(p.duration_days / 30)} month`
+                        : `${p.duration_days} days`;
+                return `💪 ${p.name} — ₹${p.price.toLocaleString()} (${days})`;
+            }).join('\n');
+            const joinLine = gymSlug
+                ? `\n🔗 Join here: ${window.location.protocol}//${window.location.host}/g.html?s=${gymSlug}`
+                : '';
+            const text = `📋 ${gymName} — Membership Plans\n\n${planLines}${joinLine}`;
+            if (navigator.share) {
+                navigator.share({ title: `${gymName} Plans`, text });
+            } else {
+                navigator.clipboard.writeText(text)
+                    .then(() => window.showToast('All plans copied to clipboard! Paste in WhatsApp.', 'success'))
+                    .catch(() => window.showToast('Could not copy — paste manually.', 'error'));
+            }
         }
 
         function copyLink(link) {
