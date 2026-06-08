@@ -538,13 +538,19 @@
             // the incomplete rows and import the good ones. The backend also
             // skips duplicates/bad rows gracefully and reports them back.
             const validRows = [];
-            let skippedRows = 0;
+            const skippedRowsData = [];
             csvDataToImport.forEach(row => {
                 const hasName = row.name && String(row.name).trim();
                 const hasPhone = row.phone && String(row.phone).trim();
-                if (hasName && hasPhone) validRows.push(row);
-                else skippedRows++;
+                if (hasName && hasPhone) {
+                    validRows.push(row);
+                } else {
+                    const reason = (!hasName && !hasPhone) ? 'Missing name and phone'
+                        : (!hasPhone ? 'Missing phone' : 'Missing name');
+                    skippedRowsData.push(Object.assign({}, row, { _reason: reason }));
+                }
             });
+            const skippedRows = skippedRowsData.length;
 
             if (validRows.length === 0) {
                 errorsDiv.innerHTML = `❌ No rows have both a <code>name</code> and a <code>phone</code> filled in. ` +
@@ -603,15 +609,84 @@
                         msg += `\n…and ${data.errors.length - shown.length} more.`;
                     }
                 }
-                showToast(msg, (skippedRows > 0 || (data.errors && data.errors.length > 0)) ? 'warning' : 'success');
+                const hasIssues = skippedRows > 0 || (data.errors && data.errors.length > 0);
+                showToast(msg, hasIssues ? 'warning' : 'success');
 
-                if (data.added_count > 0) {
+                if (hasIssues) {
+                    // Don't auto-leave — let the owner download the skipped rows
+                    // and review before navigating to Members.
+                    renderImportResult(data, skippedRowsData);
+                } else if (data.added_count > 0) {
                     window.location.href = 'members.html';
                 }
 
             } catch (error) {
                 errorsDiv.innerHTML = `❌ ${error.message}`;
             }
+        }
+
+        // Render a result panel with a "Download skipped rows" button so the
+        // owner can fix members that had no name/phone and re-import them later.
+        function renderImportResult(data, skipped) {
+            const box = document.getElementById('csv-errors');
+            box.className = '';
+            box.style.color = '#cbd5e1';
+            box.innerHTML = '';
+
+            const summary = document.createElement('div');
+            summary.style.cssText = 'margin-bottom:14px;font-size:14px;color:#cbd5e1;line-height:1.6;';
+            summary.innerHTML = `✅ <strong>${data.added_count || 0}</strong> member(s) imported.` +
+                (skipped.length ? `<br>⚠️ <strong>${skipped.length}</strong> row(s) skipped — no name/phone.` : '') +
+                (data.errors && data.errors.length ? `<br>⚠️ <strong>${data.errors.length}</strong> row(s) had errors (e.g. duplicate phone or unknown plan).` : '');
+            box.appendChild(summary);
+
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;';
+
+            if (skipped.length) {
+                const dl = document.createElement('button');
+                dl.type = 'button';
+                dl.textContent = '⬇️ Download skipped rows';
+                dl.style.cssText = 'background:#f59e0b;color:#111;border:none;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;';
+                dl.onclick = function () { downloadSkippedRows(skipped); };
+                actions.appendChild(dl);
+            }
+
+            const go = document.createElement('button');
+            go.type = 'button';
+            go.textContent = 'Go to Members →';
+            go.style.cssText = 'background:#6366f1;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;';
+            go.onclick = function () { window.location.href = 'members.html'; };
+            actions.appendChild(go);
+
+            box.appendChild(actions);
+        }
+
+        // Build a CSV of the skipped rows (original columns + a reason) and
+        // trigger a download. The file is ready to fix and re-import as-is.
+        function downloadSkippedRows(rows) {
+            const cols = ['name', 'phone', 'email', 'plan_name', 'start_date', 'reason'];
+            const esc = function (v) {
+                const s = (v === undefined || v === null) ? '' : String(v);
+                return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            };
+            const header = cols.join(',');
+            const body = rows.map(function (r) {
+                return cols.map(function (c) {
+                    return esc(c === 'reason' ? r._reason : r[c]);
+                }).join(',');
+            }).join('\n');
+            const csv = header + '\n' + body;
+
+            const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'skipped-members.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // --- Image OCR Logic ---
