@@ -624,6 +624,9 @@
                 if (skippedRows > 0) {
                     msg += `\n\n(${skippedRows} row${skippedRows === 1 ? '' : 's'} skipped — no name or phone.)`;
                 }
+                if (data.warnings && data.warnings.length > 0) {
+                    msg += `\n\n(${data.warnings.length} imported without a matching plan — assign later.)`;
+                }
                 if (data.errors && data.errors.length > 0) {
                     const shown = data.errors.slice(0, 8);
                     msg += `\n\nErrors encountered:\n${shown.join('\n')}`;
@@ -631,7 +634,9 @@
                         msg += `\n…and ${data.errors.length - shown.length} more.`;
                     }
                 }
-                const hasIssues = skippedRows > 0 || (data.errors && data.errors.length > 0);
+                const hasIssues = skippedRows > 0 ||
+                    (data.errors && data.errors.length > 0) ||
+                    (data.warnings && data.warnings.length > 0);
                 showToast(msg, hasIssues ? 'warning' : 'success');
 
                 if (hasIssues) {
@@ -658,8 +663,9 @@
             const summary = document.createElement('div');
             summary.style.cssText = 'margin-bottom:14px;font-size:14px;color:#cbd5e1;line-height:1.6;';
             summary.innerHTML = `✅ <strong>${data.added_count || 0}</strong> member(s) imported.` +
+                (data.warnings && data.warnings.length ? `<br>ℹ️ <strong>${data.warnings.length}</strong> imported without a plan (the sheet's plan name isn't set up here — assign one later from Members).` : '') +
                 (skipped.length ? `<br>⚠️ <strong>${skipped.length}</strong> row(s) skipped — no name/phone.` : '') +
-                (data.errors && data.errors.length ? `<br>⚠️ <strong>${data.errors.length}</strong> row(s) had errors (e.g. duplicate phone or unknown plan).` : '');
+                (data.errors && data.errors.length ? `<br>⚠️ <strong>${data.errors.length}</strong> row(s) had errors (e.g. duplicate phone).` : '');
             box.appendChild(summary);
 
             const actions = document.createElement('div');
