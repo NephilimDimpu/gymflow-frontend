@@ -484,28 +484,82 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // Escape helpers so names/phones with quotes or <> don't break the inputs.
+        function escHtml(v) {
+            const s = (v === undefined || v === null) ? '' : String(v);
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function escAttr(v) { return escHtml(v).replace(/"/g, '&quot;'); }
+
+        // Render the preview with EDITABLE name + phone cells so the owner can
+        // fix rows BEFORE importing. Rows missing a name/phone are highlighted.
+        const MAX_PREVIEW_ROWS = 1000; // cap on rendered inputs for very large files
         function renderCSVPreview() {
             const tbody = document.querySelector('#csv-table tbody');
             tbody.innerHTML = '';
 
-            csvDataToImport.slice(0, 5).forEach(row => {
+            // Let the preview scroll vertically for long lists.
+            const wrap = document.querySelector('#csv-table').parentElement;
+            if (wrap) { wrap.style.maxHeight = '420px'; wrap.style.overflowY = 'auto'; }
+
+            const shown = csvDataToImport.slice(0, MAX_PREVIEW_ROWS);
+            let needAttention = 0;
+
+            shown.forEach((row, idx) => {
+                const hasName = row.name && String(row.name).trim();
+                const hasPhone = row.phone && String(row.phone).trim();
+                const bad = !hasName || !hasPhone;
+                if (bad) needAttention++;
+
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.name || '-'}</td>
-                    <td>${row.phone || '-'}</td>
-                    <td>${row.email || '-'}</td>
-                    <td>${row.plan_name || row.plan_id || '-'}</td>
-                `;
+                if (bad) tr.style.background = 'rgba(245,158,11,0.08)';
+                const nameBorder = hasName ? 'rgba(255,255,255,0.12)' : '#f59e0b';
+                const phoneBorder = hasPhone ? 'rgba(255,255,255,0.12)' : '#f59e0b';
+                tr.innerHTML =
+                    `<td><input type="text" class="prev-name" data-idx="${idx}" value="${escAttr(row.name || '')}" ` +
+                    `style="width:100%;background:rgba(0,0,0,0.25);border:1px solid ${nameBorder};color:#fff;padding:6px 8px;border-radius:6px;font-size:13px;"></td>` +
+                    `<td><input type="text" inputmode="numeric" class="prev-phone" data-idx="${idx}" value="${escAttr(row.phone || '')}" ` +
+                    `style="width:100%;background:rgba(0,0,0,0.25);border:1px solid ${phoneBorder};color:#fff;padding:6px 8px;border-radius:6px;font-size:13px;"></td>` +
+                    `<td>${escHtml(row.email || '-')}</td>` +
+                    `<td>${escHtml(row.plan_name || row.plan_id || '-')}</td>`;
                 tbody.appendChild(tr);
             });
 
-            if (csvDataToImport.length > 5) {
+            if (csvDataToImport.length > MAX_PREVIEW_ROWS) {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td colspan="4" style="text-align: center; color: #6b7280;">...and ${csvDataToImport.length - 5} more rows</td>`;
+                tr.innerHTML = `<td colspan="4" style="text-align:center;color:#6b7280;">…and ${csvDataToImport.length - MAX_PREVIEW_ROWS} more rows (not shown here, but they'll still import)</td>`;
                 tbody.appendChild(tr);
             }
 
+            // Attention banner above the table.
+            let banner = document.getElementById('preview-attention');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'preview-attention';
+                banner.style.cssText = 'margin:10px 0;font-size:13px;';
+                wrap.parentElement.insertBefore(banner, wrap);
+            }
+            if (needAttention > 0) {
+                banner.style.color = '#fbbf24';
+                banner.innerHTML = `⚠️ <strong>${needAttention}</strong> row(s) are missing a name or phone (highlighted). Fix them right here, or they'll be skipped on import.`;
+            } else {
+                banner.style.color = '#6ee7b7';
+                banner.textContent = `✓ All ${csvDataToImport.length} row(s) have a name and phone.`;
+            }
+
             document.getElementById('csv-preview').style.display = 'block';
+        }
+
+        // Read edited name/phone values from the preview inputs back into the data.
+        function syncPreviewEdits() {
+            document.querySelectorAll('#csv-table .prev-name').forEach(el => {
+                const i = parseInt(el.dataset.idx, 10);
+                if (!isNaN(i) && csvDataToImport[i]) csvDataToImport[i].name = el.value;
+            });
+            document.querySelectorAll('#csv-table .prev-phone').forEach(el => {
+                const i = parseInt(el.dataset.idx, 10);
+                if (!isNaN(i) && csvDataToImport[i]) csvDataToImport[i].phone = el.value;
+            });
         }
 
         async function submitCSVImport() {
@@ -517,6 +571,9 @@
                 errorsDiv.innerHTML = '⚠️ No data to import. Please select a CSV file first.';
                 return;
             }
+
+            // Pull in any edits the owner made directly in the preview table.
+            syncPreviewEdits();
 
             const firstRow = csvDataToImport[0];
             const requiredCols = ['name', 'phone'];
