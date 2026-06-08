@@ -561,44 +561,7 @@
             }
 
             try {
-                const formattedMembers = validRows.map(row => {
-                    const m = {
-                        name: (row.name || '').trim(),
-                        phone: String(row.phone || '').trim(),
-                        email: row.email ? row.email.trim() : null,
-                        payment_received: String(row.payment_received).toLowerCase() === 'true' || row.payment_received === '1'
-                    };
-                    if (row.plan_id && !isNaN(parseInt(row.plan_id))) m.plan_id = parseInt(row.plan_id);
-                    if (row.plan_name && row.plan_name.trim()) m.plan_name = row.plan_name.trim();
-                    // Optional start_date column (YYYY-MM-DD) for migrating
-                    // members who joined earlier — backend computes expiry from it.
-                    if (row.start_date && String(row.start_date).trim()) m.start_date = String(row.start_date).trim();
-                    return m;
-                });
-
-                const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ members: formattedMembers })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    // [FIX] Handle FastAPI validation errors (which are arrays of objects)
-                    let errorMsg = 'Import failed';
-                    if (Array.isArray(data.detail)) {
-                        errorMsg = data.detail.map(e => `${e.loc?.join('.') || 'field'}: ${e.msg}`).join(' | ');
-                    } else if (typeof data.detail === 'string') {
-                        errorMsg = data.detail;
-                    } else if (data.detail) {
-                        errorMsg = JSON.stringify(data.detail);
-                    }
-                    throw new Error(errorMsg);
-                }
+                const data = await postBulk(validRows.map(buildMemberPayload));
 
                 let msg = `✅ ${data.message}`;
                 if (skippedRows > 0) {
@@ -646,6 +609,13 @@
             actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;';
 
             if (skipped.length) {
+                const fix = document.createElement('button');
+                fix.type = 'button';
+                fix.textContent = '✏️ Fix here & import';
+                fix.style.cssText = 'background:#10b981;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;';
+                fix.onclick = function () { renderFixTable(skipped); };
+                actions.appendChild(fix);
+
                 const dl = document.createElement('button');
                 dl.type = 'button';
                 dl.textContent = '⬇️ Download skipped rows';
@@ -689,6 +659,161 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        }
+
+        // Build the API payload for one member row (shared by file import + inline fix).
+        function buildMemberPayload(row) {
+            const m = {
+                name: (row.name || '').trim(),
+                phone: String(row.phone || '').trim(),
+                email: row.email ? String(row.email).trim() : null,
+                payment_received: String(row.payment_received).toLowerCase() === 'true' || row.payment_received === '1'
+            };
+            if (row.plan_id && !isNaN(parseInt(row.plan_id))) m.plan_id = parseInt(row.plan_id);
+            if (row.plan_name && String(row.plan_name).trim()) m.plan_name = String(row.plan_name).trim();
+            if (row.start_date && String(row.start_date).trim()) m.start_date = String(row.start_date).trim();
+            return m;
+        }
+
+        // POST a list of member payloads to the bulk endpoint; returns parsed data or throws.
+        async function postBulk(members) {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ members })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                let errorMsg = 'Import failed';
+                if (Array.isArray(data.detail)) errorMsg = data.detail.map(e => `${e.loc?.join('.') || 'field'}: ${e.msg}`).join(' | ');
+                else if (typeof data.detail === 'string') errorMsg = data.detail;
+                else if (data.detail) errorMsg = JSON.stringify(data.detail);
+                throw new Error(errorMsg);
+            }
+            return data;
+        }
+
+        // Inline editor: list the skipped rows with editable Name + Phone fields
+        // (pre-filling a phone guess if any cell looks like a 10-digit number),
+        // so the owner can fill the blanks and import without leaving the page.
+        function renderFixTable(skipped) {
+            const existing = document.getElementById('fix-skipped-panel');
+            if (existing) existing.remove();
+
+            const panel = document.createElement('div');
+            panel.id = 'fix-skipped-panel';
+            panel.style.cssText = 'margin-top:20px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:18px;';
+
+            const h = document.createElement('div');
+            h.style.cssText = 'font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:6px;';
+            h.textContent = '✏️ Fix skipped rows';
+            panel.appendChild(h);
+
+            const sub = document.createElement('div');
+            sub.style.cssText = 'font-size:13px;color:#94a3b8;margin-bottom:14px;';
+            sub.innerHTML = 'Fill in the missing <strong>name</strong> or <strong>phone</strong> (10 digits). Rows that still lack either one are left out. The “Original row” column shows what was in the file.';
+            panel.appendChild(sub);
+
+            const table = document.createElement('table');
+            table.style.cssText = 'width:100%;border-collapse:collapse;font-size:13px;';
+            table.innerHTML = '<thead><tr>' +
+                '<th style="text-align:left;padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Name</th>' +
+                '<th style="text-align:left;padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Phone (10 digits)</th>' +
+                '<th style="text-align:left;padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Original row</th>' +
+                '</tr></thead>';
+            const tbody = document.createElement('tbody');
+
+            skipped.forEach(function (row, idx) {
+                // Guess a phone from any cell that holds exactly 10 digits.
+                let phoneGuess = String(row.phone || '').trim();
+                if (!phoneGuess) {
+                    for (const k of Object.keys(row)) {
+                        if (k === '_reason') continue;
+                        const digits = String(row[k] || '').replace(/\D/g, '');
+                        if (digits.length === 10) { phoneGuess = digits; break; }
+                    }
+                }
+                const rawHint = Object.keys(row)
+                    .filter(k => k !== '_reason' && String(row[k] || '').trim() !== '')
+                    .map(k => k + ': ' + row[k]).join('  |  ') || '(empty)';
+
+                const tr = document.createElement('tr');
+
+                const tdName = document.createElement('td');
+                tdName.style.cssText = 'padding:6px 8px;';
+                const inName = document.createElement('input');
+                inName.type = 'text'; inName.value = row.name || ''; inName.className = 'fix-name';
+                inName.style.cssText = 'width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px;border-radius:6px;font-size:13px;';
+                tdName.appendChild(inName);
+
+                const tdPhone = document.createElement('td');
+                tdPhone.style.cssText = 'padding:6px 8px;';
+                const inPhone = document.createElement('input');
+                inPhone.type = 'text'; inPhone.value = phoneGuess; inPhone.className = 'fix-phone'; inPhone.inputMode = 'numeric';
+                inPhone.style.cssText = 'width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px;border-radius:6px;font-size:13px;';
+                tdPhone.appendChild(inPhone);
+
+                const tdRaw = document.createElement('td');
+                tdRaw.style.cssText = 'padding:6px 8px;color:#64748b;font-size:12px;max-width:280px;';
+                tdRaw.textContent = rawHint;
+
+                tr.appendChild(tdName); tr.appendChild(tdPhone); tr.appendChild(tdRaw);
+                // Stash the original row so optional fields (plan, dates) carry over.
+                tr._origRow = row;
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            panel.appendChild(table);
+
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.textContent = '✅ Import fixed rows';
+            btn.style.cssText = 'margin-top:16px;background:#6366f1;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;';
+            btn.onclick = function () { submitFixedRows(tbody); };
+            panel.appendChild(btn);
+
+            const note = document.createElement('div');
+            note.id = 'fix-note';
+            note.style.cssText = 'margin-top:10px;font-size:13px;';
+            panel.appendChild(note);
+
+            document.getElementById('csv-errors').appendChild(panel);
+        }
+
+        async function submitFixedRows(tbody) {
+            const note = document.getElementById('fix-note');
+            const rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+            const toImport = [];
+            let incomplete = 0;
+            rows.forEach(function (tr) {
+                const name = tr.querySelector('.fix-name').value.trim();
+                const phoneDigits = tr.querySelector('.fix-phone').value.replace(/\D/g, '');
+                if (name && phoneDigits.length === 10) {
+                    toImport.push(buildMemberPayload(Object.assign({}, tr._origRow, { name: name, phone: phoneDigits })));
+                } else if (name || phoneDigits) {
+                    incomplete++;
+                }
+            });
+
+            if (toImport.length === 0) {
+                note.style.color = '#fca5a5';
+                note.textContent = 'Add a name and a 10-digit phone to at least one row first.';
+                return;
+            }
+
+            note.style.color = '#94a3b8';
+            note.textContent = 'Importing…';
+            try {
+                const data = await postBulk(toImport);
+                let m = `✅ ${data.added_count || 0} more member(s) imported.`;
+                if (incomplete > 0) m += ` (${incomplete} row${incomplete === 1 ? '' : 's'} still incomplete — left out.)`;
+                if (data.errors && data.errors.length) m += ` (${data.errors.length} had errors, e.g. duplicate phone.)`;
+                note.style.color = '#6ee7b7';
+                note.textContent = m;
+                showToast(m, 'success');
+            } catch (e) {
+                note.style.color = '#fca5a5';
+                note.textContent = '❌ ' + e.message;
+            }
         }
 
         // --- Image OCR Logic ---
