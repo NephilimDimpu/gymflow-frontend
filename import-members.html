@@ -360,6 +360,9 @@
             if (isExcel) {
                 parseExcel(file);
             } else {
+                // Plain CSV has no sheets — hide any leftover sheet picker.
+                const wrap = document.getElementById('sheet-picker-wrap');
+                if (wrap) wrap.style.display = 'none';
                 Papa.parse(file, {
                     header: true,
                     skipEmptyLines: true,
@@ -374,44 +377,101 @@
             }
         }
 
-        // Parse an .xlsx/.xls workbook into the same row shape PapaParse produces:
-        // an array of objects keyed by the (lowercased, trimmed) header row.
+        // Currently-loaded workbook, kept so switching sheets doesn't re-read the file.
+        let currentWorkbook = null;
+
+        // Real gym sheets often have a title row ("month of September 2025")
+        // ABOVE the real headers, so we can't assume row 0 is the header.
+        // Scan the first several rows and pick the one that looks most like a
+        // header (contains recognizable columns such as name / phone).
+        function detectHeaderRow(rows) {
+            const KNOWN = ['name', 'phone', 'email', 'plan_name', 'plan_id', 'payment_received', 'start_date'];
+            let bestIdx = 0, bestScore = -1;
+            const limit = Math.min(rows.length, 15);
+            for (let i = 0; i < limit; i++) {
+                const cells = (rows[i] || []).map(c => canonicalHeader(c));
+                const hasName = cells.includes('name');
+                const hasPhone = cells.includes('phone');
+                const recognized = cells.filter(c => KNOWN.includes(c)).length;
+                const score = recognized + (hasName ? 2 : 0) + (hasPhone ? 2 : 0);
+                if ((hasName || hasPhone) && score > bestScore) { bestScore = score; bestIdx = i; }
+            }
+            return bestIdx;
+        }
+
+        // Turn one worksheet into normalized row objects keyed by canonical columns.
+        function buildRowsFromSheet(sheet) {
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false, defval: '' });
+            if (!rows.length) return [];
+            const headerIdx = detectHeaderRow(rows);
+            const headers = (rows[headerIdx] || []).map(h => canonicalHeader(h));
+            return rows.slice(headerIdx + 1).map(r => {
+                const obj = {};
+                headers.forEach((h, i) => {
+                    if (!h) return;
+                    let val = r[i];
+                    if (val instanceof Date && !isNaN(val)) val = val.toISOString().slice(0, 10);
+                    val = (val === undefined || val === null) ? '' : String(val).trim();
+                    if (obj[h] === undefined || obj[h] === '') obj[h] = val; // don't clobber real value with blank alias
+                });
+                return obj;
+            }).filter(obj => Object.values(obj).some(v => v !== '')); // drop fully-blank rows
+        }
+
+        function loadSheet(sheetName) {
+            try {
+                const sheet = currentWorkbook && currentWorkbook.Sheets[sheetName];
+                if (!sheet) { document.getElementById('csv-errors').textContent = "Sheet not found."; return; }
+                csvDataToImport = buildRowsFromSheet(sheet);
+                if (!csvDataToImport.length) {
+                    document.getElementById('csv-errors').innerHTML =
+                        `⚠️ No usable rows found in "<strong>${sheetName}</strong>". Pick another sheet from the dropdown.`;
+                }
+                renderCSVPreview();
+            } catch (err) {
+                document.getElementById('csv-errors').textContent = "Failed to read sheet: " + err.message;
+            }
+        }
+
+        // Build (once) and populate the sheet picker. Hidden for single-sheet files.
+        function showSheetPicker(sheetNames) {
+            let wrap = document.getElementById('sheet-picker-wrap');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.id = 'sheet-picker-wrap';
+                wrap.style.cssText = 'margin-top:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+                const label = document.createElement('label');
+                label.textContent = '📑 Sheet to import:';
+                label.style.cssText = 'color:#cbd5e1;font-size:14px;font-weight:600;margin:0;';
+                const sel = document.createElement('select');
+                sel.id = 'sheet-select';
+                sel.style.cssText = 'background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;';
+                sel.onchange = function () { document.getElementById('csv-errors').textContent = ''; loadSheet(this.value); };
+                wrap.appendChild(label);
+                wrap.appendChild(sel);
+                const preview = document.getElementById('csv-preview');
+                preview.parentNode.insertBefore(wrap, preview);
+            }
+            const sel = document.getElementById('sheet-select');
+            sel.innerHTML = sheetNames.map(n => `<option value="${n}">${n}</option>`).join('');
+            wrap.style.display = sheetNames.length > 1 ? 'flex' : 'none';
+        }
+
+        // Parse an .xlsx/.xls workbook. Supports multiple sheets (with a picker)
+        // and auto-detects the header row within the chosen sheet.
         function parseExcel(file) {
             const reader = new FileReader();
             reader.onload = function (e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    if (!firstSheet) {
+                    currentWorkbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const names = currentWorkbook.SheetNames || [];
+                    if (!names.length) {
                         document.getElementById('csv-errors').textContent = "Excel file has no sheets.";
                         return;
                     }
-                    // raw rows as arrays so we can normalize headers ourselves
-                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: false, defval: '' });
-                    if (!rows.length) {
-                        document.getElementById('csv-errors').textContent = "Excel sheet is empty.";
-                        return;
-                    }
-                    // Normalize headers to canonical column names so "Name",
-                    // "Mobile No", "Full Name" etc. all map correctly.
-                    const headers = rows[0].map(h => canonicalHeader(h));
-                    csvDataToImport = rows.slice(1).map(r => {
-                        const obj = {};
-                        headers.forEach((h, i) => {
-                            if (!h) return;
-                            let val = r[i];
-                            // Excel dates can come back as Date objects — convert to YYYY-MM-DD
-                            if (val instanceof Date && !isNaN(val)) {
-                                val = val.toISOString().slice(0, 10);
-                            }
-                            val = val === undefined || val === null ? '' : String(val).trim();
-                            // don't let a blank alias column overwrite a real value
-                            if (obj[h] === undefined || obj[h] === '') obj[h] = val;
-                        });
-                        return obj;
-                    }).filter(obj => Object.values(obj).some(v => v !== '')); // drop fully-blank rows
-                    renderCSVPreview();
+                    showSheetPicker(names);
+                    loadSheet(names[0]);
                 } catch (err) {
                     document.getElementById('csv-errors').textContent = "Failed to parse Excel: " + err.message;
                 }
@@ -471,19 +531,29 @@
             // under the Expired filter) so the owner can assign a plan when the
             // member next pays. This lets gyms migrate a bare name+phone list.
 
-            // [VALIDATION] Only name + phone are required per row.
-            const rowErrors = [];
-            csvDataToImport.forEach((row, i) => {
-                if (!row.name || !row.name.trim()) rowErrors.push(`Row ${i + 1}: Missing name`);
-                if (!row.phone || !String(row.phone).trim()) rowErrors.push(`Row ${i + 1}: Missing phone`);
+            // [VALIDATION] Only name + phone are required per row. Instead of
+            // BLOCKING the whole import when a few rows are incomplete (very
+            // common in real gym sheets — blank rows, section titles like
+            // "month of September 2025", members with no number yet), we SKIP
+            // the incomplete rows and import the good ones. The backend also
+            // skips duplicates/bad rows gracefully and reports them back.
+            const validRows = [];
+            let skippedRows = 0;
+            csvDataToImport.forEach(row => {
+                const hasName = row.name && String(row.name).trim();
+                const hasPhone = row.phone && String(row.phone).trim();
+                if (hasName && hasPhone) validRows.push(row);
+                else skippedRows++;
             });
-            if (rowErrors.length > 0) {
-                errorsDiv.innerHTML = '❌ <strong>Row errors:</strong><br>' + rowErrors.slice(0, 5).join('<br>');
+
+            if (validRows.length === 0) {
+                errorsDiv.innerHTML = `❌ No rows have both a <code>name</code> and a <code>phone</code> filled in. ` +
+                    `Make sure the sheet you picked has those two columns with values.`;
                 return;
             }
 
             try {
-                const formattedMembers = csvDataToImport.map(row => {
+                const formattedMembers = validRows.map(row => {
                     const m = {
                         name: (row.name || '').trim(),
                         phone: String(row.phone || '').trim(),
@@ -523,10 +593,17 @@
                 }
 
                 let msg = `✅ ${data.message}`;
-                if (data.errors && data.errors.length > 0) {
-                    msg += `\n\nErrors encountered:\n${data.errors.join('\n')}`;
+                if (skippedRows > 0) {
+                    msg += `\n\n(${skippedRows} row${skippedRows === 1 ? '' : 's'} skipped — no name or phone.)`;
                 }
-                showToast(msg, data.errors && data.errors.length > 0 ? 'warning' : 'success');
+                if (data.errors && data.errors.length > 0) {
+                    const shown = data.errors.slice(0, 8);
+                    msg += `\n\nErrors encountered:\n${shown.join('\n')}`;
+                    if (data.errors.length > shown.length) {
+                        msg += `\n…and ${data.errors.length - shown.length} more.`;
+                    }
+                }
+                showToast(msg, (skippedRows > 0 || (data.errors && data.errors.length > 0)) ? 'warning' : 'success');
 
                 if (data.added_count > 0) {
                     window.location.href = 'members.html';
