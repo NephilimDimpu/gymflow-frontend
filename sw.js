@@ -17,7 +17,7 @@
 // ============================================
 
 // Bump to force-drop old caches on next load.
-const CACHE_NAME = 'gymexec-v6';
+const CACHE_NAME = 'gymexec-v7';
 
 // Precache the minimal offline shell.
 const ASSETS = [
@@ -27,6 +27,7 @@ const ASSETS = [
   'assets/config.js',
   'assets/theme.js',
   'assets/toast.js',
+  'assets/sw-register.js',
 ];
 
 // CDN origins whose libraries/fonts are stable enough to cache.

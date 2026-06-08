@@ -483,15 +483,7 @@
             errorDiv.style.display = 'none';
         }
     </script>
-    <script>
-        // Register Service Worker for PWA capability
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registered for Admin PWA', reg))
-                    .catch(err => console.error('Service Worker registration failed', err));
-            });
-        }
-    </script>
+    <!-- PWA service worker + "new version available" banner -->
+    <script src="assets/sw-register.js"></script>
 </body>
 </html>

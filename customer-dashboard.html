@@ -700,11 +700,9 @@
             if (banner) banner.remove();
         };
 
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
-        }
     </script>
+    <!-- PWA service worker + "new version available" banner -->
+    <script src="assets/sw-register.js"></script>
 </body>
 
 </html>
