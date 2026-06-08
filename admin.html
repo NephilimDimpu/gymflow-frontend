@@ -102,6 +102,22 @@
             <div id="ann-list" style="margin-top:20px;"></div>
         </div>
 
+        <!-- [SUPPORT] Customer support tickets raised by gyms -->
+        <div class="glass-panel" style="padding: 32px; margin-bottom: 40px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <div>
+                    <h2 style="font-size: 20px; margin-bottom: 6px;">🛟 Support Tickets <span id="ticket-open-count" style="background:rgba(251,191,36,0.2); color:#fbbf24; font-size:12px; font-weight:700; padding:2px 10px; border-radius:10px; margin-left:6px; display:none;">0</span></h2>
+                    <p style="color: #64748b; font-size: 13px; margin:0;">Queries from gym owners. Reply to resolve — they get notified in-app + by email.</p>
+                </div>
+                <select id="ticket-filter" onchange="loadSupportTickets()" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:8px 12px; border-radius:8px; font-size:13px;">
+                    <option value="open">Open</option>
+                    <option value="">All</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+            </div>
+            <div id="ticket-list" style="margin-top:18px;"></div>
+        </div>
+
         <div class="glass-panel" style="padding: 32px;">
             <h2 style="font-size: 20px;">Active Tenants</h2>
             <div style="overflow-x: auto;">
@@ -193,9 +209,86 @@
             } catch (e) { /* ignore */ }
         }
 
+        // ===== Support tickets =====
+        function _esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        async function loadSupportTickets() {
+            const filter = document.getElementById('ticket-filter').value;
+            try {
+                const url = `${CONFIG.API_BASE_URL}/api/super-admin/support/tickets` + (filter ? `?status=${filter}` : '');
+                const res = await fetch(url, { headers: { 'x-admin-key': adminKey } });
+                if (!res.ok) return;
+                const tickets = await res.json();
+
+                const openCount = tickets.filter(t => t.status === 'open').length;
+                const badge = document.getElementById('ticket-open-count');
+                // Show open count only meaningfully when not filtering to resolved
+                if (openCount > 0 && filter !== 'resolved') { badge.textContent = openCount; badge.style.display = 'inline-block'; }
+                else badge.style.display = 'none';
+
+                const el = document.getElementById('ticket-list');
+                if (!tickets.length) {
+                    el.innerHTML = '<div style="padding:24px; text-align:center; color:#64748b; font-size:13px;">📭 No tickets here.</div>';
+                    return;
+                }
+                el.innerHTML = tickets.map(t => {
+                    const resolved = t.status === 'resolved';
+                    const chip = resolved
+                        ? '<span style="background:rgba(16,185,129,0.2); color:#6ee7b7; font-size:11px; font-weight:700; padding:3px 10px; border-radius:10px;">RESOLVED</span>'
+                        : '<span style="background:rgba(251,191,36,0.2); color:#fbbf24; font-size:11px; font-weight:700; padding:3px 10px; border-radius:10px;">OPEN</span>';
+                    const shot = t.screenshot_url
+                        ? `<a href="${t.screenshot_url}" target="_blank" style="color:#818cf8; font-size:12px;">📎 View screenshot</a>`
+                        : '';
+                    const wa = t.gym_phone ? `<a href="https://wa.me/91${t.gym_phone}" target="_blank" style="color:#34d399; font-size:12px; margin-left:10px;">💬 WhatsApp</a>` : '';
+                    return `
+                    <div style="padding:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; margin-bottom:12px;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;">
+                            ${chip}
+                            <strong style="font-size:14px;">${_esc(t.gym_name)}</strong>
+                            <span style="font-size:12px; color:#64748b;">${_esc(t.gym_email) || ''}</span>
+                            <span style="font-size:11px; color:#475569; margin-left:auto;">${t.created_at || ''}</span>
+                        </div>
+                        <div style="font-size:14px; color:#e2e8f0; line-height:1.6; white-space:pre-wrap; word-break:break-word;">${_esc(t.message)}</div>
+                        <div style="margin-top:8px;">${shot}${wa}</div>
+                        ${resolved
+                            ? `<div style="margin-top:10px; padding:10px; background:rgba(99,102,241,0.08); border-left:3px solid #6366f1; border-radius:6px; font-size:13px; color:#cbd5e1;"><strong style="color:#a5b4fc;">Your reply:</strong> ${_esc(t.admin_reply)}<div style="font-size:11px; color:#64748b; margin-top:4px;">Resolved ${t.resolved_at || ''}</div></div>
+                               <button onclick="deleteTicket(${t.id})" style="margin-top:10px; background:rgba(239,68,68,0.15); color:#f87171; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:12px;">Delete</button>`
+                            : `<div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                                   <input type="text" id="reply-${t.id}" placeholder="Reply to the gym (what you did / next steps)…" style="flex:1; min-width:200px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:9px 12px; border-radius:8px; font-size:13px;">
+                                   <button onclick="resolveTicket(${t.id})" style="background:#10b981; color:#fff; border:none; border-radius:8px; padding:9px 16px; cursor:pointer; font-weight:700; font-size:13px;">✓ Resolve & notify</button>
+                               </div>`}
+                    </div>`;
+                }).join('');
+            } catch (e) { /* ignore */ }
+        }
+
+        async function resolveTicket(id) {
+            const reply = (document.getElementById('reply-' + id) || {}).value || '';
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/support/tickets/${id}/resolve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+                    body: JSON.stringify({ reply })
+                });
+                if (!res.ok) throw new Error();
+                loadSupportTickets();
+            } catch (e) { alert('Failed to resolve ticket.'); }
+        }
+
+        async function deleteTicket(id) {
+            if (!confirm('Delete this ticket?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/support/tickets/${id}`, {
+                    method: 'DELETE', headers: { 'x-admin-key': adminKey }
+                });
+                if (res.ok) loadSupportTickets();
+            } catch (e) { /* ignore */ }
+        }
+
         async function loadAdminData() {
             try {
                 loadAnnouncements();
+                loadSupportTickets();
                 // Load Stats
                 const statsRes = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/stats`, {
                     headers: { 'x-admin-key': adminKey }

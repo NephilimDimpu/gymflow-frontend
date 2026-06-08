@@ -99,6 +99,7 @@
                             <div id="notif-list" style="padding:10px;"></div>
                         </div>
                     </div>
+                    <button onclick="openSupportModal()" class="btn btn-secondary" style="background: rgba(16,185,129,0.12); color:#6ee7b7; border:1px solid rgba(16,185,129,0.3); padding: 9px 16px; font-weight: 600; white-space: nowrap;" title="Get help from the GymExec team">🛟 Help</button>
                     <button onclick="startGymTour()" class="btn btn-secondary" style="background: rgba(99,102,241,0.12); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); padding: 9px 16px; font-weight: 600; white-space: nowrap;">📍 Take a Tour</button>
                     <select id="branch-filter" class="form-select" style="display: none; width: auto; min-width: 200px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" onchange="loadDashboard()">
                         <option value="">All Branches</option>
@@ -700,22 +701,44 @@
         // Unread = announcements newer than the last one this device saw.
         // ============================================
         let _announcements = [];
+        let _supportTickets = [];
+        let _supportUnseen = 0;
+
         async function loadNotifications() {
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/announcements`);
-                if (!res.ok) return;
-                _announcements = await res.json();
-                const lastSeen = parseInt(localStorage.getItem('ann_seen_id') || '0', 10);
-                const unread = _announcements.filter(a => a.id > lastSeen).length;
-                const badge = document.getElementById('notif-badge');
-                if (unread > 0) {
-                    badge.textContent = unread > 9 ? '9+' : unread;
-                    badge.style.display = 'block';
-                } else {
-                    badge.style.display = 'none';
-                }
-                renderNotifications();
+                if (res.ok) _announcements = await res.json();
             } catch (e) { /* ignore */ }
+            await loadSupportTickets();
+            updateNotifBadge();
+            renderNotifications();
+        }
+
+        async function loadSupportTickets() {
+            try {
+                const t = localStorage.getItem('auth_token');
+                if (!t) { _supportTickets = []; _supportUnseen = 0; return; }
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/support/tickets`, {
+                    headers: { 'Authorization': `Bearer ${t}` }
+                });
+                if (!res.ok) { _supportTickets = []; _supportUnseen = 0; return; }
+                const data = await res.json();
+                _supportTickets = data.tickets || [];
+                _supportUnseen = data.unseen_resolved || 0;
+            } catch (e) { _supportTickets = []; _supportUnseen = 0; }
+        }
+
+        function updateNotifBadge() {
+            const lastSeen = parseInt(localStorage.getItem('ann_seen_id') || '0', 10);
+            const annUnread = _announcements.filter(a => a.id > lastSeen).length;
+            const total = annUnread + _supportUnseen;
+            const badge = document.getElementById('notif-badge');
+            if (total > 0) {
+                badge.textContent = total > 9 ? '9+' : total;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
         }
 
         function _escapeHtml(s) {
@@ -725,23 +748,49 @@
 
         function renderNotifications() {
             const list = document.getElementById('notif-list');
-            if (!_announcements.length) {
-                list.innerHTML = '<div style="padding:36px 16px; text-align:center; color:var(--text-muted); font-size:13px;">📭 No updates yet.</div>';
-                return;
+            let html = '';
+
+            // --- Support tickets (your queries) ---
+            if (_supportTickets.length) {
+                html += '<div style="font-size:11px;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:0.5px;padding:6px 6px 8px;">🛟 Your support queries</div>';
+                html += _supportTickets.map(t => {
+                    const resolved = t.status === 'resolved';
+                    const isNew = resolved && !t.seen_by_gym;
+                    const statusChip = resolved
+                        ? '<span style="background:rgba(16,185,129,0.18);color:#6ee7b7;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;">RESOLVED</span>'
+                        : '<span style="background:rgba(251,191,36,0.18);color:#fbbf24;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;">PENDING</span>';
+                    return `
+                    <div style="padding:14px; border-radius:12px; margin-bottom:8px; background:${isNew ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isNew ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.05)'};">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                            ${isNew ? '<span style="width:8px; height:8px; border-radius:50%; background:#10b981; flex-shrink:0;"></span>' : ''}
+                            ${statusChip}
+                            <span style="font-size:11px; color:#64748b; margin-left:auto;">${t.created_at || ''}</span>
+                        </div>
+                        <div style="font-size:13px; color:#cbd5e1; line-height:1.6; white-space:pre-wrap; word-break:break-word;">${_escapeHtml(t.message)}</div>
+                        ${resolved && t.admin_reply ? `<div style="margin-top:8px; padding:10px; background:rgba(99,102,241,0.08); border-left:3px solid #6366f1; border-radius:6px; font-size:13px; color:#e2e8f0; white-space:pre-wrap;"><strong style="color:#a5b4fc;">Reply:</strong> ${_escapeHtml(t.admin_reply)}</div>` : ''}
+                    </div>`;
+                }).join('');
             }
-            const lastSeen = parseInt(localStorage.getItem('ann_seen_id') || '0', 10);
-            list.innerHTML = _announcements.map(a => {
-                const isNew = a.id > lastSeen;
-                return `
-                <div style="padding:16px; border-radius:12px; margin-bottom:8px; background:${isNew ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isNew ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)'};">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                        ${isNew ? '<span style="width:8px; height:8px; border-radius:50%; background:#6366f1; flex-shrink:0;"></span>' : ''}
-                        <div style="font-weight:700; font-size:14.5px; color:#fff; letter-spacing:-0.2px;">${_escapeHtml(a.title)}</div>
-                    </div>
-                    <div style="font-size:13px; color:#cbd5e1; line-height:1.65; white-space:pre-wrap; word-break:break-word;">${_escapeHtml(a.body)}</div>
-                    <div style="font-size:11px; color:#64748b; margin-top:10px; text-transform:uppercase; letter-spacing:0.5px;">${a.created_at || ''}</div>
-                </div>`;
-            }).join('');
+
+            // --- Founder announcements ---
+            if (_announcements.length) {
+                html += '<div style="font-size:11px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;padding:12px 6px 8px;">📣 What\'s new</div>';
+                const lastSeen = parseInt(localStorage.getItem('ann_seen_id') || '0', 10);
+                html += _announcements.map(a => {
+                    const isNew = a.id > lastSeen;
+                    return `
+                    <div style="padding:16px; border-radius:12px; margin-bottom:8px; background:${isNew ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isNew ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)'};">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                            ${isNew ? '<span style="width:8px; height:8px; border-radius:50%; background:#6366f1; flex-shrink:0;"></span>' : ''}
+                            <div style="font-weight:700; font-size:14.5px; color:#fff; letter-spacing:-0.2px;">${_escapeHtml(a.title)}</div>
+                        </div>
+                        <div style="font-size:13px; color:#cbd5e1; line-height:1.65; white-space:pre-wrap; word-break:break-word;">${_escapeHtml(a.body)}</div>
+                        <div style="font-size:11px; color:#64748b; margin-top:10px; text-transform:uppercase; letter-spacing:0.5px;">${a.created_at || ''}</div>
+                    </div>`;
+                }).join('');
+            }
+
+            list.innerHTML = html || '<div style="padding:36px 16px; text-align:center; color:var(--text-muted); font-size:13px;">📭 No updates yet.</div>';
         }
 
         function toggleNotifications() {
@@ -749,10 +798,19 @@
             const open = panel.style.display === 'block';
             panel.style.display = open ? 'none' : 'block';
             if (!open) {
-                // Opening → mark all as seen (clear the badge).
+                // Opening → mark everything as seen (clear the badge).
                 const maxId = _announcements.reduce((m, a) => Math.max(m, a.id), 0);
                 localStorage.setItem('ann_seen_id', String(maxId));
+                if (_supportUnseen > 0) {
+                    const t = localStorage.getItem('auth_token');
+                    if (t) fetch(`${CONFIG.API_BASE_URL}/api/support/tickets/seen`, {
+                        method: 'POST', headers: { 'Authorization': `Bearer ${t}` }
+                    }).catch(() => {});
+                    _supportUnseen = 0;
+                    _supportTickets = _supportTickets.map(t => t.status === 'resolved' ? Object.assign({}, t, { seen_by_gym: true }) : t);
+                }
                 document.getElementById('notif-badge').style.display = 'none';
+                renderNotifications();
             }
         }
 
@@ -1270,6 +1328,107 @@
          - Add quick actions (send reminder, mark paid)
          - Add search functionality
          ============================================ -->
+    <!-- ============================================
+         [SUPPORT] Help / raise a query modal
+         ============================================ -->
+    <div id="support-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+        <div style="background:#0b1020; border:1px solid rgba(255,255,255,0.12); border-radius:18px; width:100%; max-width:480px; padding:26px; box-shadow:0 24px 60px rgba(0,0,0,0.7);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <h2 style="margin:0; font-size:20px; color:#fff;">🛟 Need help?</h2>
+                <button onclick="closeSupportModal()" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">✕</button>
+            </div>
+            <p style="margin:0 0 18px; color:#94a3b8; font-size:13px;">Describe the problem and attach a screenshot if it helps. We'll notify you right here (🔔) and by email when it's resolved.</p>
+
+            <label style="display:block; font-size:12px; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Your message</label>
+            <textarea id="support-message" rows="5" placeholder="e.g. I can't import my members from Excel…" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.12); color:#fff; padding:12px; border-radius:10px; font-size:14px; resize:vertical; box-sizing:border-box;"></textarea>
+
+            <label style="display:block; font-size:12px; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin:14px 0 6px;">Screenshot (optional)</label>
+            <input type="file" id="support-screenshot" accept="image/*" style="width:100%; color:#cbd5e1; font-size:13px;">
+            <div id="support-status" style="margin-top:12px; font-size:13px;"></div>
+
+            <button id="support-submit-btn" onclick="submitSupportTicket()" style="margin-top:18px; width:100%; background:#10b981; color:#fff; border:none; padding:13px; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer;">Send query</button>
+        </div>
+    </div>
+
+    <script>
+        function openSupportModal() {
+            document.getElementById('support-status').textContent = '';
+            document.getElementById('support-modal').style.display = 'flex';
+        }
+        function closeSupportModal() {
+            document.getElementById('support-modal').style.display = 'none';
+        }
+        // Close on backdrop click
+        document.getElementById('support-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeSupportModal();
+        });
+
+        function _readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.onerror = reject;
+                r.readAsDataURL(file);
+            });
+        }
+
+        async function submitSupportTicket() {
+            const statusEl = document.getElementById('support-status');
+            const btn = document.getElementById('support-submit-btn');
+            const message = document.getElementById('support-message').value.trim();
+            const fileInput = document.getElementById('support-screenshot');
+            const file = fileInput.files[0];
+
+            if (message.length < 5) {
+                statusEl.style.color = '#fca5a5';
+                statusEl.textContent = 'Please describe the issue (at least 5 characters).';
+                return;
+            }
+            if (file && file.size > 3 * 1024 * 1024) {
+                statusEl.style.color = '#fca5a5';
+                statusEl.textContent = 'Screenshot too large (max 3MB). Try a smaller image.';
+                return;
+            }
+
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                statusEl.style.color = '#fca5a5';
+                statusEl.textContent = 'Please log in again.';
+                return;
+            }
+
+            btn.disabled = true;
+            statusEl.style.color = '#94a3b8';
+            statusEl.textContent = 'Sending…';
+
+            try {
+                let screenshot = null;
+                if (file) screenshot = await _readFileAsDataURL(file);
+
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/support/tickets`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, screenshot })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error((data && data.detail) || 'Could not send. Try again.');
+
+                statusEl.style.color = '#6ee7b7';
+                statusEl.textContent = '✅ Sent! We\'ll notify you here when it\'s resolved.';
+                document.getElementById('support-message').value = '';
+                fileInput.value = '';
+                if (window.showToast) showToast('🛟 Query sent — we\'ll get back to you soon.', 'success');
+                setTimeout(closeSupportModal, 1200);
+                loadSupportTickets().then(updateNotifBadge);
+            } catch (e) {
+                statusEl.style.color = '#fca5a5';
+                statusEl.textContent = '❌ ' + e.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+
     <!-- PWA service worker + "new version available" banner -->
     <script src="assets/sw-register.js"></script>
 </body>
