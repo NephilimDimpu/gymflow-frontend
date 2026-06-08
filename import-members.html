@@ -299,6 +299,54 @@
             document.getElementById(`tab-${tabId}`).classList.add('active');
         }
 
+        // Map common real-world spreadsheet headers to the canonical column
+        // names the importer expects. Real gym lists rarely use exactly
+        // "name"/"phone" — they use "Full Name", "Mobile No", "Contact", etc.
+        // Keys are already lowercased + trimmed before lookup.
+        const HEADER_ALIASES = {
+            // name
+            'name': 'name', 'full name': 'name', 'member name': 'name',
+            'membername': 'name', 'fullname': 'name', 'customer name': 'name',
+            'client name': 'name', 'member': 'name',
+            // phone
+            'phone': 'phone', 'mobile': 'phone', 'mobile no': 'phone',
+            'mobile number': 'phone', 'phone no': 'phone', 'phone number': 'phone',
+            'contact': 'phone', 'contact no': 'phone', 'contact number': 'phone',
+            'number': 'phone', 'whatsapp': 'phone', 'whatsapp no': 'phone',
+            // email
+            'email': 'email', 'email id': 'email', 'e-mail': 'email',
+            'email address': 'email', 'mail': 'email',
+            // plan
+            'plan_name': 'plan_name', 'plan': 'plan_name', 'plan name': 'plan_name',
+            'membership': 'plan_name', 'membership plan': 'plan_name',
+            'package': 'plan_name', 'plan_id': 'plan_id',
+            // payment
+            'payment_received': 'payment_received', 'paid': 'payment_received',
+            'payment': 'payment_received', 'payment received': 'payment_received',
+            // start date
+            'start_date': 'start_date', 'start date': 'start_date',
+            'join date': 'start_date', 'joining date': 'start_date',
+            'joined': 'start_date', 'doj': 'start_date',
+        };
+
+        function canonicalHeader(raw) {
+            const key = String(raw || '').trim().toLowerCase();
+            return HEADER_ALIASES[key] || key;  // unknown headers pass through unchanged
+        }
+
+        // Re-key a row object so its keys use canonical column names.
+        function normalizeRow(row) {
+            const out = {};
+            Object.keys(row).forEach(k => {
+                const ck = canonicalHeader(k);
+                // don't clobber an already-set canonical column with a blank alias
+                if (out[ck] === undefined || out[ck] === '' || out[ck] === null) {
+                    out[ck] = row[k];
+                }
+            });
+            return out;
+        }
+
         // --- CSV / Excel Logic ---
         function handleCSVSelect(event) {
             const file = event.target.files[0];
@@ -316,7 +364,7 @@
                     header: true,
                     skipEmptyLines: true,
                     complete: function (results) {
-                        csvDataToImport = results.data;
+                        csvDataToImport = (results.data || []).map(normalizeRow);
                         renderCSVPreview();
                     },
                     error: function (err) {
@@ -345,8 +393,9 @@
                         document.getElementById('csv-errors').textContent = "Excel sheet is empty.";
                         return;
                     }
-                    // Normalize headers: lowercase + trim so "Name", "PHONE " all map correctly
-                    const headers = rows[0].map(h => String(h || '').trim().toLowerCase());
+                    // Normalize headers to canonical column names so "Name",
+                    // "Mobile No", "Full Name" etc. all map correctly.
+                    const headers = rows[0].map(h => canonicalHeader(h));
                     csvDataToImport = rows.slice(1).map(r => {
                         const obj = {};
                         headers.forEach((h, i) => {
@@ -356,7 +405,9 @@
                             if (val instanceof Date && !isNaN(val)) {
                                 val = val.toISOString().slice(0, 10);
                             }
-                            obj[h] = val === undefined || val === null ? '' : String(val).trim();
+                            val = val === undefined || val === null ? '' : String(val).trim();
+                            // don't let a blank alias column overwrite a real value
+                            if (obj[h] === undefined || obj[h] === '') obj[h] = val;
                         });
                         return obj;
                     }).filter(obj => Object.values(obj).some(v => v !== '')); // drop fully-blank rows
