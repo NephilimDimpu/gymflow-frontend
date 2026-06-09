@@ -188,6 +188,12 @@
                             <option value="">— Keep each row's own plan / no plan —</option>
                         </select>
                         <label style="display:flex; align-items:flex-start; gap:10px; margin-top:12px; cursor:pointer;">
+                            <input type="checkbox" id="import-auto-plan" checked style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
+                            <span style="font-size:12.5px; color:#94a3b8; line-height:1.5;">
+                                <strong style="color:#cbd5e1;">🎯 Auto-detect plan from the dates.</strong> When a row has a start &amp; end date but no plan, pick the plan whose length matches (≈1 month → Monthly, ≈3 → Quarterly, ≈6 → Half Yearly, ≈12 → Yearly). Best when your sheet tracks cycles as date ranges. Ignored if you picked a plan above.
+                            </span>
+                        </label>
+                        <label style="display:flex; align-items:flex-start; gap:10px; margin-top:12px; cursor:pointer;">
                             <input type="checkbox" id="import-update-existing" style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
                             <span style="font-size:12.5px; color:#94a3b8; line-height:1.5;">
                                 <strong style="color:#cbd5e1;">Update members already in the system.</strong> If a phone matches someone already imported, refresh their plan instead of skipping them. Use this to re-import a sheet and backfill the plan onto existing members.
@@ -912,10 +918,12 @@
         async function postBulk(members) {
             const updEl = document.getElementById('import-update-existing');
             const update_existing = !!(updEl && updEl.checked);
+            const autoEl = document.getElementById('import-auto-plan');
+            const auto_plan_from_dates = !!(autoEl && autoEl.checked);
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ members, update_existing })
+                body: JSON.stringify({ members, update_existing, auto_plan_from_dates })
             });
             const data = await response.json();
             if (!response.ok) {
