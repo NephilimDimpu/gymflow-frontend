@@ -619,82 +619,81 @@
 
             try {
                 const data = await postBulk(validRows.map(buildMemberPayload));
-
-                let msg = `✅ ${data.message}`;
-                if (skippedRows > 0) {
-                    msg += `\n\n(${skippedRows} row${skippedRows === 1 ? '' : 's'} skipped — no name or phone.)`;
-                }
-                if (data.warnings && data.warnings.length > 0) {
-                    msg += `\n\n(${data.warnings.length} imported without a matching plan — assign later.)`;
-                }
-                if (data.errors && data.errors.length > 0) {
-                    const shown = data.errors.slice(0, 8);
-                    msg += `\n\nErrors encountered:\n${shown.join('\n')}`;
-                    if (data.errors.length > shown.length) {
-                        msg += `\n…and ${data.errors.length - shown.length} more.`;
-                    }
-                }
-                const hasIssues = skippedRows > 0 ||
-                    (data.errors && data.errors.length > 0) ||
-                    (data.warnings && data.warnings.length > 0);
-                showToast(msg, hasIssues ? 'warning' : 'success');
-
-                if (hasIssues) {
-                    // Don't auto-leave — let the owner download the skipped rows
-                    // and review before navigating to Members.
-                    renderImportResult(data, skippedRowsData);
-                } else if (data.added_count > 0) {
-                    window.location.href = 'members.html';
-                }
+                // Always show the result card.
+                renderImportResult(data, skippedRowsData);
 
             } catch (error) {
                 errorsDiv.innerHTML = `❌ ${error.message}`;
             }
         }
 
-        // Render a result panel with a "Download skipped rows" button so the
-        // owner can fix members that had no name/phone and re-import them later.
+        // Show a prominent success card in the middle of the page.
         function renderImportResult(data, skipped) {
+            const added    = data.added_count || 0;
+            const warnings = (data.warnings && data.warnings.length)  || 0;
+            const errs     = (data.errors   && data.errors.length)    || 0;
+            const skipCnt  = skipped.length;
+            const details  = [
+                warnings ? `<p style="margin:6px 0;color:#93c5fd;font-size:14px;">ℹ️ ${warnings} imported without a plan — assign one later from Members.</p>` : '',
+                skipCnt  ? `<p style="margin:6px 0;color:#fbbf24;font-size:14px;">⚠️ ${skipCnt} row${skipCnt===1?'':'s'} skipped (missing name or phone).</p>` : '',
+                errs     ? `<p style="margin:6px 0;color:#fca5a5;font-size:14px;">⚠️ ${errs} row${errs===1?'':'s'} had errors (e.g. duplicate phone).</p>` : ''
+            ].filter(Boolean).join('');
+
+            const preview = document.getElementById('csv-preview');
+            preview.style.display = 'block';
+            preview.innerHTML = `
+                <div style="text-align:center;padding:40px 20px 24px;">
+                    <div style="font-size:64px;line-height:1;margin-bottom:18px;">${added > 0 ? '🎉' : '📋'}</div>
+                    <h2 style="font-size:28px;font-weight:800;color:#fff;margin:0 0 6px;letter-spacing:-0.5px;">
+                        ${added > 0 ? added + ' member' + (added===1?'':'s') + ' imported!' : 'Import complete'}
+                    </h2>
+                    <p style="color:#94a3b8;font-size:14px;margin:0 0 12px;">Your member list has been updated in GymExec.</p>
+                    ${details}
+                </div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:0 20px 32px;">
+                    <a href="members.html" style="display:inline-flex;align-items:center;gap:8px;background:#6366f1;color:#fff;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;">
+                        👥 View Members →
+                    </a>
+                    <button type="button" onclick="resetImportPage()" style="background:rgba(255,255,255,0.06);color:#cbd5e1;border:1px solid rgba(255,255,255,0.12);padding:14px 24px;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;">
+                        ⬆️ Import Another File
+                    </button>
+                </div>
+                <div id="csv-errors" style="padding:0 20px 20px;font-size:14px;"></div>
+            `;
+
             const box = document.getElementById('csv-errors');
-            box.className = '';
-            box.style.color = '#cbd5e1';
-            box.innerHTML = '';
-
-            const summary = document.createElement('div');
-            summary.style.cssText = 'margin-bottom:14px;font-size:14px;color:#cbd5e1;line-height:1.6;';
-            summary.innerHTML = `✅ <strong>${data.added_count || 0}</strong> member(s) imported.` +
-                (data.warnings && data.warnings.length ? `<br>ℹ️ <strong>${data.warnings.length}</strong> imported without a plan (the sheet's plan name isn't set up here — assign one later from Members).` : '') +
-                (skipped.length ? `<br>⚠️ <strong>${skipped.length}</strong> row(s) skipped — no name/phone.` : '') +
-                (data.errors && data.errors.length ? `<br>⚠️ <strong>${data.errors.length}</strong> row(s) had errors (e.g. duplicate phone).` : '');
-            box.appendChild(summary);
-
-            const actions = document.createElement('div');
-            actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;';
-
-            if (skipped.length) {
+            if (skipCnt > 0) {
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;';
                 const fix = document.createElement('button');
-                fix.type = 'button';
-                fix.textContent = '✏️ Fix here & import';
+                fix.type = 'button'; fix.textContent = '✏️ Fix skipped rows & import';
                 fix.style.cssText = 'background:#10b981;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;';
                 fix.onclick = function () { renderFixTable(skipped); };
-                actions.appendChild(fix);
-
+                wrap.appendChild(fix);
                 const dl = document.createElement('button');
-                dl.type = 'button';
-                dl.textContent = '⬇️ Download skipped rows';
+                dl.type = 'button'; dl.textContent = '⬇️ Download skipped rows';
                 dl.style.cssText = 'background:#f59e0b;color:#111;border:none;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;';
                 dl.onclick = function () { downloadSkippedRows(skipped); };
-                actions.appendChild(dl);
+                wrap.appendChild(dl);
+                box.appendChild(wrap);
             }
+        }
 
-            const go = document.createElement('button');
-            go.type = 'button';
-            go.textContent = 'Go to Members →';
-            go.style.cssText = 'background:#6366f1;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;';
-            go.onclick = function () { window.location.href = 'members.html'; };
-            actions.appendChild(go);
-
-            box.appendChild(actions);
+        // Reset so the owner can drop another file without a full page refresh.
+        function resetImportPage() {
+            const inp = document.getElementById('csv-file'); if (inp) inp.value = '';
+            const picker = document.getElementById('sheet-picker-wrap'); if (picker) picker.style.display = 'none';
+            const preview = document.getElementById('csv-preview');
+            preview.style.display = 'none';
+            preview.innerHTML =
+                '<h3 style="margin-bottom:15px;">Preview</h3>' +
+                '<div style="overflow-x:auto;"><table class="parsed-data-table" id="csv-table">' +
+                '<thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Plan</th></tr></thead>' +
+                '<tbody></tbody></table></div>' +
+                '<button class="btn btn-primary" style="margin-top:20px;width:100%;" onclick="submitCSVImport()">Confirm &amp; Import</button>' +
+                '<div id="csv-errors" class="error-text"></div>';
+            csvDataToImport = [];
+            currentWorkbook = null;
         }
 
         // Build a CSV of the skipped rows (original columns + a reason) and
