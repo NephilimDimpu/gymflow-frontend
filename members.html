@@ -140,12 +140,22 @@
                 </div>
             </div>
 
+            <!-- [BULK-ACTION-BAR] Appears only when one or more rows are selected. -->
+            <div id="bulk-action-bar" style="display: none; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; padding: 14px 18px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); border-radius: 12px;">
+                <span id="bulk-selected-label" style="font-weight: 600; color: #c7d2fe;">0 selected</span>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="clearSelection()" style="background: rgba(255,255,255,0.05); color: #fff;">Clear</button>
+                    <button class="btn" id="bulk-delete-btn" onclick="bulkDeleteSelected()" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); font-weight: 700;">🗑️ Delete selected</button>
+                </div>
+            </div>
+
             <!-- Table Container -->
             <div id="members-container" class="glass-panel" style="display: none; padding: 0; overflow: hidden;">
                 <div class="table-wrap">
                     <table class="glass-table mobile-card-view">
                         <thead>
                             <tr>
+                                <th style="width: 40px;" id="select-all-th"><input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" title="Select all" style="cursor: pointer; width: 16px; height: 16px;"></th>
                                 <th>Member</th>
                                 <th>Contact</th>
                                 <th>Plan Details</th>
@@ -310,6 +320,16 @@
         let allMembers = [];
         let filteredMembers = [];
         let currentFilter = 'all';
+        // Ids of members ticked for bulk actions. Persists across filter/search
+        // re-renders so a selection isn't lost when the owner narrows the list.
+        const selectedIds = new Set();
+        // Hide the select-all header checkbox for staff (they can't bulk delete).
+        if (!(userRole === 'owner' || userRole === 'manager')) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const th = document.getElementById('select-all-th');
+                if (th) th.innerHTML = '';
+            });
+        }
 
         async function loadMembers() {
             const overlay = document.getElementById('loading-overlay');
@@ -404,6 +424,9 @@
             // Inject the rows
             tbody.innerHTML = members.map(m => `
                 <tr data-member-id="${m.id}">
+                    <td data-label="" style="width: 40px;">
+                        ${(userRole === 'owner' || userRole === 'manager') ? `<input type="checkbox" class="member-checkbox" value="${m.id}" onclick="onRowCheck()" ${selectedIds.has(m.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">` : ''}
+                    </td>
                     <td data-label="Member">
                         <div style="font-weight: 700;">${m.name}</div>
                         ${m.email ? `<div style="font-size: 11px; color: var(--text-muted);">${m.email}</div>` : ''}
@@ -441,6 +464,89 @@
                     </td>
                 </tr>
             `).join('');
+
+            // Re-sync the bulk-action bar + header checkbox after every render
+            // (filtering/searching rebuilds the rows but keeps the selection).
+            updateBulkBar();
+        }
+
+        // ============================================
+        // [BULK-SELECT] Multi-select + bulk delete
+        // ============================================
+        function onRowCheck() {
+            // Read every checkbox currently in the DOM and reconcile the set.
+            document.querySelectorAll('.member-checkbox').forEach(cb => {
+                const id = parseInt(cb.value, 10);
+                if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+            });
+            updateBulkBar();
+        }
+
+        function toggleSelectAll(headerCb) {
+            // Select/deselect only the rows currently visible (respects filter/search).
+            document.querySelectorAll('.member-checkbox').forEach(cb => {
+                cb.checked = headerCb.checked;
+                const id = parseInt(cb.value, 10);
+                if (headerCb.checked) selectedIds.add(id); else selectedIds.delete(id);
+            });
+            updateBulkBar();
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            document.querySelectorAll('.member-checkbox').forEach(cb => cb.checked = false);
+            const sa = document.getElementById('select-all-checkbox');
+            if (sa) { sa.checked = false; sa.indeterminate = false; }
+            updateBulkBar();
+        }
+
+        function updateBulkBar() {
+            const bar = document.getElementById('bulk-action-bar');
+            const label = document.getElementById('bulk-selected-label');
+            const count = selectedIds.size;
+            if (bar) bar.style.display = count > 0 ? 'flex' : 'none';
+            if (label) label.textContent = `${count} selected`;
+
+            // Sync the header checkbox state (checked / unchecked / indeterminate)
+            // against how many visible rows are ticked.
+            const boxes = Array.from(document.querySelectorAll('.member-checkbox'));
+            const checked = boxes.filter(cb => cb.checked).length;
+            const sa = document.getElementById('select-all-checkbox');
+            if (sa) {
+                sa.checked = boxes.length > 0 && checked === boxes.length;
+                sa.indeterminate = checked > 0 && checked < boxes.length;
+            }
+        }
+
+        async function bulkDeleteSelected() {
+            const ids = Array.from(selectedIds);
+            if (ids.length === 0) return;
+            if (!confirm(`Permanently remove ${ids.length} selected member(s)? This cannot be undone.`)) return;
+
+            const btn = document.getElementById('bulk-delete-btn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Deleting…';
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk-delete`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ member_ids: ids })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(typeof data.detail === 'string' ? data.detail : 'Bulk delete failed');
+                }
+                showToast(data.message || `Deleted ${data.deleted_count} member(s).`, 'success');
+                selectedIds.clear();
+                await loadMembers();          // refresh list + counts
+                filterMembers(currentFilter); // keep the active filter view
+            } catch (err) {
+                showToast(err.message || 'Failed to delete selected members', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
         }
 
         function getStatusClass(s) {
