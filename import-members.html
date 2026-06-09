@@ -148,7 +148,7 @@
                 <p style="color: #6b7280; margin-bottom: 20px;">
                     Upload a <strong>CSV or Excel</strong> file containing members. Required columns: <strong>name, phone</strong>.
                     Optional columns: <strong>email, plan_name</strong> (e.g. "Monthly") <em>or</em> <strong>plan_id</strong>,
-                    <strong>payment_received</strong> (true/false), <strong>start_date</strong> (YYYY-MM-DD).<br>
+                    <strong>payment_received</strong> (true/false), <strong>start_date</strong>, <strong>end_date</strong> (your members' real expiry — also reads "END DATE", "Expiry", "Valid Till").<br>
                     <span style="color:#9ca3af; font-size:13px;">💡 Only <strong>name</strong> and <strong>phone</strong> are required — a bare list works. Members with no plan import as contacts (they'll show under <strong>Expired</strong>) so you can assign a plan when they next pay. Add <code>start_date</code> (e.g. <code>2026-05-15</code>) for members who joined earlier so their expiry is correct.<br>📊 <strong>Excel works too</strong> — just upload your <code>.xlsx</code> file directly, no need to convert to CSV first.</span>
                 </p>
                 <p style="margin-bottom: 15px;">
@@ -172,6 +172,7 @@
                                     <th>Phone</th>
                                     <th>Email</th>
                                     <th>Plan</th>
+                                    <th>Expiry</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -329,6 +330,12 @@
             'start_date': 'start_date', 'start date': 'start_date',
             'join date': 'start_date', 'joining date': 'start_date',
             'joined': 'start_date', 'doj': 'start_date',
+            // end date / expiry — lets us honor a gym's own expiry column
+            'end_date': 'end_date', 'end date': 'end_date',
+            'expiry': 'end_date', 'expiry date': 'end_date', 'expiry_date': 'end_date',
+            'expires': 'end_date', 'expires on': 'end_date', 'expires_on': 'end_date',
+            'valid till': 'end_date', 'valid until': 'end_date', 'valid upto': 'end_date',
+            'end': 'end_date', 'due date': 'end_date',
         };
 
         function canonicalHeader(raw) {
@@ -451,12 +458,83 @@
                 sel.onchange = function () { document.getElementById('csv-errors').textContent = ''; loadSheet(this.value); };
                 wrap.appendChild(label);
                 wrap.appendChild(sel);
+
+                // "Import all sheets" — scans every sheet, collects valid
+                // name+phone rows, dedupes by phone, skips empty sheets.
+                const allBtn = document.createElement('button');
+                allBtn.id = 'import-all-sheets-btn';
+                allBtn.type = 'button';
+                allBtn.textContent = '📥 Import all sheets';
+                allBtn.style.cssText = 'background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.35);padding:8px 14px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;';
+                allBtn.onclick = importAllSheets;
+                wrap.appendChild(allBtn);
+
                 const preview = document.getElementById('csv-preview');
                 preview.parentNode.insertBefore(wrap, preview);
             }
             const sel = document.getElementById('sheet-select');
             sel.innerHTML = sheetNames.map(n => `<option value="${n}">${n}</option>`).join('');
             wrap.style.display = sheetNames.length > 1 ? 'flex' : 'none';
+        }
+
+        // Import EVERY sheet in one go. Auto-detects each sheet's header row,
+        // keeps rows that have both a name and a phone, dedupes by phone across
+        // sheets (first occurrence wins), and skips empty/junk sheets. The
+        // backend additionally skips anyone already in the gym.
+        async function importAllSheets() {
+            if (!currentWorkbook) { showToast('Open an Excel file first.', 'error'); return; }
+            const names = currentWorkbook.SheetNames || [];
+
+            const seenPhones = new Set();
+            const combined = [];
+            const perSheet = [];   // {name, kept} for the summary
+            let skippedNoContact = 0;
+            let dupAcrossSheets = 0;
+
+            names.forEach(sheetName => {
+                let rows = [];
+                try { rows = buildRowsFromSheet(currentWorkbook.Sheets[sheetName]); }
+                catch (_) { rows = []; }
+                let kept = 0;
+                rows.forEach(r => {
+                    const hasName = r.name && String(r.name).trim();
+                    const hasPhone = r.phone && String(r.phone).trim();
+                    if (!hasName || !hasPhone) { skippedNoContact++; return; }
+                    const digits = String(r.phone).replace(/\D/g, '');
+                    const key = digits || String(r.phone).trim();
+                    if (seenPhones.has(key)) { dupAcrossSheets++; return; }
+                    seenPhones.add(key);
+                    combined.push(r);
+                    kept++;
+                });
+                if (rows.length > 0) perSheet.push({ name: sheetName, kept });
+            });
+
+            if (combined.length === 0) {
+                showToast('No rows with both a name and phone found across any sheet.', 'error');
+                return;
+            }
+
+            const sheetLines = perSheet.map(s => `• ${s.name}: ${s.kept}`).join('\n');
+            const ok = confirm(
+                `Found ${combined.length} member(s) with name + phone across ${perSheet.length} sheet(s):\n\n` +
+                `${sheetLines}\n\n` +
+                (dupAcrossSheets ? `${dupAcrossSheets} duplicate(s) across sheets will be skipped.\n` : '') +
+                (skippedNoContact ? `${skippedNoContact} row(s) without name/phone will be skipped.\n` : '') +
+                `\nImport all of them now?`
+            );
+            if (!ok) return;
+
+            const errorsDiv = document.getElementById('csv-errors');
+            errorsDiv.textContent = 'Importing all sheets…';
+            try {
+                const data = await postBulk(combined.map(buildMemberPayload));
+                // Reuse the same result card. Skipped-here rows aren't tracked
+                // individually for the all-sheets path, so pass an empty list.
+                renderImportResult(data, []);
+            } catch (error) {
+                errorsDiv.innerHTML = `❌ ${error.message}`;
+            }
         }
 
         // Parse an .xlsx/.xls workbook. Supports multiple sheets (with a picker)
@@ -521,13 +599,14 @@
                     `<td><input type="text" inputmode="numeric" class="prev-phone" data-idx="${idx}" value="${escAttr(row.phone || '')}" ` +
                     `style="width:100%;background:rgba(0,0,0,0.25);border:1px solid ${phoneBorder};color:#fff;padding:6px 8px;border-radius:6px;font-size:13px;"></td>` +
                     `<td>${escHtml(row.email || '-')}</td>` +
-                    `<td>${escHtml(row.plan_name || row.plan_id || '-')}</td>`;
+                    `<td>${escHtml(row.plan_name || row.plan_id || '-')}</td>` +
+                    `<td>${escHtml(normalizeDate(row.end_date) || '-')}</td>`;
                 tbody.appendChild(tr);
             });
 
             if (csvDataToImport.length > MAX_PREVIEW_ROWS) {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td colspan="4" style="text-align:center;color:#6b7280;">…and ${csvDataToImport.length - MAX_PREVIEW_ROWS} more rows (not shown here, but they'll still import)</td>`;
+                tr.innerHTML = `<td colspan="5" style="text-align:center;color:#6b7280;">…and ${csvDataToImport.length - MAX_PREVIEW_ROWS} more rows (not shown here, but they'll still import)</td>`;
                 tbody.appendChild(tr);
             }
 
@@ -723,6 +802,30 @@
             URL.revokeObjectURL(url);
         }
 
+        // Normalize a date cell to YYYY-MM-DD for the backend.
+        // Handles: already-ISO (YYYY-MM-DD), Indian day-first (DD-MM-YYYY or
+        // DD/MM/YYYY), and Excel Date objects already sliced to ISO upstream.
+        // Returns '' if it can't confidently parse (so the row still imports,
+        // just without that date rather than failing).
+        function normalizeDate(raw) {
+            if (!raw) return '';
+            const s = String(raw).trim();
+            if (!s) return '';
+            // Already ISO (yyyy-mm-dd, optionally with time) → take the date part.
+            let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+            // Day-first dd-mm-yyyy or dd/mm/yyyy (also accepts 2-digit year).
+            m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/);
+            if (m) {
+                let [, d, mo, y] = m;
+                if (y.length === 2) y = '20' + y;
+                d = d.padStart(2, '0'); mo = mo.padStart(2, '0');
+                // Guard against impossible day/month so we don't store garbage.
+                if (+mo >= 1 && +mo <= 12 && +d >= 1 && +d <= 31) return `${y}-${mo}-${d}`;
+            }
+            return '';  // unparseable (e.g. "27-May") → skip the date, keep the member
+        }
+
         // Build the API payload for one member row (shared by file import + inline fix).
         function buildMemberPayload(row) {
             const m = {
@@ -733,7 +836,10 @@
             };
             if (row.plan_id && !isNaN(parseInt(row.plan_id))) m.plan_id = parseInt(row.plan_id);
             if (row.plan_name && String(row.plan_name).trim()) m.plan_name = String(row.plan_name).trim();
-            if (row.start_date && String(row.start_date).trim()) m.start_date = String(row.start_date).trim();
+            const sd = normalizeDate(row.start_date);
+            if (sd) m.start_date = sd;
+            const ed = normalizeDate(row.end_date);
+            if (ed) m.end_date = ed;
             return m;
         }
 
