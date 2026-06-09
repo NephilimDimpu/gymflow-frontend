@@ -452,8 +452,16 @@
         }
 
         function onDateFilterChange() {
-            currentExpiryFrom = document.getElementById('expiry-from').value || '';
-            currentExpiryTo = document.getElementById('expiry-to').value || '';
+            let from = document.getElementById('expiry-from').value || '';
+            let to = document.getElementById('expiry-to').value || '';
+            // Be forgiving if the owner picks them backwards (from after to) — swap.
+            if (from && to && from > to) {
+                [from, to] = [to, from];
+                document.getElementById('expiry-from').value = from;
+                document.getElementById('expiry-to').value = to;
+            }
+            currentExpiryFrom = from;
+            currentExpiryTo = to;
             document.getElementById('clear-dates-btn').style.display =
                 (currentExpiryFrom || currentExpiryTo) ? 'inline-block' : 'none';
             currentOffset = 0;
