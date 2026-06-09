@@ -136,9 +136,33 @@
                     </div>
                 </div>
 
+                <!-- [DATE + SORT] Slice by expiry period (month / quarter / year / 2025 vs 2026)
+                     and order the list. Combine with the plan + status filters above. -->
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+                    <label style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Expiry between</label>
+                    <input type="date" id="expiry-from" onchange="onDateFilterChange()" class="form-input"
+                           style="width: auto; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                    <span style="color: var(--text-muted);">→</span>
+                    <input type="date" id="expiry-to" onchange="onDateFilterChange()" class="form-input"
+                           style="width: auto; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                    <button class="btn btn-secondary" onclick="clearDateFilter()" id="clear-dates-btn"
+                            style="background: rgba(255,255,255,0.05); color: #fff; font-size: 12px; padding: 7px 12px; display: none;">✕ Clear dates</button>
+
+                    <span style="flex: 1; min-width: 12px;"></span>
+
+                    <label style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Sort</label>
+                    <select id="sort-by" onchange="onSortChange()" class="form-select"
+                            style="width: auto; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                        <option value="recent">Newest added</option>
+                        <option value="expiry_asc">Expiry: soonest first</option>
+                        <option value="expiry_desc">Expiry: latest first</option>
+                        <option value="name">Name A–Z</option>
+                    </select>
+                </div>
+
                 <div id="branch-filter-row" style="display: none;">
-                    <select id="branch-filter" class="form-select" 
-                            style="width: auto; min-width: 200px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" 
+                    <select id="branch-filter" class="form-select"
+                            style="width: auto; min-width: 200px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;"
                             onchange="loadMembers()">
                         <option value="">All Branches</option>
                     </select>
@@ -338,6 +362,9 @@
         let currentFilter = 'all';
         let currentPlan = '';        // '' = all plans, 'none' = members with no plan
         let currentSearch = '';
+        let currentExpiryFrom = '';  // YYYY-MM-DD
+        let currentExpiryTo = '';    // YYYY-MM-DD
+        let currentSort = 'recent';
         const PAGE_SIZE = 50;
         let currentOffset = 0;
         let totalMembers = 0;
@@ -366,6 +393,9 @@
                 if (currentFilter && currentFilter !== 'all') params.set('status', currentFilter);
                 if (currentPlan) params.set('plan', currentPlan);
                 if (currentSearch) params.set('q', currentSearch);
+                if (currentExpiryFrom) params.set('expiry_from', currentExpiryFrom);
+                if (currentExpiryTo) params.set('expiry_to', currentExpiryTo);
+                if (currentSort && currentSort !== 'recent') params.set('sort', currentSort);
                 const branchId = document.getElementById('branch-filter')?.value;
                 if (branchId) params.set('branch_id', branchId);
                 params.set('limit', PAGE_SIZE);
@@ -417,6 +447,31 @@
 
         function onPlanFilterChange() {
             currentPlan = document.getElementById('plan-filter').value;
+            currentOffset = 0;
+            loadMembers();
+        }
+
+        function onDateFilterChange() {
+            currentExpiryFrom = document.getElementById('expiry-from').value || '';
+            currentExpiryTo = document.getElementById('expiry-to').value || '';
+            document.getElementById('clear-dates-btn').style.display =
+                (currentExpiryFrom || currentExpiryTo) ? 'inline-block' : 'none';
+            currentOffset = 0;
+            loadMembers();
+        }
+
+        function clearDateFilter() {
+            document.getElementById('expiry-from').value = '';
+            document.getElementById('expiry-to').value = '';
+            currentExpiryFrom = '';
+            currentExpiryTo = '';
+            document.getElementById('clear-dates-btn').style.display = 'none';
+            currentOffset = 0;
+            loadMembers();
+        }
+
+        function onSortChange() {
+            currentSort = document.getElementById('sort-by').value || 'recent';
             currentOffset = 0;
             loadMembers();
         }
