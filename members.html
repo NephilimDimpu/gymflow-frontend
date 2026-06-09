@@ -599,7 +599,9 @@
 
         function searchMembers() {
             const q = document.getElementById('search-input').value.toLowerCase();
-            const results = filteredMembers.filter(m => m.name.toLowerCase().includes(q) || m.phone.includes(q));
+            const results = filteredMembers.filter(m =>
+                (m.name || '').toLowerCase().includes(q) || (m.phone || '').includes(q)
+            );
             renderTable(results);
         }
 

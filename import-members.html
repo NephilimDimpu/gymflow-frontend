@@ -178,7 +178,13 @@
                             <tbody></tbody>
                         </table>
                     </div>
-                    <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="submitCSVImport()">
+                    <label style="display:flex; align-items:flex-start; gap:10px; margin-top:18px; padding:12px 14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:10px; cursor:pointer;">
+                        <input type="checkbox" id="import-incomplete" checked style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
+                        <span style="font-size:13px; color:#cbd5e1; line-height:1.5;">
+                            <strong>Import incomplete rows too.</strong> Members missing a name or phone still get added (nameless → labelled "Member", no phone → left blank) so you can complete them later in Members. Uncheck for a strict import (both name + phone required).
+                        </span>
+                    </label>
+                    <button class="btn btn-primary" style="margin-top: 16px; width: 100%;" onclick="submitCSVImport()">
                         Confirm & Import
                     </button>
                     <div id="csv-errors" class="error-text"></div>
@@ -485,6 +491,8 @@
             if (!currentWorkbook) { showToast('Open an Excel file first.', 'error'); return; }
             const names = currentWorkbook.SheetNames || [];
 
+            const allowIncomplete = !!(document.getElementById('import-incomplete') || {}).checked;
+
             const seenPhones = new Set();
             const combined = [];
             const perSheet = [];   // {name, kept} for the summary
@@ -499,11 +507,16 @@
                 rows.forEach(r => {
                     const hasName = r.name && String(r.name).trim();
                     const hasPhone = r.phone && String(r.phone).trim();
-                    if (!hasName || !hasPhone) { skippedNoContact++; return; }
-                    const digits = String(r.phone).replace(/\D/g, '');
-                    const key = digits || String(r.phone).trim();
-                    if (seenPhones.has(key)) { dupAcrossSheets++; return; }
-                    seenPhones.add(key);
+                    const keep = allowIncomplete ? (hasName || hasPhone) : (hasName && hasPhone);
+                    if (!keep) { skippedNoContact++; return; }
+                    // Dedup by phone only when present (phone is the unique key).
+                    // Name-only rows can't be deduped, so they all come through.
+                    if (hasPhone) {
+                        const digits = String(r.phone).replace(/\D/g, '');
+                        const key = digits || String(r.phone).trim();
+                        if (seenPhones.has(key)) { dupAcrossSheets++; return; }
+                        seenPhones.add(key);
+                    }
                     combined.push(r);
                     kept++;
                 });
@@ -511,7 +524,7 @@
             });
 
             if (combined.length === 0) {
-                showToast('No rows with both a name and phone found across any sheet.', 'error');
+                showToast('No usable rows found across any sheet.', 'error');
                 return;
             }
 
@@ -620,7 +633,7 @@
             }
             if (needAttention > 0) {
                 banner.style.color = '#fbbf24';
-                banner.innerHTML = `⚠️ <strong>${needAttention}</strong> row(s) are missing a name or phone (highlighted). Fix them right here, or they'll be skipped on import.`;
+                banner.innerHTML = `⚠️ <strong>${needAttention}</strong> row(s) are missing a name or phone (highlighted). You can fill them here now — or, with “Import incomplete rows” ticked below, they'll still import and you can complete them later in Members.`;
             } else {
                 banner.style.color = '#6ee7b7';
                 banner.textContent = `✓ All ${csvDataToImport.length} row(s) have a name and phone.`;
@@ -675,12 +688,17 @@
             // "month of September 2025", members with no number yet), we SKIP
             // the incomplete rows and import the good ones. The backend also
             // skips duplicates/bad rows gracefully and reports them back.
+            // Toggle: when checked (default), a row imports if it has a name OR
+            // a phone (gaps auto-filled later). When unchecked, both are required.
+            const allowIncomplete = !!(document.getElementById('import-incomplete') || {}).checked;
+
             const validRows = [];
             const skippedRowsData = [];
             csvDataToImport.forEach(row => {
                 const hasName = row.name && String(row.name).trim();
                 const hasPhone = row.phone && String(row.phone).trim();
-                if (hasName && hasPhone) {
+                const keep = allowIncomplete ? (hasName || hasPhone) : (hasName && hasPhone);
+                if (keep) {
                     validRows.push(row);
                 } else {
                     const reason = (!hasName && !hasPhone) ? 'Missing name and phone'
@@ -691,8 +709,10 @@
             const skippedRows = skippedRowsData.length;
 
             if (validRows.length === 0) {
-                errorsDiv.innerHTML = `❌ No rows have both a <code>name</code> and a <code>phone</code> filled in. ` +
-                    `Make sure the sheet you picked has those two columns with values.`;
+                errorsDiv.innerHTML = allowIncomplete
+                    ? `❌ No rows have a <code>name</code> or a <code>phone</code>. The sheet looks empty.`
+                    : `❌ No rows have both a <code>name</code> and a <code>phone</code>. ` +
+                      `Tick "Import incomplete rows too" to bring in rows that have just one.`;
                 return;
             }
 
