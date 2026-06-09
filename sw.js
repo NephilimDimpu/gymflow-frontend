@@ -17,7 +17,7 @@
 // ============================================
 
 // Bump to force-drop old caches on next load.
-const CACHE_NAME = 'gymexec-v16';
+const CACHE_NAME = 'gymexec-v17';
 
 // Precache the minimal offline shell.
 const ASSETS = [
