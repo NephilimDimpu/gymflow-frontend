@@ -124,9 +124,14 @@
                         <button class="btn filter-btn" data-status="expired" onclick="filterMembers('expired')">Expired <span class="filter-count" data-count="expired">0</span></button>
                     </div>
 
-                    <div style="flex: 1; min-width: 300px;">
-                        <input type="text" id="search-input" class="form-input" 
-                               style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" 
+                    <select id="plan-filter" onchange="onPlanFilterChange()" class="form-select" title="Filter by membership plan"
+                            style="width: auto; min-width: 170px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                        <option value="">All plans</option>
+                    </select>
+
+                    <div style="flex: 1; min-width: 260px;">
+                        <input type="text" id="search-input" class="form-input"
+                               style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;"
                                placeholder="Search members by name or phone..." onkeyup="searchMembers()">
                     </div>
                 </div>
@@ -143,7 +148,11 @@
             <!-- [BULK-ACTION-BAR] Appears only when one or more rows are selected. -->
             <div id="bulk-action-bar" style="display: none; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; padding: 14px 18px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); border-radius: 12px;">
                 <span id="bulk-selected-label" style="font-weight: 600; color: #c7d2fe;">0 selected</span>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="bulk-assign-select" onchange="bulkAssignPlan()" title="Assign a plan to the selected members"
+                            style="background: rgba(0,0,0,0.3); border: 1px solid rgba(99,102,241,0.4); color: #fff; padding: 9px 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        <option value="">＋ Assign plan…</option>
+                    </select>
                     <button class="btn btn-secondary" onclick="clearSelection()" style="background: rgba(255,255,255,0.05); color: #fff;">Clear</button>
                     <button class="btn" id="bulk-delete-btn" onclick="bulkDeleteSelected()" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); font-weight: 700;">🗑️ Delete selected</button>
                 </div>
@@ -167,6 +176,13 @@
                         <tbody id="active-members-tbody"></tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- [PAGINATION] Server-side paging for large member lists. -->
+            <div id="pagination-bar" style="display: none; align-items: center; justify-content: center; gap: 16px; margin-top: 18px;">
+                <button id="prev-page-btn" class="btn btn-secondary" onclick="prevPage()" style="background: rgba(255,255,255,0.05); color: #fff;">← Prev</button>
+                <span id="page-info" style="color: var(--text-muted); font-size: 14px;"></span>
+                <button id="next-page-btn" class="btn btn-secondary" onclick="nextPage()" style="background: rgba(255,255,255,0.05); color: #fff;">Next →</button>
             </div>
 
             <!-- [EMPTY-STATE] -->
@@ -317,9 +333,20 @@
             } catch (err) { console.error(err); }
         }
 
-        let allMembers = [];
-        let filteredMembers = [];
+        // Server-driven list state (paginated). pageMembers = current page only.
+        let pageMembers = [];
         let currentFilter = 'all';
+        let currentPlan = '';        // '' = all plans, 'none' = members with no plan
+        let currentSearch = '';
+        const PAGE_SIZE = 50;
+        let currentOffset = 0;
+        let totalMembers = 0;
+        let serverCounts = { all: 0, active: 0, expiring_soon: 0, expired: 0 };
+        let _plansLoaded = false;
+
+        function _escAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+        function _escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
         // Ids of members ticked for bulk actions. Persists across filter/search
         // re-renders so a selection isn't lost when the owner narrows the list.
         const selectedIds = new Set();
@@ -335,17 +362,27 @@
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = 'flex';
             try {
-                let url = `${CONFIG.API_BASE_URL}/api/members`;
+                const params = new URLSearchParams();
+                if (currentFilter && currentFilter !== 'all') params.set('status', currentFilter);
+                if (currentPlan) params.set('plan', currentPlan);
+                if (currentSearch) params.set('q', currentSearch);
                 const branchId = document.getElementById('branch-filter')?.value;
-                if (branchId) url += `?branch_id=${branchId}`;
+                if (branchId) params.set('branch_id', branchId);
+                params.set('limit', PAGE_SIZE);
+                params.set('offset', currentOffset);
 
-                const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/paged?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (!response.ok) throw new Error('Fetch failed');
 
-                allMembers = await response.json();
-                filteredMembers = allMembers;
+                const data = await response.json();
+                pageMembers = data.members || [];
+                totalMembers = data.total || 0;
+                serverCounts = data.counts || serverCounts;
                 updateFilterCounts();
-                renderTable(allMembers);
+                renderTable(pageMembers);
+                renderPagination();
             } catch (error) {
                 showToast("Failed to load members", "error");
             } finally {
@@ -354,23 +391,66 @@
             }
         }
 
+        // Populate the plan filter dropdown + the bulk-assign dropdown from the
+        // gym's plans (fetched once). Filter uses plan NAME; assign uses plan ID.
+        async function loadPlansForControls() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) return;
+                const plans = await res.json();
+                const filterSel = document.getElementById('plan-filter');
+                if (filterSel) {
+                    filterSel.innerHTML =
+                        '<option value="">All plans</option>' +
+                        '<option value="none">— No plan —</option>' +
+                        plans.map(p => `<option value="${_escAttr(p.name)}">${_escHtml(p.name)}</option>`).join('');
+                }
+                const assignSel = document.getElementById('bulk-assign-select');
+                if (assignSel) {
+                    assignSel.innerHTML =
+                        '<option value="">＋ Assign plan…</option>' +
+                        plans.map(p => `<option value="${p.id}">${_escHtml(p.name)}</option>`).join('');
+                }
+                _plansLoaded = true;
+            } catch (_) { /* non-fatal */ }
+        }
+
+        function onPlanFilterChange() {
+            currentPlan = document.getElementById('plan-filter').value;
+            currentOffset = 0;
+            loadMembers();
+        }
+
+        function renderPagination() {
+            const bar = document.getElementById('pagination-bar');
+            if (!bar) return;
+            if (totalMembers <= PAGE_SIZE) { bar.style.display = 'none'; return; }
+            const start = totalMembers === 0 ? 0 : currentOffset + 1;
+            const end = Math.min(currentOffset + PAGE_SIZE, totalMembers);
+            document.getElementById('page-info').textContent = `Showing ${start}–${end} of ${totalMembers}`;
+            document.getElementById('prev-page-btn').disabled = currentOffset <= 0;
+            document.getElementById('next-page-btn').disabled = end >= totalMembers;
+            bar.style.display = 'flex';
+        }
+
+        function nextPage() {
+            if (currentOffset + PAGE_SIZE < totalMembers) { currentOffset += PAGE_SIZE; loadMembers(); window.scrollTo(0, 0); }
+        }
+        function prevPage() {
+            if (currentOffset > 0) { currentOffset = Math.max(0, currentOffset - PAGE_SIZE); loadMembers(); window.scrollTo(0, 0); }
+        }
+
         // Trigger top loader on start
         if (typeof showTopLoader === 'function') showTopLoader();
 
-        // Tally members by status and paint the counts onto the filter buttons
-        // and the Members tab. Called whenever the full list (re)loads.
+        // Paint the server-provided status counts onto the filter buttons and the
+        // Members tab badge. (Counts reflect the whole filtered set, not just the page.)
         function updateFilterCounts() {
-            const counts = {
-                all: allMembers.length,
-                active: allMembers.filter(m => m.status === 'active').length,
-                expiring_soon: allMembers.filter(m => m.status === 'expiring_soon').length,
-                expired: allMembers.filter(m => m.status === 'expired').length,
-            };
+            const counts = serverCounts || { all: 0, active: 0, expiring_soon: 0, expired: 0 };
             document.querySelectorAll('.filter-count').forEach(el => {
                 const key = el.dataset.count;
                 if (counts[key] !== undefined) el.textContent = counts[key];
             });
-            // Total badge next to the Members tab — hidden when there are none yet.
             const totalBadge = document.getElementById('members-total-count');
             if (totalBadge) {
                 totalBadge.textContent = counts.all;
@@ -542,13 +622,46 @@
                 }
                 showToast(data.message || `Deleted ${data.deleted_count} member(s).`, 'success');
                 selectedIds.clear();
-                await loadMembers();          // refresh list + counts
-                filterMembers(currentFilter); // keep the active filter view
+                await loadMembers();   // refresh current page + counts (keeps filter)
             } catch (err) {
                 showToast(err.message || 'Failed to delete selected members', 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = original;
+            }
+        }
+
+        // Assign a plan to all currently-selected members (the bulk-assign
+        // dropdown in the action bar). Backfills billing cycles onto members
+        // imported without a plan.
+        async function bulkAssignPlan() {
+            const sel = document.getElementById('bulk-assign-select');
+            const planId = sel.value;
+            const ids = Array.from(selectedIds);
+            if (!planId) return;
+            if (ids.length === 0) { sel.value = ''; return; }
+            const planName = sel.options[sel.selectedIndex].textContent;
+            if (!confirm(`Assign "${planName}" to ${ids.length} selected member(s)?\n\nTheir membership starts today and runs for the plan's duration.`)) {
+                sel.value = '';
+                return;
+            }
+            sel.disabled = true;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk-assign-plan`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ member_ids: ids, plan_id: parseInt(planId, 10), payment_received: true })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Assign failed');
+                showToast(data.message || `Assigned to ${data.updated} member(s).`, 'success');
+                selectedIds.clear();
+                await loadMembers();
+            } catch (err) {
+                showToast(err.message || 'Failed to assign plan', 'error');
+            } finally {
+                sel.value = '';
+                sel.disabled = false;
             }
         }
 
@@ -592,17 +705,21 @@
 
         function filterMembers(status) {
             currentFilter = status;
+            currentOffset = 0;  // jump back to first page when the filter changes
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
-            filteredMembers = status === 'all' ? allMembers : allMembers.filter(m => m.status === status);
-            renderTable(filteredMembers);
+            loadMembers();
         }
 
+        // Debounced server-side search (waits for the owner to stop typing so we
+        // don't fire a request per keystroke against 1000+ members).
+        let _searchTimer = null;
         function searchMembers() {
-            const q = document.getElementById('search-input').value.toLowerCase();
-            const results = filteredMembers.filter(m =>
-                (m.name || '').toLowerCase().includes(q) || (m.phone || '').includes(q)
-            );
-            renderTable(results);
+            clearTimeout(_searchTimer);
+            _searchTimer = setTimeout(() => {
+                currentSearch = document.getElementById('search-input').value.trim();
+                currentOffset = 0;
+                loadMembers();
+            }, 350);
         }
 
         // Open WhatsApp with a pre-filled reminder message — bypasses Meta API
@@ -891,9 +1008,15 @@
             document.getElementById('pt-modal-plan').innerHTML = '<option value="">No billing record</option>' +
                 plans.map(p => `<option value="${p.id}">${p.name} - ₹${p.price.toLocaleString('en-IN')} (${p.duration_days}d)</option>`).join('');
 
-            // Members dropdown
+            // Members dropdown — fetch the FULL member list (the page only holds
+            // 50 at a time now, so we can't rely on the loaded page here).
+            let allForPicker = [];
+            try {
+                const mRes = await fetch(`${CONFIG.API_BASE_URL}/api/members`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (mRes.ok) allForPicker = await mRes.json();
+            } catch (e) { allForPicker = []; }
             document.getElementById('pt-modal-member').innerHTML = '<option value="">Select member...</option>' +
-                allMembers.map(m => `<option value="${m.id}">${m.name} (${m.phone})</option>`).join('');
+                allForPicker.map(m => `<option value="${m.id}">${_escHtml(m.name)} (${_escHtml(m.phone || 'no phone')})</option>`).join('');
 
             ptModalReady = true;
         }
@@ -1017,6 +1140,7 @@
         }
 
         loadMembers();
+        loadPlansForControls();   // populate plan filter + bulk-assign dropdowns
         // Preload PT package count for the badge on first load
         loadPTPackages();
 

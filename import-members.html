@@ -178,7 +178,24 @@
                             <tbody></tbody>
                         </table>
                     </div>
-                    <label style="display:flex; align-items:flex-start; gap:10px; margin-top:18px; padding:12px 14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:10px; cursor:pointer;">
+                    <!-- [ASSIGN-PLAN] Tag this whole import with a plan. Use when a sheet
+                         is a billing cycle (e.g. the "Yearly" sheet → assign Yearly to all). -->
+                    <div style="margin-top:18px; padding:12px 14px; background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.25); border-radius:10px;">
+                        <label for="import-assign-plan" style="display:block; font-size:13px; color:#cbd5e1; font-weight:600; margin-bottom:8px;">
+                            🏷️ Assign all these members to a plan <span style="font-weight:400; color:#94a3b8;">(optional)</span>
+                        </label>
+                        <select id="import-assign-plan" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); color:#fff; padding:9px 12px; border-radius:8px; font-size:14px;">
+                            <option value="">— Keep each row's own plan / no plan —</option>
+                        </select>
+                        <label style="display:flex; align-items:flex-start; gap:10px; margin-top:12px; cursor:pointer;">
+                            <input type="checkbox" id="import-update-existing" style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
+                            <span style="font-size:12.5px; color:#94a3b8; line-height:1.5;">
+                                <strong style="color:#cbd5e1;">Update members already in the system.</strong> If a phone matches someone already imported, refresh their plan instead of skipping them. Use this to re-import a sheet and backfill the plan onto existing members.
+                            </span>
+                        </label>
+                    </div>
+
+                    <label style="display:flex; align-items:flex-start; gap:10px; margin-top:14px; padding:12px 14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:10px; cursor:pointer;">
                         <input type="checkbox" id="import-incomplete" checked style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
                         <span style="font-size:13px; color:#cbd5e1; line-height:1.5;">
                             <strong>Import incomplete rows too.</strong> Members missing a name or phone still get added (nameless → labelled "Member", no phone → left blank) so you can complete them later in Members. Uncheck for a strict import (both name + phone required).
@@ -287,6 +304,16 @@
                         option.textContent = `${plan.name} - ${formatINR(plan.price)}`;
                         planSelect.appendChild(option);
                     });
+                    // Also populate the "assign all imported to plan" dropdown.
+                    const assignSel = document.getElementById('import-assign-plan');
+                    if (assignSel) {
+                        availablePlans.forEach(plan => {
+                            const o = document.createElement('option');
+                            o.value = plan.id;
+                            o.textContent = `${plan.name} (${plan.duration_days}d)`;
+                            assignSel.appendChild(o);
+                        });
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load plans', error);
@@ -750,10 +777,12 @@
         // Show a prominent success card in the middle of the page.
         function renderImportResult(data, skipped) {
             const added    = data.added_count || 0;
+            const updated  = data.updated_count || 0;
             const warnings = (data.warnings && data.warnings.length)  || 0;
             const errs     = (data.errors   && data.errors.length)    || 0;
             const skipCnt  = skipped.length;
             const details  = [
+                updated  ? `<p style="margin:6px 0;color:#6ee7b7;font-size:14px;">🔄 ${updated} existing member${updated===1?'':'s'} updated.</p>` : '',
                 warnings ? `<p style="margin:6px 0;color:#93c5fd;font-size:14px;">ℹ️ ${warnings} imported without a plan — assign one later from Members.</p>` : '',
                 skipCnt  ? `<p style="margin:6px 0;color:#fbbf24;font-size:14px;">⚠️ ${skipCnt} row${skipCnt===1?'':'s'} skipped (missing name or phone).</p>` : '',
                 errs     ? `<p style="margin:6px 0;color:#fca5a5;font-size:14px;">⚠️ ${errs} row${errs===1?'':'s'} had errors (e.g. duplicate phone).</p>` : ''
@@ -799,21 +828,11 @@
             }
         }
 
-        // Reset so the owner can drop another file without a full page refresh.
+        // Reset for another file. A full reload is the simplest reliable reset —
+        // it restores the complete preview structure + all controls (assign plan,
+        // update-existing, incomplete toggle, Expiry column) and re-runs init().
         function resetImportPage() {
-            const inp = document.getElementById('csv-file'); if (inp) inp.value = '';
-            const picker = document.getElementById('sheet-picker-wrap'); if (picker) picker.style.display = 'none';
-            const preview = document.getElementById('csv-preview');
-            preview.style.display = 'none';
-            preview.innerHTML =
-                '<h3 style="margin-bottom:15px;">Preview</h3>' +
-                '<div style="overflow-x:auto;"><table class="parsed-data-table" id="csv-table">' +
-                '<thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Plan</th></tr></thead>' +
-                '<tbody></tbody></table></div>' +
-                '<button class="btn btn-primary" style="margin-top:20px;width:100%;" onclick="submitCSVImport()">Confirm &amp; Import</button>' +
-                '<div id="csv-errors" class="error-text"></div>';
-            csvDataToImport = [];
-            currentWorkbook = null;
+            window.location.reload();
         }
 
         // Build a CSV of the skipped rows (original columns + a reason) and
@@ -877,6 +896,11 @@
             };
             if (row.plan_id && !isNaN(parseInt(row.plan_id))) m.plan_id = parseInt(row.plan_id);
             if (row.plan_name && String(row.plan_name).trim()) m.plan_name = String(row.plan_name).trim();
+            // "Assign all to plan" override: when the owner picks a plan for the
+            // whole import, it wins over the row's own plan column.
+            const assignEl = document.getElementById('import-assign-plan');
+            const assignPlanId = assignEl && assignEl.value ? parseInt(assignEl.value, 10) : null;
+            if (assignPlanId) { m.plan_id = assignPlanId; m.plan_name = null; }
             const sd = normalizeDate(row.start_date);
             if (sd) m.start_date = sd;
             const ed = normalizeDate(row.end_date);
@@ -886,10 +910,12 @@
 
         // POST a list of member payloads to the bulk endpoint; returns parsed data or throws.
         async function postBulk(members) {
+            const updEl = document.getElementById('import-update-existing');
+            const update_existing = !!(updEl && updEl.checked);
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ members })
+                body: JSON.stringify({ members, update_existing })
             });
             const data = await response.json();
             if (!response.ok) {
