@@ -17,6 +17,25 @@
     <script src="assets/toast.js"></script>
     <script src="assets/theme.js"></script>
     <script src="assets/ux.js"></script>
+    <style>
+        /* Count pill inside each filter button — dims to match the button's text. */
+        .filter-count {
+            display: inline-block;
+            min-width: 18px;
+            padding: 1px 7px;
+            margin-left: 4px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 16px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.12);
+            color: inherit;
+        }
+        .filter-btn.active .filter-count {
+            background: rgba(255, 255, 255, 0.25);
+        }
+    </style>
 </head>
 
 <body>
@@ -86,7 +105,7 @@
             <!-- Main Tabs: Members vs Personal Training -->
             <div style="display: flex; gap: 0; margin-bottom: 24px; border-bottom: 2px solid rgba(255,255,255,0.06);">
                 <button class="main-tab active" id="tab-members" onclick="switchMainTab('members')" style="padding: 12px 24px; background: none; border: none; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 2px solid #6366f1; margin-bottom: -2px;">
-                    👥 Members
+                    👥 Members <span id="members-total-count" style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; display: none;">0</span>
                 </button>
                 <button class="main-tab" id="tab-pt" onclick="switchMainTab('pt')" style="padding: 12px 24px; background: none; border: none; color: var(--text-muted); font-size: 15px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px;">
                     🏋️ Personal Training <span id="pt-count" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; display: none;">0</span>
@@ -99,10 +118,10 @@
             <div class="glass-panel" style="margin-bottom: 32px; display: flex; flex-direction: column; gap: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="btn filter-btn active" data-status="all" onclick="filterMembers('all')">All</button>
-                        <button class="btn filter-btn" data-status="active" onclick="filterMembers('active')">Active</button>
-                        <button class="btn filter-btn" data-status="expiring_soon" onclick="filterMembers('expiring_soon')">Expiring Soon</button>
-                        <button class="btn filter-btn" data-status="expired" onclick="filterMembers('expired')">Expired</button>
+                        <button class="btn filter-btn active" data-status="all" onclick="filterMembers('all')">All <span class="filter-count" data-count="all">0</span></button>
+                        <button class="btn filter-btn" data-status="active" onclick="filterMembers('active')">Active <span class="filter-count" data-count="active">0</span></button>
+                        <button class="btn filter-btn" data-status="expiring_soon" onclick="filterMembers('expiring_soon')">Expiring Soon <span class="filter-count" data-count="expiring_soon">0</span></button>
+                        <button class="btn filter-btn" data-status="expired" onclick="filterMembers('expired')">Expired <span class="filter-count" data-count="expired">0</span></button>
                     </div>
 
                     <div style="flex: 1; min-width: 300px;">
@@ -305,6 +324,7 @@
 
                 allMembers = await response.json();
                 filteredMembers = allMembers;
+                updateFilterCounts();
                 renderTable(allMembers);
             } catch (error) {
                 showToast("Failed to load members", "error");
@@ -316,6 +336,27 @@
 
         // Trigger top loader on start
         if (typeof showTopLoader === 'function') showTopLoader();
+
+        // Tally members by status and paint the counts onto the filter buttons
+        // and the Members tab. Called whenever the full list (re)loads.
+        function updateFilterCounts() {
+            const counts = {
+                all: allMembers.length,
+                active: allMembers.filter(m => m.status === 'active').length,
+                expiring_soon: allMembers.filter(m => m.status === 'expiring_soon').length,
+                expired: allMembers.filter(m => m.status === 'expired').length,
+            };
+            document.querySelectorAll('.filter-count').forEach(el => {
+                const key = el.dataset.count;
+                if (counts[key] !== undefined) el.textContent = counts[key];
+            });
+            // Total badge next to the Members tab — hidden when there are none yet.
+            const totalBadge = document.getElementById('members-total-count');
+            if (totalBadge) {
+                totalBadge.textContent = counts.all;
+                totalBadge.style.display = counts.all > 0 ? 'inline' : 'none';
+            }
+        }
 
         function renderTable(members) {
             console.log("[MEMBERS-DEBUG] Rendering table with:", members.length, "members");
