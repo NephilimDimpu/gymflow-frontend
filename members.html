@@ -610,8 +610,8 @@
 
             let label, icon = '📦';
             if (!m.current_plan) {
-                if (_isActive(m)) { label = 'NO PLAN — YET TO ASSIGN'; icon = '⚠️'; }
-                else { label = 'NO PLAN (EXPIRED — EX-MEMBERS)'; icon = '🗂️'; }
+                if (_isActive(m)) { label = 'NO PLAN — ASSIGN NOW (ACTIVE)'; icon = '⚠️'; }
+                else { label = 'NO PLAN — ASSIGN LATER (EXPIRED / NEW)'; icon = '🗂️'; }
             } else {
                 const planLabel = m.current_plan;
                 const periodLabel = m.expiry_date ? `expires ${m.expiry_date}` : 'no expiry';
@@ -684,13 +684,13 @@
                         ${m.current_plan ? `
                             <div style="font-weight: 600; color: #fff;">${m.current_plan}</div>
                             <div style="font-size: 12px; color: var(--text-muted);">Expires: ${m.expiry_date || 'N/A'} ${m.days_left !== undefined && m.days_left !== null ? `(<span style="color: ${m.days_left <= 7 ? (m.days_left < 0 ? '#f87171' : '#fbbf24') : 'inherit'};">${m.days_left} days left</span>)` : ''}</div>
-                        ` : (m.expiry_date ? (_isActive(m) ? `
-                            <div style="font-weight: 700; color: #ef4444;">⚠️ Assign plan <span style="font-size: 10px; font-weight: 600; background: rgba(239,68,68,0.15); color:#fca5a5; padding: 1px 7px; border-radius: 8px;">yet to assign</span></div>
-                            <div style="font-size: 12px; color: var(--text-muted);">Active till ${m.expiry_date} ${m.days_left !== undefined && m.days_left !== null ? `(${m.days_left} days left)` : ''}</div>
+                        ` : (_isActive(m) ? `
+                            <div style="font-weight: 700; color: #ef4444;">⚠️ Assign plan <span style="font-size: 10px; font-weight: 600; background: rgba(239,68,68,0.15); color:#fca5a5; padding: 1px 7px; border-radius: 8px;">assign now</span></div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${m.expiry_date ? `Active till ${m.expiry_date}${m.days_left !== undefined && m.days_left !== null ? ` (${m.days_left} days left)` : ''}` : 'Active — no end date set'}</div>
                         ` : `
-                            <div style="font-weight: 600; color: #94a3b8;">Ex-member <span style="font-size: 10px; color: #64748b;" title="Expired member with no plan linked — historical record.">no plan</span></div>
-                            <div style="font-size: 12px; color: var(--text-muted);">Ended: ${m.expiry_date}</div>
-                        `) : '<span style="color: #f87171; font-size: 12px;">INACTIVE</span>')}
+                            <div style="font-weight: 600; color: #94a3b8;">No plan <span style="font-size: 10px; color: #64748b; background: rgba(148,163,184,0.12); padding: 1px 7px; border-radius: 8px;">assign later</span></div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${m.expiry_date ? `Ended: ${m.expiry_date}` : 'Assign a plan when they join or renew'}</div>
+                        `)}
                     </td>
                     <td data-label="Attendance">
                         ${m.current_plan ? `
