@@ -592,48 +592,65 @@
 
             const allowIncomplete = !!(document.getElementById('import-incomplete') || {}).checked;
 
-            const seenPhones = new Set();
-            const combined = [];
-            const perSheet = [];   // {name, kept} for the summary
+            // KEEP THE LATEST membership per person. TFF (and most gyms) keep
+            // month-by-month renewal sheets, so the SAME member appears in many
+            // sheets across 2024→2026. We must keep their MOST RECENT row (latest
+            // end date) — their current status — not the first one we happen to see.
+            const byPhone = new Map();   // phone-digits -> winning row
+            const noPhoneRows = [];      // rows without a phone (can't dedup)
+            const perSheet = [];
             let skippedNoContact = 0;
-            let dupAcrossSheets = 0;
+            let dupCollapsed = 0;
+            let emptySheets = 0;
+
+            // Compare end dates; '' (no date) sorts oldest. ISO strings compare lexically.
+            const endOf = (r) => normalizeDate(r && r.end_date) || '';
 
             names.forEach(sheetName => {
                 let rows = [];
                 try { rows = buildRowsFromSheet(currentWorkbook.Sheets[sheetName]); }
                 catch (_) { rows = []; }
-                let kept = 0;
+                let seen = 0;
                 rows.forEach(r => {
                     const hasName = r.name && String(r.name).trim();
                     const hasPhone = r.phone && String(r.phone).trim();
                     const keep = allowIncomplete ? (hasName || hasPhone) : (hasName && hasPhone);
                     if (!keep) { skippedNoContact++; return; }
-                    // Dedup by phone only when present (phone is the unique key).
-                    // Name-only rows can't be deduped, so they all come through.
+                    seen++;
                     if (hasPhone) {
-                        const digits = String(r.phone).replace(/\D/g, '');
-                        const key = digits || String(r.phone).trim();
-                        if (seenPhones.has(key)) { dupAcrossSheets++; return; }
-                        seenPhones.add(key);
+                        const key = String(r.phone).replace(/\D/g, '') || String(r.phone).trim();
+                        const existing = byPhone.get(key);
+                        if (existing) {
+                            dupCollapsed++;
+                            // Keep whichever row has the LATER end date (current term).
+                            if (endOf(r) > endOf(existing)) byPhone.set(key, r);
+                        } else {
+                            byPhone.set(key, r);
+                        }
+                    } else {
+                        noPhoneRows.push(r);
                     }
-                    combined.push(r);
-                    kept++;
                 });
-                if (rows.length > 0) perSheet.push({ name: sheetName, kept });
+                if (seen > 0) perSheet.push({ name: sheetName, seen });
+                else emptySheets++;
             });
 
+            const combined = [...byPhone.values(), ...noPhoneRows];
             if (combined.length === 0) {
                 showToast('No usable rows found across any sheet.', 'error');
                 return;
             }
 
-            const sheetLines = perSheet.map(s => `• ${s.name}: ${s.kept}`).join('\n');
+            const sheetLines = perSheet.map(s => `• ${s.name}: ${s.seen} row(s)`).join('\n');
             const ok = confirm(
-                `Found ${combined.length} member(s) with name + phone across ${perSheet.length} sheet(s):\n\n` +
-                `${sheetLines}\n\n` +
-                (dupAcrossSheets ? `${dupAcrossSheets} duplicate(s) across sheets will be skipped.\n` : '') +
-                (skippedNoContact ? `${skippedNoContact} row(s) without name/phone will be skipped.\n` : '') +
-                `\nImport all of them now?`
+                `Across ${perSheet.length} sheet(s), found ${combined.length} UNIQUE member(s):\n\n` +
+                `${sheetLines}\n` +
+                (emptySheets ? `(${emptySheets} sheet(s) had no usable data.)\n` : '') +
+                `\n` +
+                (dupCollapsed ? `🔁 ${dupCollapsed} duplicate row(s) merged — each member kept ONCE with their LATEST membership (most recent dates), so their current status is correct.\n` : '') +
+                (skippedNoContact ? `${skippedNoContact} row(s) without name/phone skipped.\n` : '') +
+                `\n💡 Tip: tick "Update existing members" so re-imports refresh people already added.\n\n` +
+                `Import all of them now?`
             );
             if (!ok) return;
 
