@@ -139,6 +139,12 @@
                 <!-- [DATE + SORT] Slice by expiry period (month / quarter / year / 2025 vs 2026)
                      and order the list. Combine with the plan + status filters above. -->
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+                    <button id="auto-arrange-btn" onclick="toggleAutoArrange()" class="btn"
+                            title="One click: group members into neat sets by plan & period, numbered serially"
+                            style="background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.35); font-weight: 700; padding: 8px 14px;">
+                        ⇅ Auto-arrange
+                    </button>
+                    <span style="width: 1px; height: 24px; background: rgba(255,255,255,0.08);"></span>
                     <label style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Expiry between</label>
                     <input type="date" id="expiry-from" onchange="onDateFilterChange()" class="form-input"
                            style="width: auto; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
@@ -199,6 +205,7 @@
                         <thead>
                             <tr>
                                 <th style="width: 40px;" id="select-all-th"><input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" title="Select all" style="cursor: pointer; width: 16px; height: 16px;"></th>
+                                <th style="width: 44px; text-align: center; color: var(--text-muted);">#</th>
                                 <th>Member</th>
                                 <th>Contact</th>
                                 <th>Plan Details</th>
@@ -490,6 +497,7 @@
 
         function onSortChange() {
             currentSort = document.getElementById('sort-by').value || 'recent';
+            _syncAutoArrangeBtn();   // keep the Auto-arrange button state in sync
             currentOffset = 0;
             loadMembers();
         }
@@ -497,6 +505,25 @@
         function onPageSizeChange() {
             pageSize = parseInt(document.getElementById('page-size').value, 10) || 50;
             currentOffset = 0;   // back to first page when page size changes
+            loadMembers();
+        }
+
+        // One-click "Auto-arrange": toggle the neat grouped view (by plan & period,
+        // numbered serially) on/off. Just flips the sort — nothing destructive.
+        function _syncAutoArrangeBtn() {
+            const btn = document.getElementById('auto-arrange-btn');
+            if (!btn) return;
+            const on = currentSort === 'plan';
+            btn.style.background = on ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'rgba(99,102,241,0.15)';
+            btn.style.color = on ? '#fff' : '#a5b4fc';
+            btn.innerHTML = on ? '⇅ Auto-arranged ✓' : '⇅ Auto-arrange';
+        }
+        function toggleAutoArrange() {
+            currentSort = (currentSort === 'plan') ? 'recent' : 'plan';
+            const sel = document.getElementById('sort-by');
+            if (sel) sel.value = currentSort;
+            _syncAutoArrangeBtn();
+            currentOffset = 0;
             loadMembers();
         }
 
@@ -548,7 +575,7 @@
             const key = planLabel + '|' + (m.expiry_date || '');
             if (key === _lastGroupKey) return '';
             _lastGroupKey = key;
-            return `<tr class="group-divider"><td colspan="7" style="background: rgba(99,102,241,0.10); padding: 9px 16px; font-size: 12px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px;">📦 ${_escHtml(planLabel)} · ${_escHtml(periodLabel)}</td></tr>`;
+            return `<tr class="group-divider"><td colspan="8" style="background: rgba(99,102,241,0.10); padding: 9px 16px; font-size: 12px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px;">📦 ${_escHtml(planLabel)} · ${_escHtml(periodLabel)}</td></tr>`;
         }
 
         function renderTable(members) {
@@ -596,11 +623,12 @@
 
             // Inject the rows
             _lastGroupKey = null;
-            tbody.innerHTML = members.map(m => groupDividerRow(m) + `
+            tbody.innerHTML = members.map((m, _i) => groupDividerRow(m) + `
                 <tr data-member-id="${m.id}">
                     <td data-label="" style="width: 40px;">
                         ${(userRole === 'owner' || userRole === 'manager') ? `<input type="checkbox" class="member-checkbox" value="${m.id}" onclick="onRowCheck()" ${selectedIds.has(m.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">` : ''}
                     </td>
+                    <td data-label="#" style="text-align: center; color: var(--text-muted); font-size: 13px;">${currentOffset + _i + 1}</td>
                     <td data-label="Member">
                         <div style="font-weight: 700;">${m.name}</div>
                         ${m.email ? `<div style="font-size: 11px; color: var(--text-muted);">${m.email}</div>` : ''}
