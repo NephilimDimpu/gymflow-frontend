@@ -676,8 +676,16 @@
         // ============================================
         let _ps = { entries: [], raw: 0, skipped: 0, view: { q: '', year: '', dupOnly: false } };
 
+        // Mirror the backend's normalize_phone for the GROUPING KEY, so
+        // "+91 98100...", "098100...", and "98100..." count as the same person.
+        function normalizePhoneKey(p) {
+            let d = String(p || '').replace(/\D/g, '');
+            if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+            if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+            return d;
+        }
         function _psKey(r) {
-            const d = String(r.phone || '').replace(/\D/g, '');
+            const d = normalizePhoneKey(r.phone);
             if (d) return 'p:' + d;
             const n = String(r.name || '').trim().toLowerCase();
             return n ? 'n:' + n : null;
