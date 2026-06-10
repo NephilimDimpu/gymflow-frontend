@@ -154,9 +154,19 @@
                     <select id="sort-by" onchange="onSortChange()" class="form-select"
                             style="width: auto; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
                         <option value="recent">Newest added</option>
+                        <option value="plan">Plan &amp; period (grouped)</option>
                         <option value="expiry_asc">Expiry: soonest first</option>
                         <option value="expiry_desc">Expiry: latest first</option>
                         <option value="name">Name A–Z</option>
+                    </select>
+
+                    <label style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Show</label>
+                    <select id="page-size" onchange="onPageSizeChange()" class="form-select"
+                            style="width: auto; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
                     </select>
                 </div>
 
@@ -365,7 +375,7 @@
         let currentExpiryFrom = '';  // YYYY-MM-DD
         let currentExpiryTo = '';    // YYYY-MM-DD
         let currentSort = 'recent';
-        const PAGE_SIZE = 50;
+        let pageSize = 50;   // rows per page (10/25/50/100 selector)
         let currentOffset = 0;
         let totalMembers = 0;
         let serverCounts = { all: 0, active: 0, expiring_soon: 0, expired: 0 };
@@ -398,7 +408,7 @@
                 if (currentSort && currentSort !== 'recent') params.set('sort', currentSort);
                 const branchId = document.getElementById('branch-filter')?.value;
                 if (branchId) params.set('branch_id', branchId);
-                params.set('limit', PAGE_SIZE);
+                params.set('limit', pageSize);
                 params.set('offset', currentOffset);
 
                 const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/paged?${params.toString()}`, {
@@ -484,12 +494,18 @@
             loadMembers();
         }
 
+        function onPageSizeChange() {
+            pageSize = parseInt(document.getElementById('page-size').value, 10) || 50;
+            currentOffset = 0;   // back to first page when page size changes
+            loadMembers();
+        }
+
         function renderPagination() {
             const bar = document.getElementById('pagination-bar');
             if (!bar) return;
-            if (totalMembers <= PAGE_SIZE) { bar.style.display = 'none'; return; }
+            if (totalMembers <= pageSize) { bar.style.display = 'none'; return; }
             const start = totalMembers === 0 ? 0 : currentOffset + 1;
-            const end = Math.min(currentOffset + PAGE_SIZE, totalMembers);
+            const end = Math.min(currentOffset + pageSize, totalMembers);
             document.getElementById('page-info').textContent = `Showing ${start}–${end} of ${totalMembers}`;
             document.getElementById('prev-page-btn').disabled = currentOffset <= 0;
             document.getElementById('next-page-btn').disabled = end >= totalMembers;
@@ -497,10 +513,10 @@
         }
 
         function nextPage() {
-            if (currentOffset + PAGE_SIZE < totalMembers) { currentOffset += PAGE_SIZE; loadMembers(); window.scrollTo(0, 0); }
+            if (currentOffset + pageSize < totalMembers) { currentOffset += pageSize; loadMembers(); window.scrollTo(0, 0); }
         }
         function prevPage() {
-            if (currentOffset > 0) { currentOffset = Math.max(0, currentOffset - PAGE_SIZE); loadMembers(); window.scrollTo(0, 0); }
+            if (currentOffset > 0) { currentOffset = Math.max(0, currentOffset - pageSize); loadMembers(); window.scrollTo(0, 0); }
         }
 
         // Trigger top loader on start
@@ -519,6 +535,20 @@
                 totalBadge.textContent = counts.all;
                 totalBadge.style.display = counts.all > 0 ? 'inline' : 'none';
             }
+        }
+
+        // When sorted by "Plan & period", insert a heading row at the start of
+        // each set (same plan + same expiry). Members with the same plan and
+        // term are listed together, A→Z. Returns '' for any other sort.
+        let _lastGroupKey = null;
+        function groupDividerRow(m) {
+            if (currentSort !== 'plan') return '';
+            const planLabel = m.current_plan || 'No plan';
+            const periodLabel = m.expiry_date ? `expires ${m.expiry_date}` : 'no expiry';
+            const key = planLabel + '|' + (m.expiry_date || '');
+            if (key === _lastGroupKey) return '';
+            _lastGroupKey = key;
+            return `<tr class="group-divider"><td colspan="7" style="background: rgba(99,102,241,0.10); padding: 9px 16px; font-size: 12px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px;">📦 ${_escHtml(planLabel)} · ${_escHtml(periodLabel)}</td></tr>`;
         }
 
         function renderTable(members) {
@@ -565,7 +595,8 @@
             empty.style.display = 'none';
 
             // Inject the rows
-            tbody.innerHTML = members.map(m => `
+            _lastGroupKey = null;
+            tbody.innerHTML = members.map(m => groupDividerRow(m) + `
                 <tr data-member-id="${m.id}">
                     <td data-label="" style="width: 40px;">
                         ${(userRole === 'owner' || userRole === 'manager') ? `<input type="checkbox" class="member-checkbox" value="${m.id}" onclick="onRowCheck()" ${selectedIds.has(m.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">` : ''}
