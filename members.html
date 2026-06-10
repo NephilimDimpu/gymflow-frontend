@@ -257,6 +257,20 @@
                     <button class="btn btn-primary" onclick="openPTModal()" style="white-space: nowrap;">+ Add PT Package</button>
                 </div>
 
+                <!-- [PT-CONTROLS] Sort / group / search — mirrors the Members view. -->
+                <div id="pt-controls" class="glass-panel" style="display: none; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 14px 18px;">
+                    <label style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Sort</label>
+                    <select id="pt-sort" onchange="renderPTTable()" class="form-select" style="width: auto; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                        <option value="member">Member A–Z</option>
+                        <option value="coach">Coach (grouped)</option>
+                        <option value="discipline">Discipline (grouped)</option>
+                        <option value="expiry">Expiry: soonest first</option>
+                        <option value="sessions">Sessions left (fewest first)</option>
+                    </select>
+                    <span style="flex: 1; min-width: 12px;"></span>
+                    <input type="text" id="pt-search" oninput="renderPTTable()" class="form-input" placeholder="Search by member or coach…" style="width: auto; min-width: 240px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                </div>
+
                 <div id="pt-members-container" class="glass-panel" style="display: none; padding: 0; overflow: hidden;">
                     <div class="table-wrap">
                         <table class="glass-table mobile-card-view">
@@ -1141,21 +1155,64 @@
             await loadPTPackages();
             const container = document.getElementById('pt-members-container');
             const empty = document.getElementById('pt-empty-state');
+            const controls = document.getElementById('pt-controls');
             const tbody = document.getElementById('pt-members-tbody');
 
             if (ptPackages.length === 0) {
                 container.style.display = 'none';
+                if (controls) controls.style.display = 'none';
                 empty.style.display = 'block';
                 return;
             }
             container.style.display = 'block';
+            if (controls) controls.style.display = 'flex';
             empty.style.display = 'none';
 
-            tbody.innerHTML = ptPackages.map(p => {
+            const sortBy = (document.getElementById('pt-sort') || {}).value || 'member';
+            const q = ((document.getElementById('pt-search') || {}).value || '').trim().toLowerCase();
+
+            // Search by member, coach, or discipline.
+            let list = ptPackages.slice();
+            if (q) {
+                list = list.filter(p =>
+                    (p.member_name || '').toLowerCase().includes(q) ||
+                    (p.coach_name || '').toLowerCase().includes(q) ||
+                    (p.name || '').toLowerCase().includes(q)
+                );
+            }
+
+            // Active (not expired) first, then by the chosen key.
+            const grouped = (sortBy === 'coach' || sortBy === 'discipline');
+            const cmpFns = {
+                member: (a, b) => (a.member_name || '').localeCompare(b.member_name || ''),
+                coach: (a, b) => (a.coach_name || 'Unassigned').localeCompare(b.coach_name || 'Unassigned') || (a.member_name || '').localeCompare(b.member_name || ''),
+                discipline: (a, b) => (a.name || '').localeCompare(b.name || '') || (a.member_name || '').localeCompare(b.member_name || ''),
+                expiry: (a, b) => (a.end_date ? new Date(a.end_date).getTime() : Infinity) - (b.end_date ? new Date(b.end_date).getTime() : Infinity),
+                sessions: (a, b) => ((a.sessions_left ?? 999) - (b.sessions_left ?? 999)),
+            };
+            const cmp = cmpFns[sortBy] || cmpFns.member;
+            list.sort((a, b) => ((a.expired ? 1 : 0) - (b.expired ? 1 : 0)) || cmp(a, b));
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">No PT packages match “${_escHtml(q)}”.</td></tr>`;
+                return;
+            }
+
+            let lastPtKey = null;
+            tbody.innerHTML = list.map(p => {
                 const left = p.sessions_left;
                 const pct = p.sessions_total ? Math.round((p.sessions_used / p.sessions_total) * 100) : 0;
                 const isLow = left <= 2 && p.sessions_total > 0;
-                return `
+                let divider = '';
+                if (grouped) {
+                    const label = sortBy === 'coach' ? (p.coach_name || 'Unassigned') : (p.name || 'Personal Training');
+                    if (label !== lastPtKey) {
+                        lastPtKey = label;
+                        const c = planColor(label);
+                        divider = `<tr><td colspan="6" style="background:${c}1f; border-left:5px solid ${c}; padding:9px 16px; font-size:12px; font-weight:800; color:${c}; text-transform:uppercase; letter-spacing:0.6px;">${sortBy === 'coach' ? '🧑‍🏫' : '🥋'} ${_escHtml(label)}</td></tr>`;
+                    }
+                }
+                return divider + `
                 <tr>
                     <td data-label="Member">
                         <div style="font-weight: 700;">${p.member_name || '—'}</div>
