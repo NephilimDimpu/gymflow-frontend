@@ -569,9 +569,10 @@
                 const allBtn = document.createElement('button');
                 allBtn.id = 'import-all-sheets-btn';
                 allBtn.type = 'button';
-                allBtn.textContent = '📥 Import all sheets';
+                allBtn.textContent = '🔍 Review & import all sheets';
+                allBtn.title = 'Reads every sheet, shows each person once with all their occurrences (year-wise) for you to check & edit before importing';
                 allBtn.style.cssText = 'background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.35);padding:8px 14px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;';
-                allBtn.onclick = importAllSheets;
+                allBtn.onclick = openPreScreen;
                 wrap.appendChild(allBtn);
 
                 const preview = document.getElementById('csv-preview');
@@ -663,6 +664,205 @@
                 renderImportResult(data, []);
             } catch (error) {
                 errorsDiv.innerHTML = `❌ ${error.message}`;
+            }
+        }
+
+        // ============================================
+        // [PRE-SCREEN] Review-before-import staging area.
+        // Reads EVERY sheet as-is, groups rows per person (by phone, else by
+        // name), shows how many times each person occurred and in which years,
+        // defaults to their LATEST term, and lets the owner edit name/phone,
+        // pick a different occurrence, untick people — then send to Members.
+        // ============================================
+        let _ps = { entries: [], raw: 0, skipped: 0, view: { q: '', year: '', dupOnly: false } };
+
+        function _psKey(r) {
+            const d = String(r.phone || '').replace(/\D/g, '');
+            if (d) return 'p:' + d;
+            const n = String(r.name || '').trim().toLowerCase();
+            return n ? 'n:' + n : null;
+        }
+        function _psEnd(o) { return normalizeDate(o && o.end_date) || ''; }
+        function _psYear(e) {
+            const o = e.occ[e.chosen] || {};
+            return (_psEnd(o) || normalizeDate(o.start_date) || '').slice(0, 4);
+        }
+        // Mirror of the backend duration→plan guess, for DISPLAY only.
+        function psGuessPlan(o) {
+            const s = normalizeDate(o.start_date), en = normalizeDate(o.end_date);
+            if (o.plan_name && String(o.plan_name).trim()) return String(o.plan_name).trim();
+            if (!s || !en || !availablePlans.length) return '';
+            const days = Math.round((new Date(en) - new Date(s)) / 86400000);
+            if (days <= 0) return '';
+            let best = null, bd = Infinity;
+            availablePlans.forEach(p => {
+                const diff = Math.abs((p.duration_days || 0) - days);
+                if (diff < bd) { bd = diff; best = p; }
+            });
+            return (best && bd <= Math.max(20, 0.4 * days)) ? best.name : '';
+        }
+
+        function openPreScreen() {
+            if (!currentWorkbook) { showToast('Open an Excel file first.', 'error'); return; }
+            const allowIncomplete = !!(document.getElementById('import-incomplete') || {}).checked;
+            const map = new Map();
+            let raw = 0, skipped = 0;
+
+            (currentWorkbook.SheetNames || []).forEach(sheetName => {
+                let rows = [];
+                try { rows = buildRowsFromSheet(currentWorkbook.Sheets[sheetName]); } catch (_) { rows = []; }
+                rows.forEach(r => {
+                    raw++;
+                    const hasName = r.name && String(r.name).trim();
+                    const hasPhone = r.phone && String(r.phone).trim();
+                    const keep = allowIncomplete ? (hasName || hasPhone) : (hasName && hasPhone);
+                    if (!keep) { skipped++; return; }
+                    r._sheet = sheetName;
+                    const key = _psKey(r);
+                    if (!key) { skipped++; return; }
+                    let e = map.get(key);
+                    if (!e) { e = { key, name: '', phone: '', occ: [], include: true, chosen: 0 }; map.set(key, e); }
+                    e.occ.push(r);
+                    if (!e.name && hasName) e.name = String(r.name).trim();
+                    if (!e.phone && hasPhone) e.phone = String(r.phone).trim();
+                });
+            });
+
+            const entries = [...map.values()];
+            entries.forEach(e => {
+                // Latest term first; chosen defaults to the most recent end date.
+                e.occ.sort((a, b) => _psEnd(b) < _psEnd(a) ? -1 : (_psEnd(b) > _psEnd(a) ? 1 : 0));
+                e.chosen = 0;
+            });
+            entries.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+            _ps = { entries, raw, skipped, view: { q: '', year: '', dupOnly: false } };
+            document.getElementById('csv-preview').style.display = 'none';
+            renderPreScreen();
+        }
+
+        function _psWrap() {
+            let w = document.getElementById('prescreen-wrap');
+            if (!w) {
+                w = document.createElement('div');
+                w.id = 'prescreen-wrap';
+                const preview = document.getElementById('csv-preview');
+                preview.parentNode.insertBefore(w, preview);
+            }
+            return w;
+        }
+
+        function psSetView(k, v) { _ps.view[k] = v; renderPreScreen(); }
+
+        function renderPreScreen() {
+            const w = _psWrap();
+            const { entries, raw, skipped, view } = _ps;
+            const dups = entries.filter(e => e.occ.length > 1).length;
+            const years = [...new Set(entries.map(_psYear).filter(Boolean))].sort();
+
+            let list = entries;
+            if (view.dupOnly) list = list.filter(e => e.occ.length > 1);
+            if (view.year) list = list.filter(e => _psYear(e) === view.year);
+            if (view.q) {
+                const q = view.q.toLowerCase();
+                list = list.filter(e => (e.name || '').toLowerCase().includes(q) || (e.phone || '').includes(q));
+            }
+            const CAP = 1500;
+            const shown = list.slice(0, CAP);
+            const inclCount = entries.filter(e => e.include).length;
+
+            const yearChips = years.map(y =>
+                `<button type="button" onclick="psSetView('year', _ps.view.year==='${y}' ? '' : '${y}')" style="background:${view.year === y ? '#6366f1' : 'rgba(255,255,255,0.06)'};color:${view.year === y ? '#fff' : '#cbd5e1'};border:1px solid rgba(255,255,255,0.12);padding:5px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;">${y}</button>`
+            ).join(' ');
+
+            const rowsHtml = shown.map(e => {
+                const i = entries.indexOf(e);
+                const o = e.occ[e.chosen] || {};
+                const term = `${normalizeDate(o.start_date) || '—'} → ${normalizeDate(o.end_date) || '—'}`;
+                const plan = psGuessPlan(o);
+                const missing = !(e.name && e.name.trim()) || !(e.phone && e.phone.trim());
+                const occList = e.occ.map((oc, j) =>
+                    `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:#94a3b8;cursor:pointer;">
+                        <input type="radio" name="ps-occ-${i}" ${j === e.chosen ? 'checked' : ''} onchange="psPick(${i},${j})">
+                        <span>${normalizeDate(oc.start_date) || '—'} → ${normalizeDate(oc.end_date) || '—'}</span>
+                        <span style="color:#64748b;">· sheet “${escHtml(oc._sheet || '')}”${oc.plan_name ? ' · ' + escHtml(oc.plan_name) : ''}</span>
+                    </label>`
+                ).join('');
+                return `
+                <tr style="${e.include ? '' : 'opacity:0.45;'}${missing ? 'background:rgba(245,158,11,0.07);' : ''}">
+                    <td style="padding:6px 8px;"><input type="checkbox" ${e.include ? 'checked' : ''} onchange="psInc(${i},this.checked)" style="width:15px;height:15px;cursor:pointer;"></td>
+                    <td style="padding:6px 8px;"><input type="text" value="${escAttr(e.name)}" oninput="psEdit(${i},'name',this.value)" style="width:100%;min-width:130px;background:rgba(0,0,0,0.25);border:1px solid ${e.name ? 'rgba(255,255,255,0.12)' : '#f59e0b'};color:#fff;padding:6px 8px;border-radius:6px;font-size:13px;"></td>
+                    <td style="padding:6px 8px;"><input type="text" inputmode="numeric" value="${escAttr(e.phone)}" oninput="psEdit(${i},'phone',this.value)" style="width:120px;background:rgba(0,0,0,0.25);border:1px solid ${e.phone ? 'rgba(255,255,255,0.12)' : '#f59e0b'};color:#fff;padding:6px 8px;border-radius:6px;font-size:13px;"></td>
+                    <td style="padding:6px 8px;text-align:center;">
+                        ${e.occ.length > 1
+                            ? `<details><summary style="cursor:pointer;color:#fbbf24;font-weight:700;font-size:12px;list-style:none;">🔁 ${e.occ.length}×</summary><div style="padding:6px 4px;">${occList}</div></details>`
+                            : '<span style="color:#64748b;font-size:12px;">1×</span>'}
+                    </td>
+                    <td style="padding:6px 8px;font-size:12px;color:#94a3b8;">${_psYear(e) || '—'}</td>
+                    <td style="padding:6px 8px;font-size:12px;color:#cbd5e1;">${term}${plan ? `<div style="color:#6ee7b7;font-size:11px;">→ ${escHtml(plan)}</div>` : ''}</td>
+                </tr>`;
+            }).join('');
+
+            w.innerHTML = `
+            <div style="margin-top:24px;background:rgba(0,0,0,0.2);border:1px solid rgba(99,102,241,0.3);border-radius:14px;padding:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <h3 style="margin:0;">🔍 Pre-screen — review before importing</h3>
+                    <button type="button" onclick="document.getElementById('prescreen-wrap').innerHTML='';" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;">✕</button>
+                </div>
+                <p style="margin:8px 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">
+                    Read <strong>${raw}</strong> row(s) from every sheet → <strong>${entries.length}</strong> unique member(s).
+                    🔁 <strong>${dups}</strong> appear more than once (renewals across monthly sheets) — each defaults to their <strong>latest term</strong>; expand 🔁 to pick a different one.
+                    ${skipped ? `${skipped} row(s) without name/phone skipped.` : ''}
+                    Amber fields are missing — fill them here, or untick a row to leave it out.
+                </p>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                    <input type="text" placeholder="Search name or phone…" value="${escAttr(view.q)}" oninput="psSetView('q', this.value)" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px 12px;border-radius:8px;font-size:13px;min-width:200px;">
+                    <button type="button" onclick="psSetView('dupOnly', !_ps.view.dupOnly)" style="background:${view.dupOnly ? '#f59e0b' : 'rgba(255,255,255,0.06)'};color:${view.dupOnly ? '#111' : '#cbd5e1'};border:1px solid rgba(255,255,255,0.12);padding:6px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;">🔁 Duplicates only</button>
+                    <span style="font-size:12px;color:#64748b;">Year:</span> ${yearChips || '<span style="font-size:12px;color:#64748b;">—</span>'}
+                    <span style="flex:1;"></span>
+                    <span style="font-size:12px;color:#94a3b8;">Showing ${shown.length}${list.length > CAP ? ` of ${list.length}` : ''}</span>
+                </div>
+                <div style="max-height:440px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:10px;">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead><tr style="position:sticky;top:0;background:#0b1020;z-index:1;">
+                            <th style="padding:8px;color:#94a3b8;text-align:left;">✓</th>
+                            <th style="padding:8px;color:#94a3b8;text-align:left;">Name</th>
+                            <th style="padding:8px;color:#94a3b8;text-align:left;">Phone</th>
+                            <th style="padding:8px;color:#94a3b8;">Seen</th>
+                            <th style="padding:8px;color:#94a3b8;text-align:left;">Year</th>
+                            <th style="padding:8px;color:#94a3b8;text-align:left;">Term (chosen) → plan</th>
+                        </tr></thead>
+                        <tbody>${rowsHtml || '<tr><td colspan="6" style="padding:24px;text-align:center;color:#64748b;">Nothing matches this filter.</td></tr>'}</tbody>
+                    </table>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;">
+                    <button type="button" onclick="psSend()" style="background:#6366f1;color:#fff;border:none;padding:12px 22px;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;">📤 Send ${inclCount} member(s) to Members</button>
+                    <span style="font-size:12px;color:#94a3b8;">Uses the “Assign plan / auto-detect / update existing” options above.</span>
+                </div>
+                <div id="ps-status" style="margin-top:10px;font-size:13px;"></div>
+            </div>`;
+        }
+
+        function psEdit(i, field, val) { const e = _ps.entries[i]; if (e) e[field] = val; }
+        function psInc(i, on) { const e = _ps.entries[i]; if (e) { e.include = on; renderPreScreen(); } }
+        function psPick(i, j) { const e = _ps.entries[i]; if (e) { e.chosen = j; renderPreScreen(); } }
+
+        async function psSend() {
+            const rows = _ps.entries
+                .filter(e => e.include)
+                .map(e => Object.assign({}, e.occ[e.chosen] || {}, { name: e.name, phone: e.phone }))
+                .filter(r => (r.name && String(r.name).trim()) || (r.phone && String(r.phone).trim()));
+            if (!rows.length) { showToast('Nothing selected to import.', 'error'); return; }
+            if (!confirm(`Send ${rows.length} member(s) to your Members page now?\n\nEach is imported once, with the term you chose in the review.`)) return;
+            const st = document.getElementById('ps-status');
+            st.style.color = '#94a3b8'; st.textContent = 'Importing…';
+            try {
+                const data = await postBulk(rows.map(buildMemberPayload));
+                document.getElementById('prescreen-wrap').innerHTML = '';
+                renderImportResult(data, []);
+            } catch (err) {
+                st.style.color = '#fca5a5';
+                st.textContent = '❌ ' + err.message;
             }
         }
 
