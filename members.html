@@ -704,7 +704,14 @@
             if (!planId) return;
             if (ids.length === 0) { sel.value = ''; return; }
             const planName = sel.options[sel.selectedIndex].textContent;
-            if (!confirm(`Assign "${planName}" to ${ids.length} selected member(s)?\n\nTheir membership starts today and runs for the plan's duration.`)) {
+            if (!confirm(
+                `Assign "${planName}" to ${ids.length} selected member(s)?\n\n` +
+                `⏱️ This starts a FRESH term from TODAY (today + the plan's length) — ` +
+                `use it to RENEW members.\n\n` +
+                `⚠️ It does NOT keep an existing expiry date. If you're migrating members ` +
+                `who already have time left, don't use this — re-import their sheet with ` +
+                `"Auto-detect plan from dates" instead, which keeps their real expiry.`
+            )) {
                 sel.value = '';
                 return;
             }
