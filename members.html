@@ -405,6 +405,25 @@
         // Is the current view a grouped (set) view?
         function _isGroupedView() { return currentSort === 'plan' || currentSort === 'plan_az'; }
 
+        function _isActive(m) { return m.status === 'active' || m.status === 'expiring_soon'; }
+
+        // The colour accent for a member's row/set:
+        //  - has a plan        → that plan's colour
+        //  - ACTIVE, no plan   → RED (needs a plan assigned — "yet to assign")
+        //  - EXPIRED, no plan  → neutral grey (ex-member, no action needed)
+        const NEEDS_PLAN_COLOR = '#ef4444';
+        function rowAccentColor(m) {
+            if (m.current_plan) return planColor(m.current_plan);
+            return _isActive(m) ? NEEDS_PLAN_COLOR : '#64748b';
+        }
+
+        // Group key: keeps no-plan ACTIVE members ("yet to assign") in their own
+        // set, separate from no-plan EXPIRED ex-members.
+        function _groupKey(m) {
+            if (!m.current_plan) return 'noplan|' + (_isActive(m) ? 'active' : 'expired');
+            return currentSort === 'plan' ? (m.current_plan + '|' + (m.expiry_date || '')) : m.current_plan;
+        }
+
         // Ids of members ticked for bulk actions. Persists across filter/search
         // re-renders so a selection isn't lost when the owner narrows the list.
         const selectedIds = new Set();
@@ -584,15 +603,21 @@
         let _lastGroupKey = null;
         function groupDividerRow(m) {
             if (!_isGroupedView()) return '';
-            const planLabel = m.current_plan || 'No plan';
-            const periodLabel = m.expiry_date ? `expires ${m.expiry_date}` : 'no expiry';
-            // "Plan & period" splits by plan + term; "Plan, then A–Z" by plan only.
-            const key = currentSort === 'plan' ? (planLabel + '|' + (m.expiry_date || '')) : planLabel;
+            const key = _groupKey(m);
             if (key === _lastGroupKey) return '';
             _lastGroupKey = key;
-            const c = planColor(m.current_plan);
-            const label = currentSort === 'plan' ? `${planLabel} · ${periodLabel}` : planLabel;
-            return `<tr class="group-divider"><td colspan="8" style="background: ${c}1f; border-left: 5px solid ${c}; padding: 9px 16px; font-size: 12px; font-weight: 800; color: ${c}; text-transform: uppercase; letter-spacing: 0.6px;">📦 ${_escHtml(label)}</td></tr>`;
+            const c = rowAccentColor(m);
+
+            let label, icon = '📦';
+            if (!m.current_plan) {
+                if (_isActive(m)) { label = 'NO PLAN — YET TO ASSIGN'; icon = '⚠️'; }
+                else { label = 'NO PLAN (EXPIRED — EX-MEMBERS)'; icon = '🗂️'; }
+            } else {
+                const planLabel = m.current_plan;
+                const periodLabel = m.expiry_date ? `expires ${m.expiry_date}` : 'no expiry';
+                label = currentSort === 'plan' ? `${planLabel} · ${periodLabel}` : planLabel;
+            }
+            return `<tr class="group-divider"><td colspan="8" style="background: ${c}1f; border-left: 5px solid ${c}; padding: 9px 16px; font-size: 12px; font-weight: 800; color: ${c}; text-transform: uppercase; letter-spacing: 0.6px;">${icon} ${_escHtml(label)}</td></tr>`;
         }
 
         function renderTable(members) {
@@ -643,7 +668,7 @@
             const _grouped = _isGroupedView();
             tbody.innerHTML = members.map((m, _i) => groupDividerRow(m) + `
                 <tr data-member-id="${m.id}">
-                    <td data-label="" style="width: 40px; ${_grouped ? `border-left: 5px solid ${planColor(m.current_plan)};` : ''}">
+                    <td data-label="" style="width: 40px; ${_grouped ? `border-left: 5px solid ${rowAccentColor(m)};` : ''}">
                         ${(userRole === 'owner' || userRole === 'manager') ? `<input type="checkbox" class="member-checkbox" value="${m.id}" onclick="onRowCheck()" ${selectedIds.has(m.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">` : ''}
                     </td>
                     <td data-label="#" style="text-align: center; color: var(--text-muted); font-size: 13px;">${currentOffset + _i + 1}</td>
@@ -659,10 +684,13 @@
                         ${m.current_plan ? `
                             <div style="font-weight: 600; color: #fff;">${m.current_plan}</div>
                             <div style="font-size: 12px; color: var(--text-muted);">Expires: ${m.expiry_date || 'N/A'} ${m.days_left !== undefined && m.days_left !== null ? `(<span style="color: ${m.days_left <= 7 ? (m.days_left < 0 ? '#f87171' : '#fbbf24') : 'inherit'};">${m.days_left} days left</span>)` : ''}</div>
-                        ` : (m.expiry_date ? `
-                            <div style="font-weight: 600; color: #cbd5e1;">Membership <span style="font-size: 10px; color: #fbbf24;" title="Imported with an expiry date but no GymExec plan linked. Assign a plan anytime.">no plan</span></div>
-                            <div style="font-size: 12px; color: var(--text-muted);">Expires: ${m.expiry_date} ${m.days_left !== undefined && m.days_left !== null ? `(<span style="color: ${m.days_left <= 7 ? (m.days_left < 0 ? '#f87171' : '#fbbf24') : 'inherit'};">${m.days_left} days left</span>)` : ''}</div>
-                        ` : '<span style="color: #f87171; font-size: 12px;">INACTIVE</span>')}
+                        ` : (m.expiry_date ? (_isActive(m) ? `
+                            <div style="font-weight: 700; color: #ef4444;">⚠️ Assign plan <span style="font-size: 10px; font-weight: 600; background: rgba(239,68,68,0.15); color:#fca5a5; padding: 1px 7px; border-radius: 8px;">yet to assign</span></div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Active till ${m.expiry_date} ${m.days_left !== undefined && m.days_left !== null ? `(${m.days_left} days left)` : ''}</div>
+                        ` : `
+                            <div style="font-weight: 600; color: #94a3b8;">Ex-member <span style="font-size: 10px; color: #64748b;" title="Expired member with no plan linked — historical record.">no plan</span></div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Ended: ${m.expiry_date}</div>
+                        `) : '<span style="color: #f87171; font-size: 12px;">INACTIVE</span>')}
                     </td>
                     <td data-label="Attendance">
                         ${m.current_plan ? `
