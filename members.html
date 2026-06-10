@@ -484,6 +484,7 @@
                         '<option value="">All plans</option>' +
                         '<option value="none">— No plan —</option>' +
                         plans.map(p => `<option value="${_escAttr(p.name)}">${_escHtml(p.name)}</option>`).join('');
+                    filterSel.value = currentPlan || '';   // reflect any deep-linked filter
                 }
                 const assignSel = document.getElementById('bulk-assign-select');
                 if (assignSel) {
@@ -1313,6 +1314,17 @@
                 else showToast('Failed to remove', 'error');
             } catch (err) { showToast('Network error', 'error'); }
         }
+
+        // Deep-link from the dashboard "needs a plan" tile → pre-apply
+        // Active + No-plan so the owner lands on exactly that to-do list.
+        (function applyUrlFilters() {
+            const p = new URLSearchParams(location.search);
+            if (p.get('filter') === 'needs_plan') {
+                currentFilter = 'active';
+                currentPlan = 'none';
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === 'active'));
+            }
+        })();
 
         loadMembers();
         loadPlansForControls();   // populate plan filter + bulk-assign dropdowns
