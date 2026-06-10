@@ -161,6 +161,7 @@
                             style="width: auto; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
                         <option value="recent">Newest added</option>
                         <option value="plan">Plan &amp; period (grouped)</option>
+                        <option value="plan_az">Plan, then A–Z (grouped)</option>
                         <option value="expiry_asc">Expiry: soonest first</option>
                         <option value="expiry_desc">Expiry: latest first</option>
                         <option value="name">Name A–Z</option>
@@ -391,6 +392,19 @@
         function _escAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
         function _escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
+        // Deterministic colour per plan — same plan always gets the same colour,
+        // so colour-coded sets are consistent across pages/reloads. No-plan = grey.
+        const PLAN_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#ef4444', '#eab308', '#8b5cf6', '#06b6d4'];
+        function planColor(name) {
+            const key = (name || '').trim().toLowerCase();
+            if (!key) return '#64748b';  // no plan → neutral grey
+            let h = 0;
+            for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+            return PLAN_COLORS[h % PLAN_COLORS.length];
+        }
+        // Is the current view a grouped (set) view?
+        function _isGroupedView() { return currentSort === 'plan' || currentSort === 'plan_az'; }
+
         // Ids of members ticked for bulk actions. Persists across filter/search
         // re-renders so a selection isn't lost when the owner narrows the list.
         const selectedIds = new Set();
@@ -513,7 +527,7 @@
         function _syncAutoArrangeBtn() {
             const btn = document.getElementById('auto-arrange-btn');
             if (!btn) return;
-            const on = currentSort === 'plan';
+            const on = _isGroupedView();
             btn.style.background = on ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'rgba(99,102,241,0.15)';
             btn.style.color = on ? '#fff' : '#a5b4fc';
             btn.innerHTML = on ? '⇅ Auto-arranged ✓' : '⇅ Auto-arrange';
@@ -569,13 +583,16 @@
         // term are listed together, A→Z. Returns '' for any other sort.
         let _lastGroupKey = null;
         function groupDividerRow(m) {
-            if (currentSort !== 'plan') return '';
+            if (!_isGroupedView()) return '';
             const planLabel = m.current_plan || 'No plan';
             const periodLabel = m.expiry_date ? `expires ${m.expiry_date}` : 'no expiry';
-            const key = planLabel + '|' + (m.expiry_date || '');
+            // "Plan & period" splits by plan + term; "Plan, then A–Z" by plan only.
+            const key = currentSort === 'plan' ? (planLabel + '|' + (m.expiry_date || '')) : planLabel;
             if (key === _lastGroupKey) return '';
             _lastGroupKey = key;
-            return `<tr class="group-divider"><td colspan="8" style="background: rgba(99,102,241,0.10); padding: 9px 16px; font-size: 12px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px;">📦 ${_escHtml(planLabel)} · ${_escHtml(periodLabel)}</td></tr>`;
+            const c = planColor(m.current_plan);
+            const label = currentSort === 'plan' ? `${planLabel} · ${periodLabel}` : planLabel;
+            return `<tr class="group-divider"><td colspan="8" style="background: ${c}1f; border-left: 5px solid ${c}; padding: 9px 16px; font-size: 12px; font-weight: 800; color: ${c}; text-transform: uppercase; letter-spacing: 0.6px;">📦 ${_escHtml(label)}</td></tr>`;
         }
 
         function renderTable(members) {
@@ -623,9 +640,10 @@
 
             // Inject the rows
             _lastGroupKey = null;
+            const _grouped = _isGroupedView();
             tbody.innerHTML = members.map((m, _i) => groupDividerRow(m) + `
                 <tr data-member-id="${m.id}">
-                    <td data-label="" style="width: 40px;">
+                    <td data-label="" style="width: 40px; ${_grouped ? `border-left: 5px solid ${planColor(m.current_plan)};` : ''}">
                         ${(userRole === 'owner' || userRole === 'manager') ? `<input type="checkbox" class="member-checkbox" value="${m.id}" onclick="onRowCheck()" ${selectedIds.has(m.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">` : ''}
                     </td>
                     <td data-label="#" style="text-align: center; color: var(--text-muted); font-size: 13px;">${currentOffset + _i + 1}</td>
