@@ -444,6 +444,10 @@
         async function loadMembers() {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = 'flex';
+            // Never spin forever — abort after 25s (covers a DB cold-start) and
+            // show a clear retry instead of an infinite loading screen.
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 25000);
             try {
                 const params = new URLSearchParams();
                 if (currentFilter && currentFilter !== 'all') params.set('status', currentFilter);
@@ -458,9 +462,10 @@
                 params.set('offset', currentOffset);
 
                 const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/paged?${params.toString()}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    signal: ctrl.signal
                 });
-                if (!response.ok) throw new Error('Fetch failed');
+                if (!response.ok) throw new Error('Fetch failed (' + response.status + ')');
 
                 const data = await response.json();
                 pageMembers = data.members || [];
@@ -470,8 +475,24 @@
                 renderTable(pageMembers);
                 renderPagination();
             } catch (error) {
-                showToast("Failed to load members", "error");
+                const timedOut = error && error.name === 'AbortError';
+                showToast(timedOut ? "Loading took too long — the server may be waking up. Please retry." : "Failed to load members", "error");
+                // Show an in-place Retry so the owner isn't left on a blank/loading screen.
+                const container = document.getElementById('members-container');
+                const empty = document.getElementById('empty-state');
+                if (empty) empty.style.display = 'none';
+                if (container) {
+                    container.style.display = 'block';
+                    container.innerHTML =
+                        `<div style="padding:48px 20px; text-align:center;">
+                            <div style="font-size:40px; margin-bottom:12px;">📡</div>
+                            <div style="font-weight:700; color:#fff; margin-bottom:6px;">Couldn't load members</div>
+                            <div style="color:var(--text-muted); font-size:13px; margin-bottom:18px;">${timedOut ? 'The server may have been waking up.' : 'Something went wrong fetching the list.'} Try again.</div>
+                            <button class="btn btn-primary" onclick="location.reload()" style="padding:10px 22px;">🔄 Retry</button>
+                        </div>`;
+                }
             } finally {
+                clearTimeout(timer);
                 overlay.style.display = 'none';
                 if (typeof hideTopLoader === 'function') hideTopLoader();
             }
