@@ -309,10 +309,16 @@
                     <input type="hidden" id="pt-edit-id">
 
                     <div class="form-group" id="pt-member-group">
-                        <label class="form-label" for="pt-modal-member">Member *</label>
-                        <select id="pt-modal-member" class="form-select" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
-                            <option value="">Select member...</option>
-                        </select>
+                        <label class="form-label" for="pt-member-search">Member *</label>
+                        <!-- Searchable picker — type to filter, even with thousands of members. -->
+                        <div style="position: relative;">
+                            <input type="hidden" id="pt-modal-member" value="">
+                            <input type="text" id="pt-member-search" class="form-input" autocomplete="off"
+                                   placeholder="Type a name or phone to search…"
+                                   style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;"
+                                   oninput="filterPTMembers()" onfocus="filterPTMembers()">
+                            <div id="pt-member-results" style="display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 50; max-height: 260px; overflow-y: auto; background: #0b1020; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);"></div>
+                        </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -1268,18 +1274,54 @@
             document.getElementById('pt-modal-plan').innerHTML = '<option value="">No billing record</option>' +
                 plans.map(p => `<option value="${p.id}">${p.name} - ₹${p.price.toLocaleString('en-IN')} (${p.duration_days}d)</option>`).join('');
 
-            // Members dropdown — fetch the FULL member list (the page only holds
-            // 50 at a time now, so we can't rely on the loaded page here).
-            let allForPicker = [];
+            // Members for the searchable picker — fetch the full list once and
+            // keep it in memory; the search box filters it as the owner types.
             try {
                 const mRes = await fetch(`${CONFIG.API_BASE_URL}/api/members`, { headers: { 'Authorization': `Bearer ${token}` } });
-                if (mRes.ok) allForPicker = await mRes.json();
-            } catch (e) { allForPicker = []; }
-            document.getElementById('pt-modal-member').innerHTML = '<option value="">Select member...</option>' +
-                allForPicker.map(m => `<option value="${m.id}">${_escHtml(m.name)} (${_escHtml(m.phone || 'no phone')})</option>`).join('');
+                _ptPickerMembers = mRes.ok ? await mRes.json() : [];
+            } catch (e) { _ptPickerMembers = []; }
 
             ptModalReady = true;
         }
+
+        // ----- Searchable member picker (PT modal) -----
+        let _ptPickerMembers = [];
+        function filterPTMembers() {
+            const box = document.getElementById('pt-member-results');
+            const q = (document.getElementById('pt-member-search').value || '').trim().toLowerCase();
+            let list = _ptPickerMembers;
+            if (q) {
+                list = list.filter(m =>
+                    (m.name || '').toLowerCase().includes(q) ||
+                    (m.phone || '').includes(q)
+                );
+            }
+            list = list.slice(0, 40);   // cap the dropdown; keep typing to narrow
+            if (!list.length) {
+                box.innerHTML = `<div style="padding:12px 14px; color:#94a3b8; font-size:13px;">${q ? 'No members match — keep typing or check spelling.' : 'Start typing a name or phone…'}</div>`;
+            } else {
+                box.innerHTML = list.map(m =>
+                    `<div onclick="selectPTMember(${m.id}, '${(m.name || '').replace(/'/g, "\\'")}', '${(m.phone || '')}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); font-size:14px; color:#e2e8f0;" onmouseover="this.style.background='rgba(99,102,241,0.18)'" onmouseout="this.style.background='transparent'">
+                        <span style="font-weight:600;">${_escHtml(m.name)}</span>
+                        <span style="color:#64748b; font-size:12px;"> · ${_escHtml(m.phone || 'no phone')}</span>
+                    </div>`
+                ).join('');
+            }
+            box.style.display = 'block';
+        }
+        function selectPTMember(id, name, phone) {
+            document.getElementById('pt-modal-member').value = id;
+            document.getElementById('pt-member-search').value = name + (phone ? ` (${phone})` : '');
+            document.getElementById('pt-member-results').style.display = 'none';
+        }
+        // Close the results dropdown when clicking outside it.
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('pt-member-search');
+            const box = document.getElementById('pt-member-results');
+            if (box && box.style.display === 'block' && e.target !== wrap && !box.contains(e.target)) {
+                box.style.display = 'none';
+            }
+        });
 
         async function openPTModal() {
             await ensurePTModalData();
@@ -1287,6 +1329,10 @@
             document.getElementById('pt-edit-id').value = '';
             document.getElementById('pt-member-group').style.display = 'block';
             document.getElementById('pt-modal-member').value = '';
+            const ptSearch = document.getElementById('pt-member-search');
+            if (ptSearch) ptSearch.value = '';
+            const ptResults = document.getElementById('pt-member-results');
+            if (ptResults) ptResults.style.display = 'none';
             document.getElementById('pt-modal-discipline').value = 'Personal Training';
             document.getElementById('pt-modal-coach').value = '';
             document.getElementById('pt-modal-total').value = '';
