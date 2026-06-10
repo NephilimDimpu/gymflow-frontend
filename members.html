@@ -192,6 +192,13 @@
                 </div>
             </div>
 
+            <!-- [SELECT-ALL-MATCHING] Gmail-style banner — offers to select every
+                 matching member across all pages, not just the visible page. -->
+            <div id="select-all-matching-banner" style="display: none; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 16px; background: rgba(99,102,241,0.08); border: 1px dashed rgba(99,102,241,0.35); border-radius: 10px; font-size: 13.5px; color: #c7d2fe;">
+                <span id="select-all-matching-text"></span>
+                <button id="select-all-matching-btn" onclick="selectAllMatching()" style="background: none; border: none; color: #a5b4fc; font-weight: 700; text-decoration: underline; cursor: pointer; font-size: 13.5px;"></button>
+            </div>
+
             <!-- [BULK-ACTION-BAR] Appears only when one or more rows are selected. -->
             <div id="bulk-action-bar" style="display: none; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; padding: 14px 18px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); border-radius: 12px;">
                 <span id="bulk-selected-label" style="font-weight: 600; color: #c7d2fe;">0 selected</span>
@@ -453,6 +460,11 @@
         // Ids of members ticked for bulk actions. Persists across filter/search
         // re-renders so a selection isn't lost when the owner narrows the list.
         const selectedIds = new Set();
+        // When true, bulk actions target EVERY member matching the current filter
+        // (across all pages), not just the ticked rows. Set via the banner.
+        let selectAllMatchingMode = false;
+        // Page nav keeps the "all matching" selection; a filter change clears it.
+        let _keepMatchingThisLoad = false;
         // Hide the select-all header checkbox for staff (they can't bulk delete).
         if (!(userRole === 'owner' || userRole === 'manager')) {
             document.addEventListener('DOMContentLoaded', () => {
@@ -464,6 +476,9 @@
         async function loadMembers() {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = 'flex';
+            // A filter change clears an "all matching" selection; page nav keeps it.
+            if (!_keepMatchingThisLoad) selectAllMatchingMode = false;
+            _keepMatchingThisLoad = false;
             // Never spin forever — abort after 25s (covers a DB cold-start) and
             // show a clear retry instead of an infinite loading screen.
             const ctrl = new AbortController();
@@ -621,10 +636,10 @@
         }
 
         function nextPage() {
-            if (currentOffset + pageSize < totalMembers) { currentOffset += pageSize; loadMembers(); window.scrollTo(0, 0); }
+            if (currentOffset + pageSize < totalMembers) { currentOffset += pageSize; _keepMatchingThisLoad = true; loadMembers(); window.scrollTo(0, 0); }
         }
         function prevPage() {
-            if (currentOffset > 0) { currentOffset = Math.max(0, currentOffset - pageSize); loadMembers(); window.scrollTo(0, 0); }
+            if (currentOffset > 0) { currentOffset = Math.max(0, currentOffset - pageSize); _keepMatchingThisLoad = true; loadMembers(); window.scrollTo(0, 0); }
         }
 
         // Trigger top loader on start
@@ -773,7 +788,7 @@
         // [BULK-SELECT] Multi-select + bulk delete
         // ============================================
         function onRowCheck() {
-            // Read every checkbox currently in the DOM and reconcile the set.
+            selectAllMatchingMode = false;  // manual change exits "all matching"
             document.querySelectorAll('.member-checkbox').forEach(cb => {
                 const id = parseInt(cb.value, 10);
                 if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
@@ -782,6 +797,7 @@
         }
 
         function toggleSelectAll(headerCb) {
+            selectAllMatchingMode = false;
             // Select/deselect only the rows currently visible (respects filter/search).
             document.querySelectorAll('.member-checkbox').forEach(cb => {
                 cb.checked = headerCb.checked;
@@ -791,8 +807,15 @@
             updateBulkBar();
         }
 
+        // Banner action: target EVERY member matching the current filter.
+        function selectAllMatching() {
+            selectAllMatchingMode = true;
+            updateBulkBar();
+        }
+
         function clearSelection() {
             selectedIds.clear();
+            selectAllMatchingMode = false;
             document.querySelectorAll('.member-checkbox').forEach(cb => cb.checked = false);
             const sa = document.getElementById('select-all-checkbox');
             if (sa) { sa.checked = false; sa.indeterminate = false; }
@@ -802,17 +825,43 @@
         function updateBulkBar() {
             const bar = document.getElementById('bulk-action-bar');
             const label = document.getElementById('bulk-selected-label');
-            const count = selectedIds.size;
-            if (bar) bar.style.display = count > 0 ? 'flex' : 'none';
-            if (label) label.textContent = `${count} selected`;
+            const banner = document.getElementById('select-all-matching-banner');
+            const bText = document.getElementById('select-all-matching-text');
+            const bBtn = document.getElementById('select-all-matching-btn');
+            const delBtn = document.getElementById('bulk-delete-btn');
 
-            // Sync the header checkbox state (checked / unchecked / indeterminate)
-            // against how many visible rows are ticked.
             const boxes = Array.from(document.querySelectorAll('.member-checkbox'));
             const checked = boxes.filter(cb => cb.checked).length;
+            const allPageChecked = boxes.length > 0 && checked === boxes.length;
+
+            const anySelected = selectAllMatchingMode || selectedIds.size > 0;
+            if (bar) bar.style.display = anySelected ? 'flex' : 'none';
+            if (label) label.textContent = selectAllMatchingMode
+                ? `All ${totalMembers} matching selected (every page)`
+                : `${selectedIds.size} selected`;
+            // Delete acts on ticked rows only — hide it in all-matching mode (assign only).
+            if (delBtn) delBtn.style.display = selectAllMatchingMode ? 'none' : '';
+
+            // "Select all N matching" banner (Gmail-style).
+            if (banner) {
+                if (selectAllMatchingMode) {
+                    banner.style.display = 'flex';
+                    bText.textContent = `All ${totalMembers} matching members are selected.`;
+                    bBtn.textContent = 'Clear selection';
+                    bBtn.onclick = clearSelection;
+                } else if (allPageChecked && totalMembers > boxes.length) {
+                    banner.style.display = 'flex';
+                    bText.textContent = `All ${boxes.length} on this page are selected.`;
+                    bBtn.textContent = `Select all ${totalMembers} matching →`;
+                    bBtn.onclick = selectAllMatching;
+                } else {
+                    banner.style.display = 'none';
+                }
+            }
+
             const sa = document.getElementById('select-all-checkbox');
             if (sa) {
-                sa.checked = boxes.length > 0 && checked === boxes.length;
+                sa.checked = allPageChecked;
                 sa.indeterminate = checked > 0 && checked < boxes.length;
             }
         }
@@ -853,32 +902,51 @@
         async function bulkAssignPlan() {
             const sel = document.getElementById('bulk-assign-select');
             const planId = sel.value;
-            const ids = Array.from(selectedIds);
             if (!planId) return;
-            if (ids.length === 0) { sel.value = ''; return; }
             const planName = sel.options[sel.selectedIndex].textContent;
+            const targetCount = selectAllMatchingMode ? totalMembers : selectedIds.size;
+            if (targetCount === 0) { sel.value = ''; return; }
+
             if (!confirm(
-                `Assign "${planName}" to ${ids.length} selected member(s)?\n\n` +
+                `Assign "${planName}" to ${targetCount}${selectAllMatchingMode ? ' matching' : ' selected'} member(s)?\n\n` +
                 `⏱️ This starts a FRESH term from TODAY (today + the plan's length) — ` +
-                `use it to RENEW members.\n\n` +
-                `⚠️ It does NOT keep an existing expiry date. If you're migrating members ` +
-                `who already have time left, don't use this — re-import their sheet with ` +
-                `"Auto-detect plan from dates" instead, which keeps their real expiry.`
+                `use it to RENEW members or set up a plan for unassigned ones.\n\n` +
+                `⚠️ It does NOT keep an existing expiry date. To migrate members who ` +
+                `already have time left, re-import their sheet with "Auto-detect plan ` +
+                `from dates" instead — that keeps their real expiry.`
             )) {
                 sel.value = '';
                 return;
             }
             sel.disabled = true;
             try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk-assign-plan`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ member_ids: ids, plan_id: parseInt(planId, 10), payment_received: true })
-                });
+                let res;
+                if (selectAllMatchingMode) {
+                    // Assign to EVERY member matching the current filter (all pages).
+                    const body = { plan_id: parseInt(planId, 10), payment_received: true };
+                    if (currentFilter && currentFilter !== 'all') body.status = currentFilter;
+                    if (currentPlan) body.plan = currentPlan;
+                    if (currentSearch) body.q = currentSearch;
+                    if (currentExpiryFrom) body.expiry_from = currentExpiryFrom;
+                    if (currentExpiryTo) body.expiry_to = currentExpiryTo;
+                    const branchId = document.getElementById('branch-filter')?.value;
+                    if (branchId) body.branch_id = parseInt(branchId, 10);
+                    res = await fetch(`${CONFIG.API_BASE_URL}/api/members/assign-plan-to-matching`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                } else {
+                    res = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk-assign-plan`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ member_ids: Array.from(selectedIds), plan_id: parseInt(planId, 10), payment_received: true })
+                    });
+                }
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Assign failed');
                 showToast(data.message || `Assigned to ${data.updated} member(s).`, 'success');
-                selectedIds.clear();
+                clearSelection();
                 await loadMembers();
             } catch (err) {
                 showToast(err.message || 'Failed to assign plan', 'error');
