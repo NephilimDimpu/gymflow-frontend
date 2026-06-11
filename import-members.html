@@ -348,7 +348,7 @@
             const d = window.driver.js.driver;
             const steps = [
                 { element: '.upload-area', popover: { title: '1️⃣ Upload your file', description: 'Drop a CSV or Excel file here. Messy real-world sheets are fine — multiple sheets, extra columns, a title row, even missing phone numbers all work.' } },
-                { popover: { title: '2️⃣ One sheet, or all of them', description: 'If your file has several sheets, pick one from the dropdown — or click “📥 Import all sheets” to bring in every sheet at once. Duplicate phone numbers are skipped automatically.' } },
+                { popover: { title: '2️⃣ One sheet, or all of them', description: 'If your file has several sheets, pick one from the dropdown — or click “🔍 Review & import all sheets”. That opens a review screen: a “By sheet” tab shows the raw data exactly as read from each Excel tab, and a “Unique members” tab merges repeats (each person once, with their latest term) for you to check, edit, and send to Members.' } },
                 { popover: { title: '3️⃣ Check the preview', description: 'Every row is shown before importing. Rows missing a name or phone are highlighted in amber — fix them inline now, or let them import and complete later in Members.' } },
                 { popover: { title: '🎯 Auto-sort by plan', description: 'Keep “Auto-detect plan from the dates” ticked. When a row has a start & end date, GymExec picks the matching plan (≈1 month → Monthly, ≈3 → Quarterly, ≈12 → Yearly) so members sort by plan with no manual work.' } },
                 { popover: { title: '🏷️ Or assign one plan', description: 'If a whole sheet is one plan (e.g. your PT members), use “Assign all these members to a plan” and choose it. This overrides auto-detect — best for the PT sheet, where lengths can clash with Monthly.' } },
@@ -712,20 +712,36 @@
 
         function openPreScreen() {
             if (!currentWorkbook) { showToast('Open an Excel file first.', 'error'); return; }
-            const allowIncomplete = !!(document.getElementById('import-incomplete') || {}).checked;
-            const map = new Map();
-            let raw = 0, skipped = 0;
-
+            // STEP 1 — read every sheet AS-IS and keep the raw rows per sheet
+            // (the "By sheet" tab mirrors the Excel tabs so the owner can verify
+            // exactly what was read from each one).
+            const bySheet = [];
             (currentWorkbook.SheetNames || []).forEach(sheetName => {
                 let rows = [];
                 try { rows = buildRowsFromSheet(currentWorkbook.Sheets[sheetName]); } catch (_) { rows = []; }
-                rows.forEach(r => {
+                rows.forEach(r => { r._sheet = sheetName; });
+                bySheet.push({ name: sheetName, rows, included: true });
+            });
+            _ps = { bySheet, entries: [], raw: 0, skipped: 0, overrides: {}, view: { tab: 'person', q: '', year: '', dupOnly: false } };
+            document.getElementById('csv-preview').style.display = 'none';
+            psRegroup();
+        }
+
+        // STEP 2 — build the unique-member staging list from the INCLUDED sheets.
+        // Owner edits (name/phone/untick) are remembered per person in overrides,
+        // so toggling a sheet on/off doesn't lose their corrections.
+        function psRegroup() {
+            const allowIncomplete = !!(document.getElementById('import-incomplete') || {}).checked;
+            const map = new Map();
+            let raw = 0, skipped = 0;
+            _ps.bySheet.forEach(s => {
+                if (!s.included) return;
+                s.rows.forEach(r => {
                     raw++;
                     const hasName = r.name && String(r.name).trim();
                     const hasPhone = r.phone && String(r.phone).trim();
                     const keep = allowIncomplete ? (hasName || hasPhone) : (hasName && hasPhone);
                     if (!keep) { skipped++; return; }
-                    r._sheet = sheetName;
                     const key = _psKey(r);
                     if (!key) { skipped++; return; }
                     let e = map.get(key);
@@ -735,18 +751,25 @@
                     if (!e.phone && hasPhone) e.phone = String(r.phone).trim();
                 });
             });
-
             const entries = [...map.values()];
             entries.forEach(e => {
-                // Latest term first; chosen defaults to the most recent end date.
                 e.occ.sort((a, b) => _psEnd(b) < _psEnd(a) ? -1 : (_psEnd(b) > _psEnd(a) ? 1 : 0));
                 e.chosen = 0;
+                const ov = _ps.overrides[e.key];
+                if (ov) {
+                    if (ov.name !== undefined) e.name = ov.name;
+                    if (ov.phone !== undefined) e.phone = ov.phone;
+                    if (ov.include !== undefined) e.include = ov.include;
+                }
             });
             entries.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-            _ps = { entries, raw, skipped, view: { q: '', year: '', dupOnly: false } };
-            document.getElementById('csv-preview').style.display = 'none';
+            _ps.entries = entries; _ps.raw = raw; _ps.skipped = skipped;
             renderPreScreen();
+        }
+
+        function psSheet(i, on) {
+            const s = _ps.bySheet[i];
+            if (s) { s.included = on; psRegroup(); }
         }
 
         function _psWrap() {
@@ -762,10 +785,9 @@
 
         function psSetView(k, v) { _ps.view[k] = v; renderPreScreen(); }
 
-        function renderPreScreen() {
-            const w = _psWrap();
-            const { entries, raw, skipped, view } = _ps;
-            const dups = entries.filter(e => e.occ.length > 1).length;
+        // ---- Tab 1: unique members (the staging list that feeds Members) ----
+        function _psPersonView() {
+            const { entries, view } = _ps;
             const years = [...new Set(entries.map(_psYear).filter(Boolean))].sort();
 
             let list = entries;
@@ -777,7 +799,6 @@
             }
             const CAP = 1500;
             const shown = list.slice(0, CAP);
-            const inclCount = entries.filter(e => e.include).length;
 
             const yearChips = years.map(y =>
                 `<button type="button" onclick="psSetView('year', _ps.view.year==='${y}' ? '' : '${y}')" style="background:${view.year === y ? '#6366f1' : 'rgba(255,255,255,0.06)'};color:${view.year === y ? '#fff' : '#cbd5e1'};border:1px solid rgba(255,255,255,0.12);padding:5px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;">${y}</button>`
@@ -811,18 +832,7 @@
                 </tr>`;
             }).join('');
 
-            w.innerHTML = `
-            <div style="margin-top:24px;background:rgba(0,0,0,0.2);border:1px solid rgba(99,102,241,0.3);border-radius:14px;padding:20px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-                    <h3 style="margin:0;">🔍 Pre-screen — review before importing</h3>
-                    <button type="button" onclick="document.getElementById('prescreen-wrap').innerHTML='';" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;">✕</button>
-                </div>
-                <p style="margin:8px 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">
-                    Read <strong>${raw}</strong> row(s) from every sheet → <strong>${entries.length}</strong> unique member(s).
-                    🔁 <strong>${dups}</strong> appear more than once (renewals across monthly sheets) — each defaults to their <strong>latest term</strong>; expand 🔁 to pick a different one.
-                    ${skipped ? `${skipped} row(s) without name/phone skipped.` : ''}
-                    Amber fields are missing — fill them here, or untick a row to leave it out.
-                </p>
+            return `
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
                     <input type="text" placeholder="Search name or phone…" value="${escAttr(view.q)}" oninput="psSetView('q', this.value)" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px 12px;border-radius:8px;font-size:13px;min-width:200px;">
                     <button type="button" onclick="psSetView('dupOnly', !_ps.view.dupOnly)" style="background:${view.dupOnly ? '#f59e0b' : 'rgba(255,255,255,0.06)'};color:${view.dupOnly ? '#111' : '#cbd5e1'};border:1px solid rgba(255,255,255,0.12);padding:6px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;">🔁 Duplicates only</button>
@@ -842,7 +852,82 @@
                         </tr></thead>
                         <tbody>${rowsHtml || '<tr><td colspan="6" style="padding:24px;text-align:center;color:#64748b;">Nothing matches this filter.</td></tr>'}</tbody>
                     </table>
+                </div>`;
+        }
+
+        // ---- Tab 2: raw data sheet-by-sheet (mirrors the Excel tabs) ----
+        function _psSheetView() {
+            const CAP = 1500;
+            let used = 0;
+            const sections = _ps.bySheet.map((s, i) => {
+                const head = `
+                    <div style="display:flex;align-items:center;gap:10px;background:rgba(99,102,241,0.12);border-left:5px solid ${s.included ? '#6366f1' : '#475569'};padding:9px 14px;border-radius:8px 8px 0 0;${s.included ? '' : 'opacity:0.6;'}">
+                        <input type="checkbox" ${s.included ? 'checked' : ''} onchange="psSheet(${i},this.checked)" title="Include this sheet in the import" style="width:15px;height:15px;cursor:pointer;">
+                        <strong style="color:#c7d2fe;font-size:13px;">📑 ${escHtml(s.name)}</strong>
+                        <span style="font-size:12px;color:#94a3b8;">${s.rows.length} row(s) read${s.included ? '' : ' — EXCLUDED from import'}</span>
+                    </div>`;
+                if (!s.rows.length) {
+                    return head + `<div style="border:1px solid rgba(255,255,255,0.06);border-top:none;border-radius:0 0 8px 8px;padding:10px 14px;font-size:12px;color:#64748b;margin-bottom:14px;">No member rows found in this sheet (empty, or its layout isn't recognized — tell us and we'll add it).</div>`;
+                }
+                const take = Math.max(0, Math.min(s.rows.length, CAP - used));
+                used += take;
+                const body = s.rows.slice(0, take).map((r, j) => `
+                    <tr style="border-top:1px solid rgba(255,255,255,0.04);">
+                        <td style="padding:5px 10px;color:#64748b;font-size:12px;">${j + 1}</td>
+                        <td style="padding:5px 10px;color:#e2e8f0;">${escHtml(r.name || '—')}</td>
+                        <td style="padding:5px 10px;color:#cbd5e1;">${escHtml(r.phone || '—')}</td>
+                        <td style="padding:5px 10px;color:#94a3b8;font-size:12px;">${normalizeDate(r.start_date) || '—'} → ${normalizeDate(r.end_date) || '—'}</td>
+                        <td style="padding:5px 10px;color:#94a3b8;font-size:12px;">${escHtml(r.plan_name || '—')}</td>
+                    </tr>`).join('');
+                return head + `
+                    <div style="border:1px solid rgba(255,255,255,0.06);border-top:none;border-radius:0 0 8px 8px;margin-bottom:14px;max-height:300px;overflow-y:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                            <thead><tr style="position:sticky;top:0;background:#0b1020;">
+                                <th style="padding:6px 10px;color:#64748b;text-align:left;font-size:11px;">#</th>
+                                <th style="padding:6px 10px;color:#64748b;text-align:left;font-size:11px;">NAME</th>
+                                <th style="padding:6px 10px;color:#64748b;text-align:left;font-size:11px;">PHONE</th>
+                                <th style="padding:6px 10px;color:#64748b;text-align:left;font-size:11px;">START → END</th>
+                                <th style="padding:6px 10px;color:#64748b;text-align:left;font-size:11px;">PLAN COLUMN</th>
+                            </tr></thead>
+                            <tbody>${body}</tbody>
+                        </table>
+                        ${take < s.rows.length ? `<div style="padding:8px 12px;font-size:12px;color:#64748b;">…${s.rows.length - take} more row(s) in this sheet (display capped — all are still counted).</div>` : ''}
+                    </div>`;
+            }).join('');
+            return `
+                <p style="margin:0 0 12px;font-size:12.5px;color:#94a3b8;line-height:1.6;">
+                    This is the <strong>raw data exactly as read from each Excel sheet</strong> — verify every sheet was picked up.
+                    Untick a sheet to leave it out of the import (e.g. import your PT sheet separately with its own plan).
+                    Sending always uses the de-duplicated <strong>Unique members</strong> list.
+                </p>
+                ${sections}`;
+        }
+
+        function renderPreScreen() {
+            const w = _psWrap();
+            const { entries, raw, skipped, view, bySheet } = _ps;
+            const dups = entries.filter(e => e.occ.length > 1).length;
+            const totalRaw = bySheet.reduce((n, s) => n + s.rows.length, 0);
+            const inclCount = entries.filter(e => e.include).length;
+            const tabBtn = (tab, label) =>
+                `<button type="button" onclick="psSetView('tab','${tab}')" style="background:${view.tab === tab ? '#6366f1' : 'rgba(255,255,255,0.05)'};color:${view.tab === tab ? '#fff' : '#cbd5e1'};border:1px solid rgba(255,255,255,0.12);padding:8px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">${label}</button>`;
+
+            w.innerHTML = `
+            <div style="margin-top:24px;background:rgba(0,0,0,0.2);border:1px solid rgba(99,102,241,0.3);border-radius:14px;padding:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <h3 style="margin:0;">🔍 Pre-screen — review before importing</h3>
+                    <button type="button" onclick="document.getElementById('prescreen-wrap').innerHTML='';" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;">✕</button>
                 </div>
+                <p style="margin:8px 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">
+                    Read <strong>${totalRaw}</strong> row(s) from <strong>${bySheet.length}</strong> sheet(s) → <strong>${entries.length}</strong> unique member(s).
+                    🔁 <strong>${dups}</strong> appear more than once (renewals across monthly sheets) — each defaults to their <strong>latest term</strong>.
+                    ${skipped ? `${skipped} row(s) without name/phone skipped.` : ''}
+                </p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                    ${tabBtn('person', `👤 Unique members (${entries.length})`)}
+                    ${tabBtn('sheet', `📑 By sheet — raw data (${totalRaw} rows)`)}
+                </div>
+                ${view.tab === 'sheet' ? _psSheetView() : _psPersonView()}
                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;">
                     <button type="button" onclick="psSend()" style="background:#6366f1;color:#fff;border:none;padding:12px 22px;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;">📤 Send ${inclCount} member(s) to Members</button>
                     <span style="font-size:12px;color:#94a3b8;">Uses the “Assign plan / auto-detect / update existing” options above.</span>
@@ -851,8 +936,21 @@
             </div>`;
         }
 
-        function psEdit(i, field, val) { const e = _ps.entries[i]; if (e) e[field] = val; }
-        function psInc(i, on) { const e = _ps.entries[i]; if (e) { e.include = on; renderPreScreen(); } }
+        // Edits are remembered per person (by key), so switching tabs or
+        // toggling sheets doesn't lose corrections.
+        function psEdit(i, field, val) {
+            const e = _ps.entries[i];
+            if (!e) return;
+            e[field] = val;
+            (_ps.overrides[e.key] = _ps.overrides[e.key] || {})[field] = val;
+        }
+        function psInc(i, on) {
+            const e = _ps.entries[i];
+            if (!e) return;
+            e.include = on;
+            (_ps.overrides[e.key] = _ps.overrides[e.key] || {}).include = on;
+            renderPreScreen();
+        }
         function psPick(i, j) { const e = _ps.entries[i]; if (e) { e.chosen = j; renderPreScreen(); } }
 
         async function psSend() {
