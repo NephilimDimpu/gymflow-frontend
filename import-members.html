@@ -959,11 +959,17 @@
                 .map(e => Object.assign({}, e.occ[e.chosen] || {}, { name: e.name, phone: e.phone }))
                 .filter(r => (r.name && String(r.name).trim()) || (r.phone && String(r.phone).trim()));
             if (!rows.length) { showToast('Nothing selected to import.', 'error'); return; }
-            if (!confirm(`Send ${rows.length} member(s) to your Members page now?\n\nEach is imported once, with the term you chose in the review.`)) return;
+            if (!confirm(
+                `Send ${rows.length} member(s) to your Members page now?\n\n` +
+                `• New people are added once, with the term you chose.\n` +
+                `• People ALREADY in GymExec are UPDATED to the chosen term (no duplicates, no errors).`
+            )) return;
             const st = document.getElementById('ps-status');
             st.style.color = '#94a3b8'; st.textContent = 'Importing…';
             try {
-                const data = await postBulk(rows.map(buildMemberPayload));
+                // The staging list was just reviewed — always upsert. "Already
+                // exists" must never be an error on this path.
+                const data = await postBulk(rows.map(buildMemberPayload), { update_existing: true });
                 document.getElementById('prescreen-wrap').innerHTML = '';
                 renderImportResult(data, []);
             } catch (err) {
@@ -1149,6 +1155,14 @@
         }
 
         // Show a prominent success card in the middle of the page.
+        // True when most errors are "member already exists" (a re-import of
+        // people brought in earlier) — drives the 💡 hint on the result card.
+        function _looksLikeDupErrors(errors) {
+            if (!errors || !errors.length) return false;
+            const dup = errors.filter(e => /already exists|already in your gym/i.test(String(e))).length;
+            return dup >= Math.max(1, Math.floor(errors.length / 2));
+        }
+
         function renderImportResult(data, skipped) {
             const added    = data.added_count || 0;
             const updated  = data.updated_count || 0;
@@ -1159,7 +1173,12 @@
                 updated  ? `<p style="margin:6px 0;color:#6ee7b7;font-size:14px;">🔄 ${updated} existing member${updated===1?'':'s'} updated.</p>` : '',
                 warnings ? `<p style="margin:6px 0;color:#93c5fd;font-size:14px;">ℹ️ ${warnings} imported without a plan — assign one later from Members.</p>` : '',
                 skipCnt  ? `<p style="margin:6px 0;color:#fbbf24;font-size:14px;">⚠️ ${skipCnt} row${skipCnt===1?'':'s'} skipped (missing name or phone).</p>` : '',
-                errs     ? `<p style="margin:6px 0;color:#fca5a5;font-size:14px;">⚠️ ${errs} row${errs===1?'':'s'} had errors (e.g. duplicate phone).</p>` : ''
+                errs     ? `<p style="margin:6px 0;color:#fca5a5;font-size:14px;">⚠️ ${errs} row${errs===1?'':'s'} had errors (e.g. duplicate phone).</p>` : '',
+                // "Already exists" errors almost always mean the member was imported
+                // before. Tell the owner exactly how to bring them in (update mode).
+                (errs && _looksLikeDupErrors(data.errors))
+                    ? `<p style="margin:10px 0 4px;padding:10px 12px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:8px;color:#c7d2fe;font-size:13px;line-height:1.5;">💡 Those “already exists” rows are members <strong>already in GymExec</strong> from a previous import. To bring their latest data in, re-run with <strong>🔍 Review &amp; import all sheets</strong> (it updates existing members automatically), or tick <strong>“Update members already in the system”</strong> above and import again.</p>`
+                    : ''
             ].filter(Boolean).join('');
 
             const preview = document.getElementById('csv-preview');
@@ -1283,9 +1302,11 @@
         }
 
         // POST a list of member payloads to the bulk endpoint; returns parsed data or throws.
-        async function postBulk(members) {
+        async function postBulk(members, overrides) {
             const updEl = document.getElementById('import-update-existing');
-            const update_existing = !!(updEl && updEl.checked);
+            const update_existing = (overrides && 'update_existing' in overrides)
+                ? !!overrides.update_existing
+                : !!(updEl && updEl.checked);
             const autoEl = document.getElementById('import-auto-plan');
             const auto_plan_from_dates = !!(autoEl && autoEl.checked);
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk`, {
