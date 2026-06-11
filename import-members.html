@@ -1164,16 +1164,20 @@
         }
 
         function renderImportResult(data, skipped) {
-            const added    = data.added_count || 0;
-            const updated  = data.updated_count || 0;
-            const warnings = (data.warnings && data.warnings.length)  || 0;
-            const errs     = (data.errors   && data.errors.length)    || 0;
-            const skipCnt  = skipped.length;
+            const added     = data.added_count || 0;
+            const updated   = data.updated_count || 0;
+            const unchanged = data.unchanged_count || 0;
+            const warnings  = (data.warnings && data.warnings.length)  || 0;
+            const errs      = (data.errors   && data.errors.length)    || 0;
+            const skipCnt   = skipped.length;
+            const total     = added + updated + unchanged + errs + skipCnt;
             const details  = [
-                updated  ? `<p style="margin:6px 0;color:#6ee7b7;font-size:14px;">🔄 ${updated} existing member${updated===1?'':'s'} updated.</p>` : '',
-                warnings ? `<p style="margin:6px 0;color:#93c5fd;font-size:14px;">ℹ️ ${warnings} imported without a plan — assign one later from Members.</p>` : '',
-                skipCnt  ? `<p style="margin:6px 0;color:#fbbf24;font-size:14px;">⚠️ ${skipCnt} row${skipCnt===1?'':'s'} skipped (missing name or phone).</p>` : '',
-                errs     ? `<p style="margin:6px 0;color:#fca5a5;font-size:14px;">⚠️ ${errs} row${errs===1?'':'s'} had errors (e.g. duplicate phone).</p>` : '',
+                `<p style="margin:10px 0 4px;color:#cbd5e1;font-size:13px;">${total} row(s) processed: ${added} added · ${updated} updated · ${unchanged} already current · ${errs + skipCnt} skipped/errors.</p>`,
+                updated   ? `<p style="margin:6px 0;color:#6ee7b7;font-size:14px;">🔄 ${updated} existing member${updated===1?'':'s'} updated.</p>` : '',
+                unchanged ? `<p style="margin:6px 0;color:#94a3b8;font-size:14px;">✓ ${unchanged} already in GymExec, nothing to change.</p>` : '',
+                warnings  ? `<p style="margin:6px 0;color:#93c5fd;font-size:14px;">ℹ️ ${warnings} imported without a plan — assign one later from Members.</p>` : '',
+                skipCnt   ? `<p style="margin:6px 0;color:#fbbf24;font-size:14px;">⚠️ ${skipCnt} row${skipCnt===1?'':'s'} skipped (missing name or phone).</p>` : '',
+                errs      ? `<p style="margin:6px 0;color:#fca5a5;font-size:14px;">⚠️ ${errs} row${errs===1?'':'s'} had errors (e.g. duplicate phone).</p>` : '',
                 // "Already exists" errors almost always mean the member was imported
                 // before. Tell the owner exactly how to bring them in (update mode).
                 (errs && _looksLikeDupErrors(data.errors))
