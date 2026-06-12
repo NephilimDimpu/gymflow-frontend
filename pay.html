@@ -243,11 +243,16 @@
 
         <!-- "I've paid" — notifies the gym to verify. Phone confirms it's you. -->
         <div id="paid-section">
-            <input type="tel" id="confirm-phone" class="phone-input" placeholder="Your phone number" inputmode="numeric" autocomplete="tel">
+            <div style="height:1px; background:rgba(255,255,255,0.08); margin: 8px 0 20px;"></div>
+            <p style="color: #f8fafc; font-size: 14px; font-weight: 600; margin: 0 0 4px;">Already paid above?</p>
+            <p style="color: var(--text-muted); font-size: 12px; line-height: 1.5; margin: 0 0 12px;">
+                Enter <strong>your own</strong> registered number (the one your gym has for you) so they know it's you.
+            </p>
+            <input type="tel" id="confirm-phone" class="phone-input" placeholder="Your registered phone number" inputmode="numeric" autocomplete="tel">
             <button class="btn-confirm" onclick="confirmPayment()" id="confirm-btn">
                 ✅ I've paid — notify my gym
             </button>
-            <p style="color: var(--text-muted); font-size: 11px; margin: 10px 0 0;">Your gym will confirm and extend your membership.</p>
+            <p style="color: var(--text-muted); font-size: 11px; margin: 10px 0 0;">This just tells your gym. They'll verify the payment and extend your membership.</p>
         </div>
 
         <div id="success-section" style="display: none;">
