@@ -20,3 +20,6 @@ desktop.ini
 # Build artifacts
 dist/
 build/
+
+# Local test fixtures
+sample-*.xlsx
