@@ -135,6 +135,11 @@
                         <option value="">All plans</option>
                     </select>
 
+                    <select id="year-filter" onchange="onYearFilterChange()" class="form-select" title="Show only members on record in a given year"
+                            style="width: auto; min-width: 130px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;">
+                        <option value="">All years</option>
+                    </select>
+
                     <div style="flex: 1; min-width: 260px;">
                         <input type="text" id="search-input" class="form-input"
                                style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;"
@@ -518,6 +523,7 @@
                 pageMembers = data.members || [];
                 totalMembers = data.total || 0;
                 serverCounts = data.counts || serverCounts;
+                populateYearFilter(data.years);
                 updateFilterCounts();
                 renderTable(pageMembers);
                 renderPagination();
@@ -603,19 +609,46 @@
             loadMembers();
         }
 
-        // Click a year chip → filter the whole list to members on record that year.
+        // Click a year chip / header → filter the whole list to that on-record year.
         function filterByYear(year) {
             currentYear = String(year);
             currentOffset = 0;
-            renderYearFilterPill();
+            _syncYearControls();
             loadMembers();
             window.scrollTo(0, 0);
         }
         function clearYearFilter() {
             currentYear = '';
             currentOffset = 0;
-            renderYearFilterPill();
+            _syncYearControls();
             loadMembers();
+        }
+        // The "Year" dropdown in the filter bar — same action as the chips.
+        function onYearFilterChange() {
+            currentYear = document.getElementById('year-filter').value || '';
+            currentOffset = 0;
+            renderYearFilterPill();   // keep the pill in sync (dropdown already set)
+            loadMembers();
+        }
+        // Keep both the dropdown and the pill reflecting currentYear.
+        function _syncYearControls() {
+            const sel = document.getElementById('year-filter');
+            if (sel) sel.value = currentYear || '';
+            renderYearFilterPill();
+        }
+        // Fill the Year dropdown from the distinct years the server reports.
+        // Preserves the current selection even if it isn't in the list yet.
+        function populateYearFilter(years) {
+            const sel = document.getElementById('year-filter');
+            if (!sel || !Array.isArray(years)) return;
+            const opts = ['<option value="">All years</option>']
+                .concat(years.map(y => `<option value="${y}">${y}</option>`));
+            // If a year is filtered that the server didn't list, keep it selectable.
+            if (currentYear && !years.map(String).includes(String(currentYear))) {
+                opts.push(`<option value="${currentYear}">${currentYear}</option>`);
+            }
+            sel.innerHTML = opts.join('');
+            sel.value = currentYear || '';
         }
         function renderYearFilterPill() {
             const host = document.getElementById('year-filter-pill');
