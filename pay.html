@@ -304,8 +304,11 @@
                     document.getElementById('amount-caption').textContent = 'Contact your gym for renewal pricing.';
                 }
 
-                // Already paid / under review → show the confirmation state.
-                if (data.payment_status === 'paid' || data.payment_status === 'pending') {
+                // Show "under review" ONLY when the member just submitted a payment
+                // that the gym hasn't approved yet (member status = pending_payment).
+                // An expired member whose OLD term was 'paid' must still see renew
+                // options — so we gate on member status, not the membership's status.
+                if (data.status === 'pending_payment') {
                     document.getElementById('qr-section').style.display = 'none';
                     document.getElementById('payatgym-section').style.display = 'none';
                     document.getElementById('paid-section').style.display = 'none';
