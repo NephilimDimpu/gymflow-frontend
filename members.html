@@ -752,7 +752,7 @@
                             <div style="font-size: 12px; color: var(--text-muted);">${m.expiry_date ? `Active till ${m.expiry_date}${m.days_left !== undefined && m.days_left !== null ? ` (${m.days_left} days left)` : ''}` : 'Active — no end date set'}</div>
                         ` : `
                             <div style="font-weight: 600; color: #94a3b8;">No plan <span style="font-size: 10px; color: #64748b; background: rgba(148,163,184,0.12); padding: 1px 7px; border-radius: 8px;">assign later</span></div>
-                            <div style="font-size: 12px; color: var(--text-muted);">${m.expiry_date ? `Ended: ${m.expiry_date}` : 'Assign a plan when they join or renew'}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${m.expiry_date ? `📅 On record: ${m.expiry_date}` : 'Assign a plan when they join or renew'}</div>
                         `)}
                     </td>
                     <td data-label="Attendance">
