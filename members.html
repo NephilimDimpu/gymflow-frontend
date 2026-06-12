@@ -450,13 +450,21 @@
         const NEEDS_PLAN_COLOR = '#ef4444';
         function rowAccentColor(m) {
             if (m.current_plan) return planColor(m.current_plan);
-            return _isActive(m) ? NEEDS_PLAN_COLOR : '#64748b';
+            if (_isActive(m)) return NEEDS_PLAN_COLOR;       // red: assign now
+            // Expired/new no-plan: tint by on-record YEAR so each year's set of
+            // ex-members is visually distinct. Undated contacts stay neutral grey.
+            return m.member_since ? planColor('yr-' + m.member_since) : '#64748b';
         }
 
         // Group key: keeps no-plan ACTIVE members ("yet to assign") in their own
-        // set, separate from no-plan EXPIRED ex-members.
+        // set, and splits no-plan EXPIRED ex-members into one set PER on-record
+        // year (2024, 2025, …) so each year is segregated and labelled on its own —
+        // without ever assigning a plan. Undated contacts fall into a final set.
         function _groupKey(m) {
-            if (!m.current_plan) return 'noplan|' + (_isActive(m) ? 'active' : 'expired');
+            if (!m.current_plan) {
+                if (_isActive(m)) return 'noplan|active';
+                return 'noplan|expired|' + (m.member_since || 'nodate');
+            }
             return currentSort === 'plan' ? (m.current_plan + '|' + (m.expiry_date || '')) : m.current_plan;
         }
 
@@ -702,16 +710,26 @@
             _lastGroupKey = key;
             const c = rowAccentColor(m);
 
-            let label, icon = '📦';
+            let label, icon = '📦', clickYear = null;
             if (!m.current_plan) {
                 if (_isActive(m)) { label = 'NO PLAN — ASSIGN NOW (ACTIVE)'; icon = '⚠️'; }
-                else { label = 'NO PLAN — ASSIGN LATER (EXPIRED / NEW)'; icon = '🗂️'; }
+                else if (m.member_since) {
+                    // One labelled set per on-record year — no plan assigned.
+                    label = `ON RECORD ${m.member_since} · NO PLAN (EXPIRED — ASSIGN LATER)`;
+                    icon = '📅';
+                    clickYear = m.member_since;
+                } else {
+                    label = 'NO PLAN — NO DATE ON RECORD (ASSIGN LATER)'; icon = '🗂️';
+                }
             } else {
                 const planLabel = m.current_plan;
                 const periodLabel = m.expiry_date ? `expires ${m.expiry_date}` : 'no expiry';
                 label = currentSort === 'plan' ? `${planLabel} · ${periodLabel}` : planLabel;
             }
-            return `<tr class="group-divider"><td colspan="8" style="background: ${c}1f; border-left: 5px solid ${c}; padding: 9px 16px; font-size: 12px; font-weight: 800; color: ${c}; text-transform: uppercase; letter-spacing: 0.6px;">${icon} ${_escHtml(label)}</td></tr>`;
+            const clickAttrs = clickYear
+                ? ` onclick="filterByYear(${clickYear})" title="Show only ${clickYear} ex-members (all pages)" style="cursor:pointer; `
+                : ` style="`;
+            return `<tr class="group-divider"><td colspan="8"${clickAttrs}background: ${c}1f; border-left: 5px solid ${c}; padding: 9px 16px; font-size: 12px; font-weight: 800; color: ${c}; text-transform: uppercase; letter-spacing: 0.6px;">${icon} ${_escHtml(label)}${clickYear ? ' <span style="opacity:0.7; font-weight:600; text-transform:none;">— click to isolate</span>' : ''}</td></tr>`;
         }
 
         function renderTable(members) {
