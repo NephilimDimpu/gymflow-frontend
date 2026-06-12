@@ -1,0 +1,350 @@
+<!-- ============================================
+     [SCREEN] Reminders — control & tracking
+     Isolated page: on/off toggles, WhatsApp/email send log (audit trail),
+     and per-member opt-out management. Reads /api/reminders/*.
+     ============================================ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reminders - GymExec</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    <style>
+        /* Toggle switch */
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: #3f3f46; transition: .2s; border-radius: 28px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background: #fff; transition: .2s; border-radius: 50%; }
+        input:checked + .slider { background: linear-gradient(135deg,#22c55e,#16a34a); }
+        input:checked + .slider:before { transform: translateX(22px); }
+        input:disabled + .slider { opacity: .45; cursor: not-allowed; }
+        .chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+        .chip-wa { background: rgba(37,211,102,0.15); color: #4ade80; }
+        .chip-email { background: rgba(96,165,250,0.15); color: #93c5fd; }
+        .tab-btn { background: none; border: none; color: var(--text-muted); font-weight: 700; font-size: 14px; padding: 10px 4px; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #fff; border-bottom-color: #6366f1; }
+        .rtable { width: 100%; border-collapse: collapse; }
+        .rtable th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .rtable td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo" onclick="window.location.href='dashboard.html'" style="cursor: pointer;" title="Back to Dashboard">💪 GymExec</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
+                <a href="members.html" class="nav-link"><span>👥</span> Members</a>
+                <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
+                <a href="reminders.html" class="nav-link active"><span>🔔</span> Reminders</a>
+                <a href="staff.html" class="nav-link"><span>🛡️</span> Staff</a>
+                <a href="branches.html" class="nav-link"><span>📍</span> Branches</a>
+                <a href="attendance.html" class="nav-link"><span>🕘</span> Attendance</a>
+                <a href="routines.html" class="nav-link"><span>📋</span> Routines</a>
+                <a href="status.html" target="_blank" class="nav-link" style="color: #60a5fa;" title="View and share your Gym Member Status Portal & PWA App"><span>📲</span> Member PWA</a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link"><span>⚙️</span> Settings</a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;"><span>⭐</span> Upgrade</a>
+                    <a href="#" class="nav-link" onclick="logout()"><span>🚪</span> Logout</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="margin-bottom: 28px;">
+                <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">🔔 Reminders</h1>
+                <p style="font-size: 14px; color: var(--text-muted);">Control auto-renewal reminders, see exactly what was sent, and choose who's included.</p>
+            </header>
+
+            <!-- Status banner -->
+            <div id="status-banner" class="glass-panel" style="margin-bottom: 24px; padding: 16px 20px; display: none; border-radius: 12px;"></div>
+
+            <!-- Settings -->
+            <div class="glass-panel" style="margin-bottom: 24px; padding: 22px; border: 1px solid rgba(255,255,255,0.08);">
+                <h2 style="font-size: 18px; margin: 0 0 4px;">Settings</h2>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 18px;">Turn the whole system on/off, or silence just one channel. Saves instantly.</p>
+
+                <div id="toggle-master" class="toggle-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                    <div>
+                        <div style="font-weight: 700; color: #fff;">Automated reminders</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Master switch — daily auto-send at ~9 AM for expiring members.</div>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="sw-master" onchange="saveSettings()"><span class="slider"></span></label>
+                </div>
+                <div class="toggle-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                    <div>
+                        <div style="font-weight: 700; color: #fff;">📱 WhatsApp channel</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Send the renewal_reminder WhatsApp template.</div>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="sw-wa" onchange="saveSettings()"><span class="slider"></span></label>
+                </div>
+                <div class="toggle-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
+                    <div>
+                        <div style="font-weight: 700; color: #fff;">✉️ Email channel</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Send the renewal reminder email.</div>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="sw-email" onchange="saveSettings()"><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <!-- Summary stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 24px;">
+                <div class="glass-panel" style="padding: 16px;"><div style="font-size: 12px; color: var(--text-muted);">📱 WhatsApp sent</div><div id="stat-wa-sent" style="font-size: 26px; font-weight: 800; color: #4ade80;">—</div></div>
+                <div class="glass-panel" style="padding: 16px;"><div style="font-size: 12px; color: var(--text-muted);">✉️ Email sent</div><div id="stat-email-sent" style="font-size: 26px; font-weight: 800; color: #93c5fd;">—</div></div>
+                <div class="glass-panel" style="padding: 16px;"><div style="font-size: 12px; color: var(--text-muted);">⚠️ Failed</div><div id="stat-failed" style="font-size: 26px; font-weight: 800; color: #f87171;">—</div></div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display: flex; gap: 22px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 18px;">
+                <button class="tab-btn active" id="tab-log-btn" onclick="switchTab('log')">📜 Send log</button>
+                <button class="tab-btn" id="tab-optout-btn" onclick="switchTab('optout')">🚫 Excluded members</button>
+            </div>
+
+            <!-- LOG TAB -->
+            <div id="tab-log">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center;">
+                    <select id="filter-channel" onchange="loadLog()" class="form-select" style="width: auto; background: rgba(0,0,0,0.2); color:#fff; border-color: rgba(255,255,255,0.1);">
+                        <option value="">All channels</option>
+                        <option value="whatsapp">WhatsApp only</option>
+                        <option value="email">Email only</option>
+                    </select>
+                    <select id="filter-status" onchange="loadLog()" class="form-select" style="width: auto; background: rgba(0,0,0,0.2); color:#fff; border-color: rgba(255,255,255,0.1);">
+                        <option value="">All statuses</option>
+                        <option value="sent">Delivered</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                    <input type="text" id="filter-q" onkeyup="debouncedLog()" placeholder="Search member or number…" class="form-input" style="width: 240px; background: rgba(0,0,0,0.2); color:#fff; border-color: rgba(255,255,255,0.1);">
+                </div>
+                <div class="glass-panel" style="padding: 0; overflow: hidden;">
+                    <table class="rtable">
+                        <thead><tr><th>Member</th><th>Channel</th><th>When (before expiry)</th><th>Status</th><th>Sent at</th></tr></thead>
+                        <tbody id="log-tbody"></tbody>
+                    </table>
+                    <div id="log-empty" style="display:none; padding: 40px; text-align:center; color: var(--text-muted);">
+                        <div style="font-size: 34px; margin-bottom: 8px;">📭</div>
+                        No reminders sent yet. Once the daily 9 AM run fires (or you test one), every send shows here.
+                    </div>
+                </div>
+                <div id="log-pagination" style="display:none; justify-content: space-between; align-items:center; margin-top: 14px;">
+                    <span id="log-page-info" style="font-size: 13px; color: var(--text-muted);"></span>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary" id="log-prev" onclick="logPage(-1)" style="padding:7px 14px;">← Prev</button>
+                        <button class="btn btn-secondary" id="log-next" onclick="logPage(1)" style="padding:7px 14px;">Next →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OPT-OUT TAB -->
+            <div id="tab-optout" style="display:none;">
+                <div class="glass-panel" style="padding: 20px; margin-bottom: 18px;">
+                    <div style="font-weight: 700; color:#fff; margin-bottom: 8px;">Exclude a member from auto-reminders</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Search by name or phone, then exclude. Excluded members are skipped by the daily cron on both channels.</div>
+                    <input type="text" id="exclude-search" onkeyup="debouncedExcludeSearch()" placeholder="Type a member's name or number…" class="form-input" style="background: rgba(0,0,0,0.2); color:#fff; border-color: rgba(255,255,255,0.1);">
+                    <div id="exclude-results" style="margin-top: 10px;"></div>
+                </div>
+                <div class="glass-panel" style="padding: 0; overflow: hidden;">
+                    <div style="padding: 14px 18px; font-weight: 700; color:#fff; border-bottom: 1px solid rgba(255,255,255,0.06);">Currently excluded</div>
+                    <table class="rtable"><tbody id="optout-tbody"></tbody></table>
+                    <div id="optout-empty" style="display:none; padding: 30px; text-align:center; color: var(--text-muted);">No one is excluded — every eligible member gets reminders.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) { window.location.href = 'login.html'; }
+        const AUTH = { 'Authorization': `Bearer ${token}` };
+        const JSON_AUTH = { ...AUTH, 'Content-Type': 'application/json' };
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        let logOffset = 0; const LOG_LIMIT = 50; let logTotal = 0;
+
+        // ---- Settings + banner ----
+        async function loadSettings() {
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/reminders/settings`, { headers: AUTH });
+                if (!r.ok) throw new Error('settings ' + r.status);
+                const s = await r.json();
+                document.getElementById('sw-master').checked = s.reminders_enabled;
+                document.getElementById('sw-wa').checked = s.whatsapp_reminders_enabled;
+                document.getElementById('sw-email').checked = s.email_reminders_enabled;
+                renderBanner(s);
+            } catch (e) {
+                showToast && showToast('Could not load reminder settings', 'error');
+            }
+        }
+        function renderBanner(s) {
+            const b = document.getElementById('status-banner');
+            b.style.display = 'block';
+            let html, bg, border, color;
+            if (!s.tier_eligible) {
+                bg='rgba(251,191,36,0.1)'; border='rgba(251,191,36,0.35)'; color='#fcd34d';
+                html = `⚠️ <strong>Auto-reminders need the Pro or Elite plan.</strong> You're on <strong>${esc(s.tier)}</strong>. `
+                     + `<a href="upgrade-plan.html" style="color:#fcd34d; text-decoration:underline;">Upgrade to switch them on</a>. (Your settings below are saved and apply once you upgrade.)`;
+            } else if (!s.reminders_enabled) {
+                bg='rgba(148,163,184,0.1)'; border='rgba(148,163,184,0.3)'; color='#cbd5e1';
+                html = `⏸️ <strong>Reminders are OFF.</strong> No automatic messages are going out. Flip “Automated reminders” on to resume.`;
+            } else {
+                const ch = [s.whatsapp_reminders_enabled && '📱 WhatsApp', s.email_reminders_enabled && '✉️ Email'].filter(Boolean).join(' + ') || 'no channels (turn one on)';
+                bg='rgba(34,197,94,0.1)'; border='rgba(34,197,94,0.35)'; color='#86efac';
+                html = `✅ <strong>Auto-reminders are ON.</strong> Sending daily at ~9 AM via ${ch} to members expiring in 3 / 1 / 0 days.`;
+                if (!s.whatsapp_configured && s.whatsapp_reminders_enabled) {
+                    html += ` <span style="color:#fcd34d;">(WhatsApp isn't fully configured on the server yet.)</span>`;
+                }
+            }
+            b.style.background = bg; b.style.border = `1px solid ${border}`; b.style.color = color;
+            b.innerHTML = html;
+        }
+        async function saveSettings() {
+            const body = {
+                reminders_enabled: document.getElementById('sw-master').checked,
+                whatsapp_reminders_enabled: document.getElementById('sw-wa').checked,
+                email_reminders_enabled: document.getElementById('sw-email').checked,
+            };
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/reminders/settings`, { method: 'PUT', headers: JSON_AUTH, body: JSON.stringify(body) });
+                if (!r.ok) throw new Error('save ' + r.status);
+                showToast && showToast('Saved', 'success');
+                loadSettings();   // refresh banner
+            } catch (e) {
+                showToast && showToast('Could not save — try again', 'error');
+                loadSettings();   // revert toggles to server truth
+            }
+        }
+
+        // ---- Log ----
+        let _logTimer = null;
+        function debouncedLog(){ clearTimeout(_logTimer); _logTimer = setTimeout(()=>{ logOffset=0; loadLog(); }, 350); }
+        async function loadLog() {
+            const ch = document.getElementById('filter-channel').value;
+            const st = document.getElementById('filter-status').value;
+            const q = document.getElementById('filter-q').value.trim();
+            const params = new URLSearchParams({ limit: LOG_LIMIT, offset: logOffset });
+            if (ch) params.set('channel', ch);
+            if (st) params.set('status', st);
+            if (q) params.set('q', q);
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/reminders/log?${params}`, { headers: AUTH });
+                if (!r.ok) throw new Error('log ' + r.status);
+                const data = await r.json();
+                logTotal = data.total || 0;
+                // stats
+                const sm = data.summary || {};
+                document.getElementById('stat-wa-sent').textContent = sm.whatsapp_sent ?? 0;
+                document.getElementById('stat-email-sent').textContent = sm.email_sent ?? 0;
+                document.getElementById('stat-failed').textContent = (sm.whatsapp_failed ?? 0) + (sm.email_failed ?? 0);
+                renderLog(data.logs || []);
+                renderLogPagination();
+            } catch (e) {
+                showToast && showToast('Could not load the send log', 'error');
+            }
+        }
+        function renderLog(logs) {
+            const tb = document.getElementById('log-tbody');
+            const empty = document.getElementById('log-empty');
+            if (!logs.length) { tb.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+            tb.innerHTML = logs.map(l => {
+                const chip = l.channel === 'whatsapp'
+                    ? '<span class="chip chip-wa">📱 WhatsApp</span>'
+                    : '<span class="chip chip-email">✉️ Email</span>';
+                const status = l.status === 'sent'
+                    ? '<span style="color:#4ade80; font-weight:700;">✅ Delivered</span>'
+                    : `<span style="color:#f87171; font-weight:700;" title="${esc(l.error||'')}">❌ Failed</span>`;
+                return `<tr>
+                    <td style="font-weight:600; color:#fff;">${esc(l.member_name)}${l.to_address?`<div style="font-size:11px;color:var(--text-muted);">${esc(l.to_address)}</div>`:''}</td>
+                    <td>${chip}</td>
+                    <td style="color:var(--text-muted);">${esc(l.stage_label)}</td>
+                    <td>${status}</td>
+                    <td style="color:var(--text-muted); font-size:13px;">${esc(l.sent_at||'')}</td>
+                </tr>`;
+            }).join('');
+        }
+        function renderLogPagination() {
+            const bar = document.getElementById('log-pagination');
+            if (logTotal <= LOG_LIMIT) { bar.style.display = 'none'; return; }
+            bar.style.display = 'flex';
+            const start = logTotal===0?0:logOffset+1;
+            const end = Math.min(logOffset+LOG_LIMIT, logTotal);
+            document.getElementById('log-page-info').textContent = `Showing ${start}–${end} of ${logTotal}`;
+            document.getElementById('log-prev').disabled = logOffset <= 0;
+            document.getElementById('log-next').disabled = end >= logTotal;
+        }
+        function logPage(dir) {
+            const next = logOffset + dir*LOG_LIMIT;
+            if (next < 0 || next >= logTotal) return;
+            logOffset = next; loadLog(); window.scrollTo(0,0);
+        }
+
+        // ---- Tabs ----
+        function switchTab(which) {
+            const log = which === 'log';
+            document.getElementById('tab-log').style.display = log ? 'block' : 'none';
+            document.getElementById('tab-optout').style.display = log ? 'none' : 'block';
+            document.getElementById('tab-log-btn').classList.toggle('active', log);
+            document.getElementById('tab-optout-btn').classList.toggle('active', !log);
+            if (!log) loadOptedOut();
+        }
+
+        // ---- Opt-out ----
+        async function loadOptedOut() {
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/reminders/opted-out`, { headers: AUTH });
+                if (!r.ok) throw new Error('optout ' + r.status);
+                const data = await r.json();
+                const tb = document.getElementById('optout-tbody');
+                const empty = document.getElementById('optout-empty');
+                const members = data.members || [];
+                if (!members.length) { tb.innerHTML=''; empty.style.display='block'; return; }
+                empty.style.display='none';
+                tb.innerHTML = members.map(m => `<tr>
+                    <td style="font-weight:600; color:#fff;">${esc(m.name)}${m.phone?`<span style="color:var(--text-muted); font-weight:400; margin-left:8px;">${esc(m.phone)}</span>`:''}</td>
+                    <td style="text-align:right;"><button class="btn btn-secondary" onclick="setOptOut(${m.id}, false, this)" style="padding:6px 12px; font-size:12px;">↩️ Re-include</button></td>
+                </tr>`).join('');
+            } catch (e) { showToast && showToast('Could not load excluded members', 'error'); }
+        }
+        async function setOptOut(memberId, optedOut, btn) {
+            if (btn) btn.disabled = true;
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/reminders/opt-out/${memberId}`, { method:'PUT', headers: JSON_AUTH, body: JSON.stringify({ opted_out: optedOut }) });
+                if (!r.ok) throw new Error('opt-out ' + r.status);
+                showToast && showToast(optedOut ? 'Member excluded' : 'Member re-included', 'success');
+                loadOptedOut();
+                document.getElementById('exclude-results').innerHTML = '';
+                document.getElementById('exclude-search').value = '';
+            } catch (e) { showToast && showToast('Could not update — try again', 'error'); if (btn) btn.disabled=false; }
+        }
+        let _exTimer = null;
+        function debouncedExcludeSearch(){ clearTimeout(_exTimer); _exTimer = setTimeout(excludeSearch, 350); }
+        async function excludeSearch() {
+            const q = document.getElementById('exclude-search').value.trim();
+            const box = document.getElementById('exclude-results');
+            if (!q) { box.innerHTML=''; return; }
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/members/paged?q=${encodeURIComponent(q)}&limit=8`, { headers: AUTH });
+                if (!r.ok) throw new Error('search ' + r.status);
+                const data = await r.json();
+                const members = data.members || [];
+                if (!members.length) { box.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:8px;">No matches.</div>'; return; }
+                box.innerHTML = members.map(m => `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <span style="color:#fff;">${esc(m.name)} <span style="color:var(--text-muted);">${esc(m.phone||'')}</span></span>
+                    <button class="btn btn-secondary" onclick="setOptOut(${m.id}, true, this)" style="padding:5px 12px; font-size:12px; background:rgba(248,113,113,0.12); border:1px solid rgba(248,113,113,0.3); color:#fca5a5;">🚫 Exclude</button>
+                </div>`).join('');
+            } catch (e) { box.innerHTML = '<div style="color:#f87171; font-size:13px; padding:8px;">Search failed.</div>'; }
+        }
+
+        // ---- Init ----
+        loadSettings();
+        loadLog();
+    </script>
+</body>
+</html>
