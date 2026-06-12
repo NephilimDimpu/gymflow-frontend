@@ -22,11 +22,12 @@
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             margin: 0;
             min-height: 100vh;
+            /* Flex + margin:auto on children centres the card when it fits the
+               viewport, but lets the page SCROLL when the card is taller than
+               the screen (instead of clipping it). overflow is left default. */
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            overflow: hidden;
+            padding: 24px 16px;
+            box-sizing: border-box;
         }
 
         /* Ambient Background */
@@ -44,6 +45,7 @@
             letter-spacing: 2px;
             font-size: 12px;
             animation: pulse 2s infinite;
+            margin: auto;
         }
 
         @keyframes pulse {
@@ -55,13 +57,22 @@
             background: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(24px);
             border: 1px solid var(--surface-border);
-            padding: 48px;
+            padding: 40px;
             border-radius: 32px;
             width: 100%;
             max-width: 440px;
             text-align: center;
             box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5);
             position: relative;
+            margin: auto;   /* centre when it fits; allow scroll when it doesn't */
+        }
+
+        /* Tighter on phones so the card isn't unnecessarily tall. */
+        @media (max-width: 480px) {
+            body { padding: 14px 10px; }
+            .pay-card { padding: 26px 20px; border-radius: 24px; }
+            .qr-image { width: 180px; height: 180px; }
+            .amount-display { font-size: 30px !important; }
         }
 
         .gym-badge {
