@@ -1,0 +1,193 @@
+<!-- ============================================
+     [SCREEN] Payments to verify
+     Isolated page: the owner's worklist for manual-UPI "I've paid" claims.
+     Confirm (extends membership) or mark Not received. Reads /api/payments/*.
+     ============================================ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments - GymExec</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    <style>
+        .tab-btn { background: none; border: none; color: var(--text-muted); font-weight: 700; font-size: 14px; padding: 10px 4px; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #fff; border-bottom-color: #22c55e; }
+        .claim-card { background: var(--surface, rgba(255,255,255,0.03)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+        .chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .5px; }
+        .chip-pending { background: rgba(251,191,36,0.15); color: #fcd34d; }
+        .chip-confirmed { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .chip-rejected { background: rgba(248,113,113,0.15); color: #f87171; }
+        .btn-ok { background: linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; font-weight:700; padding:10px 16px; border-radius:10px; cursor:pointer; font-family:inherit; }
+        .btn-no { background: rgba(248,113,113,0.12); color:#fca5a5; border:1px solid rgba(248,113,113,0.3); font-weight:700; padding:10px 16px; border-radius:10px; cursor:pointer; font-family:inherit; }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo" onclick="window.location.href='dashboard.html'" style="cursor: pointer;" title="Back to Dashboard">💪 GymExec</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
+                <a href="members.html" class="nav-link"><span>👥</span> Members</a>
+                <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
+                <a href="reminders.html" class="nav-link"><span>🔔</span> Reminders</a>
+                <a href="payments.html" class="nav-link active"><span>💰</span> Payments</a>
+                <a href="staff.html" class="nav-link"><span>🛡️</span> Staff</a>
+                <a href="branches.html" class="nav-link"><span>📍</span> Branches</a>
+                <a href="attendance.html" class="nav-link"><span>🕘</span> Attendance</a>
+                <a href="routines.html" class="nav-link"><span>📋</span> Routines</a>
+                <a href="status.html" target="_blank" class="nav-link" style="color: #60a5fa;" title="View and share your Gym Member Status Portal & PWA App"><span>📲</span> Member PWA</a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link"><span>⚙️</span> Settings</a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;"><span>⭐</span> Upgrade</a>
+                    <a href="#" class="nav-link" onclick="logout()"><span>🚪</span> Logout</a>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header style="margin-bottom: 24px;">
+                <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">💰 Payments to verify</h1>
+                <p style="font-size: 14px; color: var(--text-muted);">When a member taps “I've paid”, it lands here. Check your UPI/bank, then confirm or reject.</p>
+            </header>
+
+            <div class="glass-panel" style="padding: 14px 18px; margin-bottom: 22px; border-radius: 12px; background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.2); font-size: 13px; color: #bbf7d0;">
+                💡 Members pay you <strong>directly via UPI</strong> — the app can't see that money move, so <strong>you're the verifier</strong>. Confirm only after you've seen the payment land in your UPI app.
+            </div>
+
+            <!-- Tabs -->
+            <div style="display: flex; gap: 22px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 18px;">
+                <button class="tab-btn active" id="tab-verify-btn" onclick="switchTab('verify')">⏳ To verify <span id="pending-badge" style="display:none; background:#fbbf24; color:#000; font-size:11px; font-weight:800; padding:1px 8px; border-radius:999px; margin-left:4px;"></span></button>
+                <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">📜 History</button>
+            </div>
+
+            <!-- VERIFY TAB -->
+            <div id="tab-verify">
+                <div id="verify-list"></div>
+                <div id="verify-empty" style="display:none; padding: 50px 20px; text-align:center; color: var(--text-muted);">
+                    <div style="font-size: 38px; margin-bottom: 10px;">✅</div>
+                    <div style="font-weight:700; color:#fff; margin-bottom:4px;">Nothing to verify</div>
+                    No pending payment claims right now. When a member taps “I've paid”, they'll appear here.
+                </div>
+            </div>
+
+            <!-- HISTORY TAB -->
+            <div id="tab-history" style="display:none;">
+                <div style="margin-bottom: 12px;">
+                    <select id="history-filter" onchange="loadHistory()" class="form-select" style="width:auto; background:rgba(0,0,0,0.2); color:#fff; border-color:rgba(255,255,255,0.1);">
+                        <option value="all">All resolved</option>
+                        <option value="confirmed">Confirmed only</option>
+                        <option value="rejected">Rejected only</option>
+                    </select>
+                </div>
+                <div id="history-list"></div>
+                <div id="history-empty" style="display:none; padding: 40px; text-align:center; color: var(--text-muted);">No resolved claims yet.</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) { window.location.href = 'login.html'; }
+        const AUTH = { 'Authorization': `Bearer ${token}` };
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        function rupee(n){ return '₹' + Number(n||0).toLocaleString(); }
+
+        async function loadPending() {
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/payments/claims?status=pending`, { headers: AUTH });
+                if (!r.ok) throw new Error('claims ' + r.status);
+                const data = await r.json();
+                const list = document.getElementById('verify-list');
+                const empty = document.getElementById('verify-empty');
+                const badge = document.getElementById('pending-badge');
+                const claims = data.claims || [];
+                badge.textContent = data.pending_count || 0;
+                badge.style.display = (data.pending_count > 0) ? 'inline-block' : 'none';
+                if (!claims.length) { list.innerHTML=''; empty.style.display='block'; return; }
+                empty.style.display='none';
+                list.innerHTML = claims.map(c => `
+                    <div class="claim-card" id="claim-${c.id}">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+                            <div>
+                                <div style="font-weight:700; color:#fff; font-size:16px;">${esc(c.member_name)}</div>
+                                <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">
+                                    ${c.member_phone?esc(c.member_phone)+' · ':''}${c.plan_name?esc(c.plan_name):'No plan'}
+                                </div>
+                                <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">Claimed ${esc(c.claimed_at||'')}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:22px; font-weight:800; color:#fff;">${rupee(c.amount)}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-top:14px;">
+                            <button class="btn-ok" onclick="resolve(${c.id}, 'confirm', '${esc(c.member_name).replace(/'/g,"")}', ${c.amount})">✓ Confirm &amp; extend</button>
+                            <button class="btn-no" onclick="resolve(${c.id}, 'reject', '${esc(c.member_name).replace(/'/g,"")}', ${c.amount})">✗ Not received</button>
+                        </div>
+                    </div>`).join('');
+            } catch (e) { showToast && showToast('Could not load claims', 'error'); }
+        }
+
+        async function resolve(id, action, name, amount) {
+            const isConfirm = action === 'confirm';
+            const msg = isConfirm
+                ? `Confirm you received ${rupee(amount)} from ${name}?\n\nThis extends their membership and marks them active.`
+                : `Mark ${name}'s payment as NOT received?\n\nThis reverts them to their real (unpaid) status.`;
+            if (!window.confirm(msg)) return;
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/payments/claims/${id}/${action}`, { method: 'POST', headers: AUTH });
+                if (!r.ok) throw new Error('resolve ' + r.status);
+                const data = await r.json();
+                showToast && showToast(isConfirm ? `Confirmed — membership extended${data.new_expiry?' to '+data.new_expiry:''}` : 'Marked as not received', 'success');
+                const card = document.getElementById('claim-'+id);
+                if (card) card.remove();
+                loadPending();
+            } catch (e) { showToast && showToast('Could not update — try again', 'error'); }
+        }
+
+        async function loadHistory() {
+            const status = document.getElementById('history-filter').value;
+            const qs = status === 'all' ? 'status=all' : `status=${status}`;
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/payments/claims?${qs}&limit=100`, { headers: AUTH });
+                if (!r.ok) throw new Error('history ' + r.status);
+                const data = await r.json();
+                // 'all' includes pending too — show only resolved ones in history.
+                const rows = (data.claims || []).filter(c => c.status !== 'pending');
+                const list = document.getElementById('history-list');
+                const empty = document.getElementById('history-empty');
+                if (!rows.length) { list.innerHTML=''; empty.style.display='block'; return; }
+                empty.style.display='none';
+                list.innerHTML = rows.map(c => {
+                    const chip = c.status === 'confirmed'
+                        ? '<span class="chip chip-confirmed">✓ Confirmed</span>'
+                        : '<span class="chip chip-rejected">✗ Not received</span>';
+                    return `<div class="claim-card" style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <div>
+                            <div style="font-weight:700; color:#fff;">${esc(c.member_name)} <span style="color:var(--text-muted); font-weight:400; font-size:13px;">${rupee(c.amount)} · ${c.plan_name?esc(c.plan_name):'No plan'}</span></div>
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Claimed ${esc(c.claimed_at||'')}${c.resolved_at?` · Resolved ${esc(c.resolved_at)}`:''}</div>
+                        </div>
+                        ${chip}
+                    </div>`;
+                }).join('');
+            } catch (e) { showToast && showToast('Could not load history', 'error'); }
+        }
+
+        function switchTab(which) {
+            const verify = which === 'verify';
+            document.getElementById('tab-verify').style.display = verify ? 'block' : 'none';
+            document.getElementById('tab-history').style.display = verify ? 'none' : 'block';
+            document.getElementById('tab-verify-btn').classList.toggle('active', verify);
+            document.getElementById('tab-history-btn').classList.toggle('active', !verify);
+            if (verify) loadPending(); else loadHistory();
+        }
+
+        loadPending();
+    </script>
+</body>
+</html>
