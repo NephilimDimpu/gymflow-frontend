@@ -12,6 +12,25 @@ const CONFIG = {
     FRONTEND_URL: 'https://gymexec.com'
 };
 
+// [LOCAL-DEV ONLY] When the page is served from localhost, you can point the app
+// at a local backend (test-backend-local.bat on :8000). Add ?api=local to the URL
+// to switch (it sticks for this browser); ?api=prod to switch back. This NEVER
+// runs in production — it requires a localhost/127.0.0.1 hostname.
+(function () {
+    try {
+        var h = location.hostname;
+        if (h !== 'localhost' && h !== '127.0.0.1') return;
+        var p = new URLSearchParams(location.search);
+        if (p.get('api') === 'local') localStorage.setItem('gx_local_api', 'http://localhost:8000');
+        if (p.get('api') === 'prod') localStorage.removeItem('gx_local_api');
+        var local = localStorage.getItem('gx_local_api');
+        if (local) {
+            CONFIG.API_BASE_URL = local;
+            console.info('[GymExec] Local dev: API → ' + local + '  (open with ?api=prod to revert)');
+        }
+    } catch (e) { /* ignore */ }
+})();
+
 // ============================================
 // [FORMAT-HELPERS] Locale-locked date + currency formatting
 //

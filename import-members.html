@@ -1,4 +1,4 @@
-﻿<!-- ============================================
+<!-- ============================================
      [SCREEN] Bulk Import Members
      Copy this to: frontend/import-members.html
      Import members via CSV or Screenshot OCR
@@ -140,10 +140,17 @@
             <div style="max-width: 800px;">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 30px 0 20px;">
             <h1 style="margin: 0;">Import Members</h1>
-            <button type="button" onclick="startImportTour()" class="btn btn-secondary"
-                    style="background: rgba(99,102,241,0.12); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); padding: 9px 16px; font-weight: 600; white-space: nowrap;">
-                📖 How import works
-            </button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="import-workspace.html" class="btn btn-secondary"
+                    style="background: rgba(34,197,94,0.1); color:#6ee7b7; border:1px solid rgba(34,197,94,0.25); padding: 9px 16px; font-weight: 600; white-space: nowrap; text-decoration:none; border-radius:8px; font-size:14px;"
+                    title="Full workspace for messy multi-sheet Excel files — edit, tag, group by year, push selectively">
+                    📊 Import Workspace
+                </a>
+                <button type="button" onclick="startImportTour()" class="btn btn-secondary"
+                        style="background: rgba(99,102,241,0.12); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); padding: 9px 16px; font-weight: 600; white-space: nowrap;">
+                    📖 How import works
+                </button>
+            </div>
         </div>
 
         <div class="tabs">
@@ -203,7 +210,7 @@
                             </span>
                         </label>
                         <label style="display:flex; align-items:flex-start; gap:10px; margin-top:12px; cursor:pointer;">
-                            <input type="checkbox" id="import-update-existing" style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
+                            <input type="checkbox" id="import-update-existing" checked style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
                             <span style="font-size:12.5px; color:#94a3b8; line-height:1.5;">
                                 <strong style="color:#cbd5e1;">Update members already in the system.</strong> If a phone matches someone already imported, refresh their plan instead of skipping them. Use this to re-import a sheet and backfill the plan onto existing members.
                             </span>
@@ -992,7 +999,11 @@
                         return;
                     }
                     showSheetPicker(names);
-                    loadSheet(names[0]);
+                    if (names.length > 1) {
+                        openPreScreen();
+                    } else {
+                        loadSheet(names[0]);
+                    }
                 } catch (err) {
                     document.getElementById('csv-errors').textContent = "Failed to parse Excel: " + err.message;
                 }
@@ -1095,6 +1106,33 @@
             // Pull in any edits the owner made directly in the preview table.
             syncPreviewEdits();
 
+            // Client-side intra-sheet deduplication (Phase 1 fix)
+            const dedupMap = new Map();
+            let mergedCount = 0;
+            csvDataToImport.forEach(row => {
+                const phoneDigit = normalizePhoneKey(row.phone);
+                if (phoneDigit) {
+                    const existing = dedupMap.get(phoneDigit);
+                    if (existing) {
+                        const ed1 = existing.end_date ? new Date(existing.end_date) : new Date(0);
+                        const ed2 = row.end_date ? new Date(row.end_date) : new Date(0);
+                        if (ed2 > ed1) {
+                            dedupMap.set(phoneDigit, row);
+                        }
+                        mergedCount++;
+                    } else {
+                        dedupMap.set(phoneDigit, row);
+                    }
+                } else {
+                    dedupMap.set(Math.random().toString(), row);
+                }
+            });
+            csvDataToImport = Array.from(dedupMap.values());
+            if (mergedCount > 0 && typeof showToast === 'function') {
+                showToast(`Merged ${mergedCount} duplicate rows (kept latest renewal)`, 'info');
+            }
+
+            if (csvDataToImport.length === 0) return;
             const firstRow = csvDataToImport[0];
             const requiredCols = ['name', 'phone'];
             const missingCols = requiredCols.filter(col => !(col in firstRow));

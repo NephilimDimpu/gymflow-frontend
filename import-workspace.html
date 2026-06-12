@@ -1,0 +1,1670 @@
+<!-- ============================================
+     [SCREEN] Import Workspace v1
+     Path: frontend/import-workspace.html
+     
+     A full-page, persistent staging area for messy
+     multi-sheet gym Excel files. Zero-filter ingest,
+     member timeline cards, tag system, selective push.
+     
+     STANDALONE — does NOT modify any existing file.
+     Uses the same /api/members/bulk endpoint.
+     ============================================ -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Workspace - GymExec</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* ══════════════════════════════════════════════
+           WORKSPACE STYLES
+           ══════════════════════════════════════════════ */
+
+        .ws-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 24px 0 16px;
+        }
+
+        .ws-header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .ws-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .ws-stat {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .ws-stat strong {
+            color: #e2e8f0;
+            font-size: 16px;
+        }
+
+        /* Upload area */
+        .ws-upload {
+            border: 2px dashed rgba(99, 102, 241, 0.4);
+            padding: 50px 30px;
+            text-align: center;
+            border-radius: 16px;
+            background: rgba(99, 102, 241, 0.04);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 20px 0;
+        }
+
+        .ws-upload:hover {
+            background: rgba(99, 102, 241, 0.08);
+            border-color: rgba(99, 102, 241, 0.6);
+        }
+
+        .ws-upload h2 {
+            margin: 0 0 8px;
+            color: #c7d2fe;
+        }
+
+        .ws-upload p {
+            color: #64748b;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .ws-resume-banner {
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .ws-resume-banner .info {
+            font-size: 14px;
+            color: #cbd5e1;
+        }
+
+        .ws-resume-banner .info strong {
+            color: #6ee7b7;
+        }
+
+        /* Toolbar */
+        .ws-toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+        }
+
+        .ws-toolbar input[type="text"],
+        .ws-toolbar select {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .ws-toolbar input[type="text"] {
+            min-width: 200px;
+        }
+
+        .ws-toolbar select {
+            min-width: 120px;
+        }
+
+        .ws-toolbar .spacer {
+            flex: 1;
+        }
+
+        .ws-toolbar .count {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Tag bar */
+        .ws-tag-bar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 14px;
+            padding: 10px 16px;
+            background: rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+        }
+
+        .ws-tag-bar .label {
+            font-size: 12px;
+            color: #64748b;
+            margin-right: 4px;
+        }
+
+        .tag-btn {
+            padding: 5px 12px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid;
+            transition: all 0.15s;
+        }
+
+        .tag-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .tag-btn.t-verified {
+            background: rgba(34, 197, 94, 0.12);
+            color: #6ee7b7;
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .tag-btn.t-needs-phone {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .tag-btn.t-skip {
+            background: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .tag-btn.t-ready {
+            background: rgba(99, 102, 241, 0.12);
+            color: #a5b4fc;
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .tag-btn.t-clear {
+            background: rgba(255, 255, 255, 0.04);
+            color: #94a3b8;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Member cards */
+        .member-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+
+        .member-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .member-card.tagged-verified {
+            border-left-color: #22c55e;
+        }
+
+        .member-card.tagged-needs-phone {
+            border-left-color: #f59e0b;
+        }
+
+        .member-card.tagged-skip {
+            border-left-color: #ef4444;
+            opacity: 0.55;
+        }
+
+        .member-card.tagged-ready {
+            border-left-color: #6366f1;
+        }
+
+        .member-card.is-pushed {
+            border-left-color: #22c55e;
+            background: rgba(34, 197, 94, 0.03);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            cursor: pointer;
+            flex-wrap: wrap;
+        }
+
+        .card-header .card-cb {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .card-header .card-name-input,
+        .card-header .card-phone-input {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+
+        .card-header .card-name-input {
+            font-weight: 700;
+            min-width: 160px;
+        }
+
+        .card-header .card-phone-input {
+            font-family: monospace;
+            color: #94a3b8;
+            min-width: 120px;
+        }
+
+        .card-header .card-name-input:hover,
+        .card-header .card-phone-input:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .card-header .card-name-input:focus,
+        .card-header .card-phone-input:focus {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(0, 0, 0, 0.2);
+            outline: none;
+        }
+
+        .card-header .card-name-input.edited,
+        .card-header .card-phone-input.edited {
+            background: rgba(245, 158, 11, 0.06);
+            border-color: rgba(245, 158, 11, 0.25);
+        }
+
+        .year-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.06);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .year-badge.yr-latest {
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .occ-count {
+            font-size: 11px;
+            color: #64748b;
+            padding: 2px 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+        }
+
+        .card-tag-indicator {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .pushed-badge {
+            font-size: 11px;
+            font-weight: 700;
+            color: #6ee7b7;
+            background: rgba(34, 197, 94, 0.1);
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        .card-expand-icon {
+            color: #475569;
+            font-size: 12px;
+            margin-left: auto;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .member-card.expanded .card-expand-icon {
+            transform: rotate(90deg);
+        }
+
+        /* Timeline (expanded) */
+        .card-timeline {
+            display: none;
+            padding: 0 16px 14px 46px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .member-card.expanded .card-timeline {
+            display: block;
+        }
+
+        .timeline-year {
+            margin: 10px 0;
+        }
+
+        .timeline-year .yr-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #c7d2fe;
+            margin-bottom: 4px;
+        }
+
+        .timeline-occ {
+            font-size: 12px;
+            color: #94a3b8;
+            padding: 4px 0 4px 14px;
+            border-left: 2px solid rgba(255, 255, 255, 0.06);
+            margin-left: 4px;
+            line-height: 1.5;
+        }
+
+        .timeline-occ .sheet-name {
+            color: #64748b;
+        }
+
+        .timeline-occ .remark {
+            color: #fbbf24;
+            font-style: italic;
+        }
+
+        .timeline-occ.is-latest {
+            border-left-color: #6366f1;
+            color: #e2e8f0;
+        }
+
+        .timeline-occ .latest-star {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        /* Push panel (sticky bottom) */
+        .ws-push-panel {
+            position: sticky;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 0 -30px -20px;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .ws-push-panel .push-btn {
+            background: #6366f1;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ws-push-panel .push-btn:hover {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        .ws-push-panel .push-info {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .ws-push-panel .clear-btn {
+            margin-left: auto;
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* Select-all bar */
+        .ws-select-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            background: rgba(99, 102, 241, 0.06);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #cbd5e1;
+        }
+
+        /* No-data state */
+        .ws-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .ws-empty h3 {
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        /* Tag picker dropdown */
+        .tag-picker {
+            position: absolute;
+            z-index: 50;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 6px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .tag-picker button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 7px 12px;
+            border: none;
+            background: transparent;
+            color: #cbd5e1;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .tag-picker button:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        /* Loading state */
+        .ws-loading {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+            font-size: 15px;
+        }
+
+        .ws-loading .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <script src="assets/theme.js"></script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <!-- Sidebar (same as all pages) -->
+        <aside class="sidebar">
+            <div class="sidebar-logo" onclick="window.location.href='dashboard.html'" style="cursor:pointer;"
+                title="Back to Dashboard">💪 GymExec</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
+                <a href="members.html" class="nav-link active"><span>👥</span> Members</a>
+                <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
+                <a href="staff.html" class="nav-link"><span>🛡️</span> Staff</a>
+                <a href="branches.html" class="nav-link"><span>📍</span> Branches</a>
+                <a href="attendance.html" class="nav-link"><span>🕘</span> Attendance</a>
+                <a href="routines.html" class="nav-link"><span>📋</span> Routines</a>
+                <a href="status.html" target="_blank" class="nav-link" style="color:#60a5fa;"
+                    title="View and share your Gym Member Status Portal & PWA App">
+                    <span>📲</span> Member PWA
+                </a>
+                <div style="margin-top:40px;border-top:1px solid rgba(255,255,255,0.05);padding-top:20px;">
+                    <a href="settings.html" class="nav-link"><span>⚙️</span> Settings</a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color:#fbbf24;">
+                        <span>⭐</span> Upgrade
+                    </a>
+                    <a href="#" class="nav-link" onclick="logout()"><span>🚪</span> Logout</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" style="padding-bottom: 80px;">
+
+            <!-- ═══ UPLOAD VIEW ═══ -->
+            <div id="upload-view">
+                <div class="ws-header">
+                    <div>
+                        <h1>📊 Import Workspace</h1>
+                        <p style="color:#94a3b8;font-size:14px;margin:4px 0 0;">
+                            Load your entire Excel file, review every member's history across years, edit and tag,
+                            then push to Members when ready.
+                        </p>
+                    </div>
+                    <a href="import-members.html" class="btn btn-secondary"
+                        style="background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);padding:9px 16px;font-weight:600;text-decoration:none;">
+                        ← Quick Import
+                    </a>
+                </div>
+
+                <div class="ws-upload" onclick="document.getElementById('ws-file-input').click()"
+                    id="ws-upload-area">
+                    <h2>📂 Drop your Excel or CSV file here</h2>
+                    <p>.xlsx, .xls, .csv — all sheets loaded, nothing filtered out</p>
+                </div>
+                <input type="file" id="ws-file-input" accept=".csv,.xlsx,.xls" style="display:none;"
+                    onchange="handleFileUpload(event)">
+
+                <div id="resume-banner" style="display:none;"></div>
+            </div>
+
+            <!-- ═══ WORKSPACE VIEW ═══ -->
+            <div id="workspace-view" style="display:none;">
+                <!-- Header -->
+                <div class="ws-header">
+                    <div>
+                        <h1 style="display:flex;align-items:center;gap:10px;">
+                            📊 Import Workspace
+                            <span id="ws-filename"
+                                style="font-size:14px;font-weight:400;color:#64748b;"></span>
+                        </h1>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button type="button" onclick="uploadNewFile()"
+                            style="background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+                            📂 New File
+                        </button>
+                        <a href="import-members.html"
+                            style="background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;display:flex;align-items:center;">
+                            ← Quick Import
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="ws-stats" id="ws-stats"></div>
+
+                <!-- Toolbar -->
+                <div class="ws-toolbar" style="margin-top:14px;">
+                    <input type="text" id="ws-search" placeholder="Search name or phone…"
+                        oninput="debouncedRender()">
+                    <select id="ws-filter-year" onchange="renderMembers()">
+                        <option value="">All years</option>
+                    </select>
+                    <select id="ws-filter-sheet" onchange="renderMembers()">
+                        <option value="">All sheets</option>
+                    </select>
+                    <select id="ws-filter-tag" onchange="renderMembers()">
+                        <option value="">All tags</option>
+                        <option value="verified">✓ Verified</option>
+                        <option value="needs-phone">📱 Needs Phone</option>
+                        <option value="skip">✕ Skip</option>
+                        <option value="ready">🚀 Ready</option>
+                        <option value="none">No tag</option>
+                        <option value="pushed">✓ Pushed</option>
+                        <option value="not-pushed">Not pushed</option>
+                    </select>
+                    <select id="ws-sort" onchange="renderMembers()">
+                        <option value="name-asc">Name A–Z</option>
+                        <option value="name-desc">Name Z–A</option>
+                        <option value="occ-desc">Most occurrences</option>
+                        <option value="latest-desc">Latest first</option>
+                        <option value="latest-asc">Oldest first</option>
+                    </select>
+                    <span class="spacer"></span>
+                    <span class="count" id="ws-count"></span>
+                </div>
+
+                <!-- Tag bar (bulk actions) -->
+                <div class="ws-tag-bar">
+                    <span class="label">Tag selected:</span>
+                    <button type="button" class="tag-btn t-verified" onclick="bulkTag('verified')">✓ Verified</button>
+                    <button type="button" class="tag-btn t-needs-phone" onclick="bulkTag('needs-phone')">📱 Needs Phone</button>
+                    <button type="button" class="tag-btn t-skip" onclick="bulkTag('skip')">✕ Skip</button>
+                    <button type="button" class="tag-btn t-ready" onclick="bulkTag('ready')">🚀 Ready</button>
+                    <button type="button" class="tag-btn t-clear" onclick="bulkTag(null)">✖ Clear tag</button>
+                    <span class="spacer"></span>
+                    <label style="font-size:12px;color:#64748b;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                        <input type="checkbox" id="ws-select-all" onchange="toggleSelectAll(this.checked)"
+                            style="width:14px;height:14px;cursor:pointer;">
+                        Select all visible
+                    </label>
+                </div>
+
+                <!-- Member list -->
+                <div id="ws-member-list"></div>
+
+                <!-- Push panel (sticky bottom) -->
+                <div class="ws-push-panel">
+                    <button type="button" class="push-btn" onclick="pushToMembers()" id="ws-push-btn">
+                        📤 Push to Members
+                    </button>
+                    <span class="push-info" id="ws-push-info"></span>
+                    <button type="button" class="clear-btn" onclick="clearWorkspace()">
+                        🗑️ Clear Workspace
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         JAVASCRIPT — organized in clearly separated sections
+         ══════════════════════════════════════════════════════════ -->
+    <script>
+
+        // ══════════════════════════════════════════════
+        // SECTION 1: AUTH & CONFIG
+        // ══════════════════════════════════════════════
+        const token = localStorage.getItem('auth_token');
+        if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
+
+        // ══════════════════════════════════════════════
+        // SECTION 2: CONSTANTS & TAG DEFINITIONS
+        // ══════════════════════════════════════════════
+
+        const TAGS = {
+            'verified':    { label: '✓ Verified',     cls: 'tagged-verified',    bg: 'rgba(34,197,94,0.12)',  color: '#6ee7b7' },
+            'needs-phone': { label: '📱 Needs Phone', cls: 'tagged-needs-phone', bg: 'rgba(245,158,11,0.12)', color: '#fbbf24' },
+            'skip':        { label: '✕ Skip',         cls: 'tagged-skip',        bg: 'rgba(239,68,68,0.12)',  color: '#fca5a5' },
+            'ready':       { label: '🚀 Ready',       cls: 'tagged-ready',       bg: 'rgba(99,102,241,0.12)', color: '#a5b4fc' },
+        };
+
+        // Same header aliases from import-members.html — keeps column detection consistent
+        const HEADER_ALIASES = {
+            'name': 'name', 'full name': 'name', 'member name': 'name',
+            'membername': 'name', 'fullname': 'name', 'customer name': 'name',
+            'client name': 'name', 'member': 'name',
+            'phone': 'phone', 'mobile': 'phone', 'mobile no': 'phone',
+            'mobile number': 'phone', 'phone no': 'phone', 'phone number': 'phone',
+            'contact': 'phone', 'contact no': 'phone', 'contact number': 'phone',
+            'number': 'phone', 'whatsapp': 'phone', 'whatsapp no': 'phone',
+            'email': 'email', 'email id': 'email', 'e-mail': 'email',
+            'email address': 'email', 'mail': 'email',
+            'plan_name': 'plan_name', 'plan': 'plan_name', 'plan name': 'plan_name',
+            'membership': 'plan_name', 'membership plan': 'plan_name',
+            'package': 'plan_name', 'plan_id': 'plan_id',
+            'payment_received': 'payment_received', 'paid': 'payment_received',
+            'payment': 'payment_received', 'payment received': 'payment_received',
+            'start_date': 'start_date', 'start date': 'start_date',
+            'join date': 'start_date', 'joining date': 'start_date',
+            'joined': 'start_date', 'doj': 'start_date',
+            'end_date': 'end_date', 'end date': 'end_date',
+            'expiry': 'end_date', 'expiry date': 'end_date', 'expiry_date': 'end_date',
+            'expires': 'end_date', 'expires on': 'end_date',
+            'valid till': 'end_date', 'valid until': 'end_date', 'valid upto': 'end_date',
+            'end': 'end_date', 'due date': 'end_date',
+            'remark': 'remark', 'remarks': 'remark', 'notes': 'remark', 'note': 'remark',
+            'comment': 'remark', 'comments': 'remark',
+        };
+
+        const PAGE_SIZE = 200; // render cap per page for performance
+
+        // ══════════════════════════════════════════════
+        // SECTION 3: STATE
+        // ══════════════════════════════════════════════
+
+        let state = {
+            id: 'current',
+            fileName: '',
+            createdAt: '',
+            lastSaved: '',
+            rawSheets: [],     // [{ name, rows: [{ name, phone, ... , _allCols: {} }] }]
+            members: [],       // grouped member entries
+            plans: [],         // gym's available plans
+            expandedCards: new Set(),
+        };
+
+        // ══════════════════════════════════════════════
+        // SECTION 4: INDEXEDDB PERSISTENCE
+        // ══════════════════════════════════════════════
+
+        const DB_NAME = 'gymexec_workspace';
+        const DB_VER = 1;
+        const STORE = 'workspaces';
+
+        function idbOpen() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VER);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE)) {
+                        db.createObjectStore(STORE, { keyPath: 'id' });
+                    }
+                };
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function idbSave(data) {
+            try {
+                const db = await idbOpen();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE, 'readwrite');
+                    // Only persist serializable data (not Sets)
+                    const toSave = Object.assign({}, data, {
+                        expandedCards: undefined, // don't persist UI state
+                        lastSaved: new Date().toISOString(),
+                    });
+                    tx.objectStore(STORE).put(toSave);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = (e) => reject(e.target.error);
+                });
+            } catch (err) {
+                console.warn('[IDB] Save failed (in-memory mode):', err);
+            }
+        }
+
+        async function idbLoad(id) {
+            try {
+                const db = await idbOpen();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE, 'readonly');
+                    const req = tx.objectStore(STORE).get(id);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = (e) => reject(e.target.error);
+                });
+            } catch (err) {
+                console.warn('[IDB] Load failed:', err);
+                return null;
+            }
+        }
+
+        async function idbClear() {
+            try {
+                const db = await idbOpen();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE, 'readwrite');
+                    tx.objectStore(STORE).clear();
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = (e) => reject(e.target.error);
+                });
+            } catch (err) {
+                console.warn('[IDB] Clear failed:', err);
+            }
+        }
+
+        // Debounced auto-save (1.5s after last change)
+        let _saveTimer = null;
+        function scheduleSave() {
+            if (_saveTimer) clearTimeout(_saveTimer);
+            _saveTimer = setTimeout(() => idbSave(state), 1500);
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 5: UTILITIES
+        // ══════════════════════════════════════════════
+
+        function escHtml(v) {
+            const s = (v === undefined || v === null) ? '' : String(v);
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function escAttr(v) { return escHtml(v).replace(/"/g, '&quot;'); }
+
+        function canonicalHeader(raw) {
+            const key = String(raw || '').trim().toLowerCase();
+            return HEADER_ALIASES[key] || key;
+        }
+
+        function normalizePhoneKey(p) {
+            let d = String(p || '').replace(/\D/g, '');
+            if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+            if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+            return d;
+        }
+
+        function normalizeDate(raw) {
+            if (!raw) return '';
+            const s = String(raw).trim();
+            if (!s) return '';
+            let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+            m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/);
+            if (m) {
+                let [, d, mo, y] = m;
+                if (y.length === 2) y = '20' + y;
+                d = d.padStart(2, '0'); mo = mo.padStart(2, '0');
+                if (+mo >= 1 && +mo <= 12 && +d >= 1 && +d <= 31) return `${y}-${mo}-${d}`;
+            }
+            return '';
+        }
+
+        function extractYear(occ) {
+            const ed = normalizeDate(occ.end_date);
+            const sd = normalizeDate(occ.start_date);
+            return (ed || sd || '').slice(0, 4) || '';
+        }
+
+        // A grouped entry that's really a sheet sub-heading ("MONTH OF JUNE 2025"),
+        // not a member: text in the name, but no phone and no dates anywhere. We
+        // still INGEST it (zero-filter visibility) but exclude it from push.
+        function looksLikeHeading(entry) {
+            const name = String(entry.name || '').trim();
+            if (!name) return false;
+            if (normalizePhoneKey(entry.phone)) return false;
+            const hasDate = entry.occurrences && entry.occurrences.some(o => normalizeDate(o.start_date) || normalizeDate(o.end_date));
+            if (hasDate) return false;
+            const lower = name.toLowerCase();
+            if (/\b(19|20)\d{2}\b/.test(name)) return true;
+            if (/^(month|members?|renewals?|new admission|list|total)\b/i.test(lower)) return true;
+            return false;
+        }
+
+        function formatINR(n) {
+            if (!n && n !== 0) return '';
+            return '₹' + Number(n).toLocaleString('en-IN');
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 6: EXCEL PARSING (zero-filter)
+        // ══════════════════════════════════════════════
+
+        function detectHeaderRow(rows) {
+            const KNOWN = Object.values(HEADER_ALIASES);
+            let bestIdx = 0, bestScore = -1;
+            const limit = Math.min(rows.length, 15);
+            for (let i = 0; i < limit; i++) {
+                const cells = (rows[i] || []).map(c => canonicalHeader(c));
+                const hasName = cells.includes('name');
+                const hasPhone = cells.includes('phone');
+                const recognized = cells.filter(c => KNOWN.includes(c)).length;
+                const score = recognized + (hasName ? 3 : 0) + (hasPhone ? 2 : 0);
+                if (score > bestScore) { bestScore = score; bestIdx = i; }
+            }
+            return bestIdx;
+        }
+
+        function buildRowsFromSheet(sheet) {
+            const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false, defval: '', cellDates: true });
+            if (!raw.length) return [];
+            const headerIdx = detectHeaderRow(raw);
+            const rawHeaders = raw[headerIdx] || [];
+            const canonHeaders = rawHeaders.map(h => canonicalHeader(h));
+
+            return raw.slice(headerIdx + 1).map(r => {
+                const obj = {};
+                const allCols = {}; // preserve ALL original columns
+                canonHeaders.forEach((ch, i) => {
+                    let val = r[i];
+                    if (val instanceof Date && !isNaN(val)) val = val.toISOString().slice(0, 10);
+                    val = (val === undefined || val === null) ? '' : String(val).trim();
+                    // Canonical columns
+                    if (ch && (obj[ch] === undefined || obj[ch] === '')) obj[ch] = val;
+                    // ALL columns (using original header name for display)
+                    const origName = String(rawHeaders[i] || `col_${i}`).trim();
+                    if (origName) allCols[origName] = val;
+                });
+                obj._allCols = allCols;
+                return obj;
+            }).filter(obj => {
+                // Only filter truly empty rows (every cell is blank)
+                const vals = Object.keys(obj).filter(k => k !== '_allCols');
+                return vals.some(k => obj[k] !== '');
+            });
+            // NOTE: NO looksLikeSectionTitle filtering — zero-filter ingest
+        }
+
+        function parseFile(file) {
+            return new Promise((resolve, reject) => {
+                const name = (file.name || '').toLowerCase();
+                const isExcel = name.endsWith('.xlsx') || name.endsWith('.xls');
+
+                if (isExcel) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const wb = XLSX.read(data, { type: 'array', cellDates: true });
+                            const sheets = (wb.SheetNames || []).map(sn => ({
+                                name: sn,
+                                rows: buildRowsFromSheet(wb.Sheets[sn])
+                            }));
+                            resolve(sheets);
+                        } catch (err) {
+                            reject(new Error('Failed to parse Excel: ' + err.message));
+                        }
+                    };
+                    reader.onerror = () => reject(new Error('Could not read the file.'));
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    // CSV — use simple parsing since PapaParse isn't loaded here
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const text = e.target.result;
+                            const lines = text.split(/\r?\n/).filter(l => l.trim());
+                            if (lines.length < 2) { resolve([{ name: file.name, rows: [] }]); return; }
+                            const hdr = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                            const canonHdr = hdr.map(h => canonicalHeader(h));
+                            const rows = [];
+                            for (let i = 1; i < lines.length; i++) {
+                                // Basic CSV split (handles simple quoted fields)
+                                const cells = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
+                                const obj = {};
+                                const allCols = {};
+                                canonHdr.forEach((ch, j) => {
+                                    let v = (cells[j] || '').trim().replace(/^"|"$/g, '');
+                                    if (ch && (obj[ch] === undefined || obj[ch] === '')) obj[ch] = v;
+                                    allCols[hdr[j] || `col_${j}`] = v;
+                                });
+                                obj._allCols = allCols;
+                                if (Object.keys(obj).filter(k => k !== '_allCols').some(k => obj[k])) rows.push(obj);
+                            }
+                            resolve([{ name: file.name, rows }]);
+                        } catch (err) {
+                            reject(new Error('Failed to parse CSV: ' + err.message));
+                        }
+                    };
+                    reader.onerror = () => reject(new Error('Could not read the file.'));
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 7: MEMBER GROUPING & TIMELINE
+        // ══════════════════════════════════════════════
+
+        function groupMembers(rawSheets) {
+            const map = new Map();
+            let totalRows = 0;
+
+            rawSheets.forEach(sheet => {
+                sheet.rows.forEach(row => {
+                    totalRows++;
+                    const occ = {
+                        sheet: sheet.name,
+                        name: String(row.name || '').trim(),
+                        phone: String(row.phone || '').trim(),
+                        email: String(row.email || '').trim(),
+                        start_date: row.start_date || '',
+                        end_date: row.end_date || '',
+                        plan_name: row.plan_name || '',
+                        remark: row.remark || '',
+                        allCols: row._allCols || {},
+                    };
+
+                    // Grouping key: phone (normalized) > name (lowered) > unique per row
+                    const phoneKey = normalizePhoneKey(occ.phone);
+                    let key;
+                    if (phoneKey) {
+                        key = 'p:' + phoneKey;
+                    } else if (occ.name) {
+                        key = 'n:' + occ.name.toLowerCase();
+                    } else {
+                        key = 'r:' + totalRows; // ungroupable — unique entry
+                    }
+
+                    let entry = map.get(key);
+                    if (!entry) {
+                        entry = {
+                            key,
+                            name: '',
+                            phone: '',
+                            email: '',
+                            occurrences: [],
+                            years: [],
+                            tag: null,
+                            pushed: false,
+                            include: true,
+                            edits: {},
+                        };
+                        map.set(key, entry);
+                    }
+
+                    entry.occurrences.push(occ);
+                    if (!entry.name && occ.name) entry.name = occ.name;
+                    if (!entry.phone && occ.phone) entry.phone = occ.phone;
+                    if (!entry.email && occ.email) entry.email = occ.email;
+                });
+            });
+
+            // Sort occurrences by end_date desc, compute years
+            const entries = [...map.values()];
+            entries.forEach(e => {
+                e.occurrences.sort((a, b) => {
+                    const ea = normalizeDate(a.end_date) || '';
+                    const eb = normalizeDate(b.end_date) || '';
+                    return eb > ea ? 1 : (eb < ea ? -1 : 0);
+                });
+                const yrs = new Set();
+                e.occurrences.forEach(o => {
+                    const y = extractYear(o);
+                    if (y) yrs.add(y);
+                });
+                e.years = [...yrs].sort();
+                // Default-exclude section-heading rows so junk never gets pushed
+                // (still shown in the list — owner can re-tick if it's a real person).
+                if (looksLikeHeading(e)) { e.isHeading = true; e.include = false; }
+            });
+
+            return entries;
+        }
+
+        // Merge saved state (tags, edits, pushed) onto freshly grouped members
+        function mergeState(newMembers, savedMembers) {
+            if (!savedMembers || !savedMembers.length) return newMembers;
+            const savedMap = new Map();
+            savedMembers.forEach(m => savedMap.set(m.key, m));
+            newMembers.forEach(m => {
+                const saved = savedMap.get(m.key);
+                if (saved) {
+                    m.tag = saved.tag;
+                    m.pushed = saved.pushed;
+                    m.include = saved.include;
+                    if (saved.edits) m.edits = saved.edits;
+                    if (saved.edits && saved.edits.name) m.name = saved.edits.name.to;
+                    if (saved.edits && saved.edits.phone) m.phone = saved.edits.phone.to;
+                }
+            });
+            return newMembers;
+        }
+
+        function getLatestOcc(member) {
+            return member.occurrences[0] || {};
+        }
+
+        function getLatestEnd(member) {
+            return normalizeDate(getLatestOcc(member).end_date) || '';
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 8: RENDERING
+        // ══════════════════════════════════════════════
+
+        let _renderTimer = null;
+        function debouncedRender() {
+            if (_renderTimer) clearTimeout(_renderTimer);
+            _renderTimer = setTimeout(renderMembers, 250);
+        }
+
+        function renderStats() {
+            const total = state.members.length;
+            const pushed = state.members.filter(m => m.pushed).length;
+            const tagged = state.members.filter(m => m.tag).length;
+            const noPhone = state.members.filter(m => !m.phone || !m.phone.trim()).length;
+            const sheetsCount = state.rawSheets.length;
+            const totalRows = state.rawSheets.reduce((n, s) => n + s.rows.length, 0);
+            const allYears = [...new Set(state.members.flatMap(m => m.years))].sort();
+
+            document.getElementById('ws-stats').innerHTML = [
+                `<div class="ws-stat"><strong>${total}</strong> unique members</div>`,
+                `<div class="ws-stat"><strong>${totalRows}</strong> rows from <strong>${sheetsCount}</strong> sheet(s)</div>`,
+                allYears.length ? `<div class="ws-stat">Years: <strong>${allYears.join(', ')}</strong></div>` : '',
+                pushed ? `<div class="ws-stat" style="border-color:rgba(34,197,94,0.3);"><strong>${pushed}</strong> pushed</div>` : '',
+                noPhone ? `<div class="ws-stat" style="border-color:rgba(245,158,11,0.3);"><strong>${noPhone}</strong> missing phone</div>` : '',
+            ].filter(Boolean).join('');
+
+            // Populate filter dropdowns
+            const yearSel = document.getElementById('ws-filter-year');
+            const currentYear = yearSel.value;
+            yearSel.innerHTML = '<option value="">All years</option>' +
+                allYears.map(y => `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`).join('');
+
+            const sheetSel = document.getElementById('ws-filter-sheet');
+            const currentSheet = sheetSel.value;
+            sheetSel.innerHTML = '<option value="">All sheets</option>' +
+                state.rawSheets.map(s => `<option value="${escAttr(s.name)}" ${s.name === currentSheet ? 'selected' : ''}>${escHtml(s.name)} (${s.rows.length})</option>`).join('');
+
+            document.getElementById('ws-filename').textContent = state.fileName ? `— ${state.fileName}` : '';
+        }
+
+        function getFilteredMembers() {
+            let list = state.members;
+            const q = (document.getElementById('ws-search').value || '').toLowerCase().trim();
+            const year = document.getElementById('ws-filter-year').value;
+            const sheet = document.getElementById('ws-filter-sheet').value;
+            const tag = document.getElementById('ws-filter-tag').value;
+            const sort = document.getElementById('ws-sort').value;
+
+            if (q) {
+                list = list.filter(m =>
+                    (m.name || '').toLowerCase().includes(q) ||
+                    (m.phone || '').includes(q) ||
+                    (m.email || '').toLowerCase().includes(q) ||
+                    m.occurrences.some(o => (o.remark || '').toLowerCase().includes(q))
+                );
+            }
+            if (year) list = list.filter(m => m.years.includes(year));
+            if (sheet) list = list.filter(m => m.occurrences.some(o => o.sheet === sheet));
+            if (tag === 'pushed') list = list.filter(m => m.pushed);
+            else if (tag === 'not-pushed') list = list.filter(m => !m.pushed);
+            else if (tag === 'none') list = list.filter(m => !m.tag);
+            else if (tag) list = list.filter(m => m.tag === tag);
+
+            // Sort
+            list = [...list];
+            if (sort === 'name-asc') list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            else if (sort === 'name-desc') list.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+            else if (sort === 'occ-desc') list.sort((a, b) => b.occurrences.length - a.occurrences.length);
+            else if (sort === 'latest-desc') list.sort((a, b) => getLatestEnd(b) > getLatestEnd(a) ? 1 : -1);
+            else if (sort === 'latest-asc') list.sort((a, b) => getLatestEnd(a) > getLatestEnd(b) ? 1 : -1);
+
+            return list;
+        }
+
+        function renderMembers() {
+            const filtered = getFilteredMembers();
+            const shown = filtered.slice(0, PAGE_SIZE);
+            const container = document.getElementById('ws-member-list');
+
+            if (!shown.length) {
+                container.innerHTML = `<div class="ws-empty"><h3>No members match your filters</h3><p>Try adjusting your search or filters above.</p></div>`;
+                document.getElementById('ws-count').textContent = `0 of ${state.members.length}`;
+                updatePushInfo();
+                return;
+            }
+
+            const html = shown.map(m => {
+                const idx = state.members.indexOf(m);
+                const isExpanded = state.expandedCards.has(idx);
+                const tagDef = m.tag ? TAGS[m.tag] : null;
+                const hasEdits = m.edits && (m.edits.name || m.edits.phone);
+                const missingPhone = !m.phone || !m.phone.trim();
+                const latestYr = m.years.length ? m.years[m.years.length - 1] : '';
+
+                const yearBadges = m.years.map(y =>
+                    `<span class="year-badge ${y === latestYr ? 'yr-latest' : ''}">${y}</span>`
+                ).join(' ');
+
+                const tagHtml = tagDef
+                    ? `<span class="card-tag-indicator" style="background:${tagDef.bg};color:${tagDef.color};" onclick="event.stopPropagation();showTagPicker(event,${idx})">${tagDef.label}</span>`
+                    : `<span class="card-tag-indicator" style="background:rgba(255,255,255,0.04);color:#64748b;" onclick="event.stopPropagation();showTagPicker(event,${idx})">+ tag</span>`;
+
+                const pushedHtml = m.pushed ? '<span class="pushed-badge">✓ Pushed</span>' : '';
+
+                const occCount = m.occurrences.length > 1
+                    ? `<span class="occ-count">×${m.occurrences.length}</span>` : '';
+
+                const headingHtml = m.isHeading
+                    ? `<span title="Looks like a section heading from your sheet, not a member — excluded from push by default. Tick the box if it's actually a person." style="background:rgba(245,158,11,0.18);color:#fbbf24;font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;">⚠️ heading?</span>`
+                    : '';
+
+                // Timeline (expanded)
+                let timelineHtml = '';
+                if (isExpanded) {
+                    const byYear = {};
+                    m.occurrences.forEach((o, oi) => {
+                        const yr = extractYear(o) || 'Unknown';
+                        if (!byYear[yr]) byYear[yr] = [];
+                        byYear[yr].push({ occ: o, isLatest: oi === 0 });
+                    });
+                    const yearKeys = Object.keys(byYear).sort();
+                    timelineHtml = yearKeys.map(yr => {
+                        const occs = byYear[yr].map(({ occ: o, isLatest }) => {
+                            const sd = normalizeDate(o.start_date) || '—';
+                            const ed = normalizeDate(o.end_date) || '—';
+                            const remarkHtml = o.remark ? ` · <span class="remark">"${escHtml(o.remark)}"</span>` : '';
+                            const latestMark = isLatest ? ' <span class="latest-star">★ Latest</span>' : '';
+                            // Show all extra columns
+                            const extraCols = Object.entries(o.allCols || {})
+                                .filter(([k]) => !['NAME', 'name', 'PHONE', 'phone', 'NUMBER', 'number',
+                                    'EMAIL', 'email', 'START DATE', 'start_date', 'END DATE', 'end_date',
+                                    'REMARK', 'remark', 'REMARKS', 'remarks'].includes(k))
+                                .filter(([, v]) => v && String(v).trim())
+                                .map(([k, v]) => `<span style="color:#475569;">${escHtml(k)}:</span> ${escHtml(v)}`)
+                                .join(' · ');
+                            const extraHtml = extraCols ? `<div style="font-size:11px;color:#475569;margin-top:2px;">${extraCols}</div>` : '';
+
+                            return `<div class="timeline-occ ${isLatest ? 'is-latest' : ''}">
+                                <span class="sheet-name">[${escHtml(o.sheet)}]</span> ${sd} → ${ed}${remarkHtml}${latestMark}
+                                ${extraHtml}
+                            </div>`;
+                        }).join('');
+                        return `<div class="timeline-year">
+                            <div class="yr-label">${yr}</div>
+                            ${occs}
+                        </div>`;
+                    }).join('');
+                }
+
+                const tagCls = tagDef ? tagDef.cls : '';
+                const pushedCls = m.pushed ? 'is-pushed' : '';
+                const expandedCls = isExpanded ? 'expanded' : '';
+
+                return `<div class="member-card ${tagCls} ${pushedCls} ${expandedCls}" data-idx="${idx}">
+                    <div class="card-header" onclick="toggleCard(${idx})">
+                        <input type="checkbox" class="card-cb" ${m.include ? 'checked' : ''}
+                            onclick="event.stopPropagation();toggleInclude(${idx},this.checked)">
+                        <input type="text" class="card-name-input ${m.edits && m.edits.name ? 'edited' : ''}"
+                            value="${escAttr(m.name)}" onclick="event.stopPropagation();"
+                            onchange="editField(${idx},'name',this.value)"
+                            title="${m.edits && m.edits.name ? 'Edited (was: ' + escAttr(m.edits.name.from) + ')' : 'Click to edit name'}">
+                        <input type="text" class="card-phone-input ${m.edits && m.edits.phone ? 'edited' : ''}"
+                            value="${escAttr(m.phone)}" inputmode="numeric" onclick="event.stopPropagation();"
+                            onchange="editField(${idx},'phone',this.value)"
+                            title="${m.edits && m.edits.phone ? 'Edited (was: ' + escAttr(m.edits.phone.from) + ')' : 'Click to edit phone'}">
+                        ${yearBadges}
+                        ${occCount}
+                        ${headingHtml}
+                        ${tagHtml}
+                        ${pushedHtml}
+                        <span class="card-expand-icon">▶</span>
+                    </div>
+                    ${isExpanded ? `<div class="card-timeline">${timelineHtml}</div>` : ''}
+                </div>`;
+            }).join('');
+
+            container.innerHTML = html;
+
+            const countText = filtered.length <= PAGE_SIZE
+                ? `${filtered.length} of ${state.members.length}`
+                : `Showing ${shown.length} of ${filtered.length} (${state.members.length} total)`;
+            document.getElementById('ws-count').textContent = countText;
+
+            updatePushInfo();
+        }
+
+        function updatePushInfo() {
+            const selected = state.members.filter(m => m.include && m.tag !== 'skip');
+            const pushed = selected.filter(m => m.pushed).length;
+            const notPushed = selected.length - pushed;
+            document.getElementById('ws-push-btn').textContent = `📤 Push ${selected.length} member(s) to Members`;
+            document.getElementById('ws-push-info').textContent =
+                `${selected.length} selected · ${notPushed} new · ${pushed} will update`;
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 9: CARD INTERACTIONS
+        // ══════════════════════════════════════════════
+
+        function toggleCard(idx) {
+            if (state.expandedCards.has(idx)) {
+                state.expandedCards.delete(idx);
+            } else {
+                state.expandedCards.add(idx);
+            }
+            renderMembers();
+        }
+
+        function toggleInclude(idx, checked) {
+            const m = state.members[idx];
+            if (m) { m.include = checked; scheduleSave(); updatePushInfo(); }
+        }
+
+        function editField(idx, field, value) {
+            const m = state.members[idx];
+            if (!m) return;
+            const original = m.edits && m.edits[field] ? m.edits[field].from : m[field];
+            if (!m.edits) m.edits = {};
+            if (value !== original) {
+                m.edits[field] = { from: original, to: value, at: new Date().toISOString() };
+            } else {
+                delete m.edits[field];
+            }
+            m[field] = value;
+            scheduleSave();
+        }
+
+        function toggleSelectAll(checked) {
+            const filtered = getFilteredMembers();
+            filtered.forEach(m => { m.include = checked; });
+            scheduleSave();
+            renderMembers();
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 10: TAG SYSTEM
+        // ══════════════════════════════════════════════
+
+        function setTag(idx, tag) {
+            const m = state.members[idx];
+            if (m) { m.tag = tag; scheduleSave(); renderMembers(); }
+            closeTagPicker();
+        }
+
+        function bulkTag(tag) {
+            const filtered = getFilteredMembers();
+            let count = 0;
+            filtered.forEach(m => {
+                if (m.include) { m.tag = tag; count++; }
+            });
+            if (count === 0) {
+                if (typeof showToast === 'function') showToast('Select some members first (checkboxes).', 'info');
+                return;
+            }
+            scheduleSave();
+            renderMembers();
+            if (typeof showToast === 'function') showToast(`Tagged ${count} member(s).`, 'success');
+        }
+
+        let _tagPicker = null;
+        function showTagPicker(event, idx) {
+            closeTagPicker();
+            const picker = document.createElement('div');
+            picker.className = 'tag-picker';
+            picker.style.left = event.pageX + 'px';
+            picker.style.top = event.pageY + 'px';
+            picker.innerHTML = Object.entries(TAGS).map(([k, v]) =>
+                `<button onclick="setTag(${idx},'${k}')" style="color:${v.color};">${v.label}</button>`
+            ).join('') + `<button onclick="setTag(${idx},null)" style="color:#94a3b8;">✖ Clear</button>`;
+            document.body.appendChild(picker);
+            _tagPicker = picker;
+
+            // Close on outside click (next tick)
+            setTimeout(() => {
+                document.addEventListener('click', closeTagPicker, { once: true });
+            }, 10);
+        }
+
+        function closeTagPicker() {
+            if (_tagPicker) { _tagPicker.remove(); _tagPicker = null; }
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 11: PUSH TO MEMBERS
+        // ══════════════════════════════════════════════
+
+        async function pushToMembers() {
+            const toPush = state.members.filter(m => m.include && m.tag !== 'skip');
+            if (toPush.length === 0) {
+                if (typeof showToast === 'function') showToast('No members selected to push.', 'error');
+                return;
+            }
+
+            const alreadyPushed = toPush.filter(m => m.pushed).length;
+            const msg = `Push ${toPush.length} member(s) to your Members page?\n\n` +
+                `• New people are added once.\n` +
+                `• People already in GymExec are UPDATED (no duplicates).\n` +
+                (alreadyPushed ? `• ${alreadyPushed} already pushed before — they'll be updated.\n` : '') +
+                `\nMembers tagged "Skip" are excluded.`;
+            if (!confirm(msg)) return;
+
+            const btn = document.getElementById('ws-push-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Pushing…';
+
+            try {
+                const payloads = toPush.map(m => {
+                    const latest = getLatestOcc(m);
+                    const payload = {
+                        name: (m.name || '').trim() || 'Unnamed',
+                        phone: String(m.phone || '').trim(),
+                        email: m.email ? String(m.email).trim() : null,
+                        payment_received: false,
+                    };
+                    const sd = normalizeDate(latest.start_date);
+                    const ed = normalizeDate(latest.end_date);
+                    if (sd) payload.start_date = sd;
+                    if (ed) payload.end_date = ed;
+                    if (latest.plan_name && String(latest.plan_name).trim()) {
+                        payload.plan_name = String(latest.plan_name).trim();
+                    }
+                    return payload;
+                });
+
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        members: payloads,
+                        update_existing: true,
+                        auto_plan_from_dates: true,
+                    }),
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    let errorMsg = 'Push failed';
+                    if (typeof data.detail === 'string') errorMsg = data.detail;
+                    else if (Array.isArray(data.detail)) errorMsg = data.detail.map(e => e.msg || JSON.stringify(e)).join(' | ');
+                    throw new Error(errorMsg);
+                }
+
+                // Mark as pushed
+                toPush.forEach(m => { m.pushed = true; });
+                scheduleSave();
+                renderStats();
+                renderMembers();
+
+                const added = data.added_count || 0;
+                const updated = data.updated_count || 0;
+                const unchanged = data.unchanged_count || 0;
+                const errs = (data.errors && data.errors.length) || 0;
+                let msg2 = `✅ ${added} added`;
+                if (updated) msg2 += ` · ${updated} updated`;
+                if (unchanged) msg2 += ` · ${unchanged} unchanged`;
+                if (errs) msg2 += ` · ${errs} errors`;
+                if (typeof showToast === 'function') showToast(msg2, 'success');
+
+            } catch (err) {
+                if (typeof showToast === 'function') showToast('❌ ' + err.message, 'error');
+                console.error('[PUSH]', err);
+            } finally {
+                btn.disabled = false;
+                updatePushInfo();
+            }
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 12: WORKSPACE LIFECYCLE
+        // ══════════════════════════════════════════════
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // If workspace exists, confirm replacement
+            if (state.members.length > 0) {
+                if (!confirm('You have an existing workspace. Replace it with this new file?\n\nYour current workspace data will be lost.')) {
+                    event.target.value = '';
+                    return;
+                }
+            }
+
+            const uploadArea = document.getElementById('ws-upload-area');
+            if (uploadArea) {
+                uploadArea.innerHTML = '<div class="ws-loading"><span class="spinner"></span> Parsing file…</div>';
+            }
+
+            try {
+                const sheets = await parseFile(file);
+                state.rawSheets = sheets;
+                state.fileName = file.name;
+                state.createdAt = new Date().toISOString();
+                state.members = groupMembers(sheets);
+                state.expandedCards = new Set();
+
+                await idbSave(state);
+                showWorkspace();
+
+                const total = sheets.reduce((n, s) => n + s.rows.length, 0);
+                if (typeof showToast === 'function') {
+                    showToast(`Loaded ${total} rows from ${sheets.length} sheet(s) → ${state.members.length} unique members.`, 'success');
+                }
+            } catch (err) {
+                if (uploadArea) {
+                    uploadArea.innerHTML = `<h2>📂 Drop your Excel or CSV file here</h2><p>.xlsx, .xls, .csv</p>`;
+                }
+                if (typeof showToast === 'function') showToast('❌ ' + err.message, 'error');
+                console.error('[PARSE]', err);
+            }
+
+            event.target.value = '';
+        }
+
+        function uploadNewFile() {
+            document.getElementById('ws-file-input').click();
+        }
+
+        async function clearWorkspace() {
+            if (!confirm('Clear the workspace? This will remove all loaded data, tags, and edits.\n\nMembers already pushed to your Members page are NOT affected.')) return;
+            state = {
+                id: 'current',
+                fileName: '',
+                createdAt: '',
+                lastSaved: '',
+                rawSheets: [],
+                members: [],
+                plans: [],
+                expandedCards: new Set(),
+            };
+            await idbClear();
+            showUpload();
+            if (typeof showToast === 'function') showToast('Workspace cleared.', 'info');
+        }
+
+        function showUpload() {
+            document.getElementById('upload-view').style.display = 'block';
+            document.getElementById('workspace-view').style.display = 'none';
+        }
+
+        function showWorkspace() {
+            document.getElementById('upload-view').style.display = 'none';
+            document.getElementById('workspace-view').style.display = 'block';
+            renderStats();
+            renderMembers();
+        }
+
+        // ══════════════════════════════════════════════
+        // SECTION 13: DRAG & DROP
+        // ══════════════════════════════════════════════
+
+        (function setupDragDrop() {
+            document.addEventListener('DOMContentLoaded', () => {
+                const area = document.getElementById('ws-upload-area');
+                if (!area) return;
+                ['dragenter', 'dragover'].forEach(evt => {
+                    area.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        area.style.borderColor = 'rgba(99,102,241,0.8)';
+                        area.style.background = 'rgba(99,102,241,0.12)';
+                    });
+                });
+                ['dragleave', 'drop'].forEach(evt => {
+                    area.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        area.style.borderColor = '';
+                        area.style.background = '';
+                    });
+                });
+                area.addEventListener('drop', (e) => {
+                    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+                    if (file) {
+                        // Create a synthetic event for handleFileUpload
+                        const input = document.getElementById('ws-file-input');
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        input.files = dt.files;
+                        input.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+        })();
+
+        // ══════════════════════════════════════════════
+        // SECTION 14: INITIALIZATION
+        // ══════════════════════════════════════════════
+
+        async function initWorkspace() {
+            // Load plans for auto-detection context
+            try {
+                const resp = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resp.ok) state.plans = await resp.json();
+            } catch (e) { console.warn('Could not load plans:', e); }
+
+            // Check IndexedDB for saved workspace
+            const saved = await idbLoad('current');
+            if (saved && saved.members && saved.members.length > 0) {
+                // Restore saved workspace
+                state.rawSheets = saved.rawSheets || [];
+                state.fileName = saved.fileName || '';
+                state.createdAt = saved.createdAt || '';
+                state.members = saved.members || [];
+                state.expandedCards = new Set();
+
+                // Show resume banner
+                const banner = document.getElementById('resume-banner');
+                const savedDate = saved.lastSaved ? new Date(saved.lastSaved).toLocaleString() : 'recently';
+                banner.style.display = 'flex';
+                banner.className = 'ws-resume-banner';
+                banner.innerHTML = `
+                    <div class="info">
+                        <strong>📂 Saved workspace found</strong> — "${escHtml(state.fileName)}"
+                        with ${state.members.length} members · Last saved ${savedDate}
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" onclick="resumeWorkspace()"
+                            style="background:#22c55e;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;">
+                            ▶ Resume
+                        </button>
+                        <button type="button" onclick="dismissResume()"
+                            style="background:rgba(255,255,255,0.06);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;">
+                            Start Fresh
+                        </button>
+                    </div>`;
+            }
+        }
+
+        function resumeWorkspace() {
+            document.getElementById('resume-banner').style.display = 'none';
+            showWorkspace();
+            if (typeof showToast === 'function') {
+                showToast(`Workspace resumed — ${state.members.length} members loaded.`, 'success');
+            }
+        }
+
+        async function dismissResume() {
+            document.getElementById('resume-banner').style.display = 'none';
+            state = {
+                id: 'current', fileName: '', createdAt: '', lastSaved: '',
+                rawSheets: [], members: [], plans: state.plans, expandedCards: new Set(),
+            };
+            await idbClear();
+        }
+
+        // Boot
+        initWorkspace();
+
+    </script>
+</body>
+
+</html>
