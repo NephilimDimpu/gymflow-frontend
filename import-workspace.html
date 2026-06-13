@@ -644,6 +644,7 @@
                         <option value="skip">✕ Skip</option>
                         <option value="ready">🚀 Ready</option>
                         <option value="none">No tag</option>
+                        <option value="duplicates">⚠️ Possible duplicates</option>
                         <option value="pushed">✓ Pushed</option>
                         <option value="not-pushed">Not pushed</option>
                     </select>
@@ -1099,6 +1100,20 @@
                 if (looksLikeHeading(e)) { e.isHeading = true; e.include = false; }
             });
 
+            // Flag possible duplicates: the same (normalized) name appearing on
+            // more than one card — i.e. rows that grouping didn't merge (e.g. the
+            // same person entered with different / typo'd phone numbers). The owner
+            // can review and delete the extras before pushing.
+            const _nameCounts = {};
+            entries.forEach(e => {
+                const n = (e.name || '').trim().toLowerCase();
+                if (n && !e.isHeading) _nameCounts[n] = (_nameCounts[n] || 0) + 1;
+            });
+            entries.forEach(e => {
+                const n = (e.name || '').trim().toLowerCase();
+                e.dupName = !!(n && !e.isHeading && _nameCounts[n] > 1);
+            });
+
             return entries;
         }
 
@@ -1191,6 +1206,7 @@
             if (tag === 'pushed') list = list.filter(m => m.pushed);
             else if (tag === 'not-pushed') list = list.filter(m => !m.pushed);
             else if (tag === 'none') list = list.filter(m => !m.tag);
+            else if (tag === 'duplicates') list = list.filter(m => m.dupName);
             else if (tag) list = list.filter(m => m.tag === tag);
 
             // Sort
@@ -1239,6 +1255,10 @@
 
                 const headingHtml = m.isHeading
                     ? `<span title="Looks like a section heading from your sheet, not a member — excluded from push by default. Tick the box if it's actually a person." style="background:rgba(245,158,11,0.18);color:#fbbf24;font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;">⚠️ heading?</span>`
+                    : '';
+
+                const dupHtml = m.dupName
+                    ? `<span title="This name appears on more than one card — likely a duplicate (e.g. entered twice with different phone numbers). Review and delete the extras before pushing." style="background:rgba(248,113,113,0.18);color:#fca5a5;font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;cursor:default;" onclick="event.stopPropagation()">⚠️ duplicate?</span>`
                     : '';
 
                 // Timeline (expanded)
@@ -1298,6 +1318,7 @@
                         ${yearBadges}
                         ${occCount}
                         ${headingHtml}
+                        ${dupHtml}
                         ${tagHtml}
                         ${pushedHtml}
                         <span class="card-expand-icon">▶</span>
