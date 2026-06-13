@@ -871,6 +871,22 @@
                 d = d.padStart(2, '0'); mo = mo.padStart(2, '0');
                 if (+mo >= 1 && +mo <= 12 && +d >= 1 && +d <= 31) return `${y}-${mo}-${d}`;
             }
+            // Month-name dates: "5 June 2025", "5-Jun-25", "June 5, 2025", "Jun 5 2025".
+            const _MON = { jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,
+                jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,sept:9,september:9,
+                oct:10,october:10,nov:11,november:11,dec:12,december:12 };
+            const _mk = (d, moName, y) => {
+                const mo = _MON[String(moName).toLowerCase()];
+                if (!mo) return '';
+                if (String(y).length === 2) y = '20' + y;
+                d = String(d).padStart(2, '0');
+                if (+d >= 1 && +d <= 31) return `${y}-${String(mo).padStart(2, '0')}-${d}`;
+                return '';
+            };
+            m = s.match(/^(\d{1,2})(?:st|nd|rd|th)?[\s\-.]*([A-Za-z]{3,9})[\s\-.,]*(\d{2,4})$/);
+            if (m) { const r = _mk(m[1], m[2], m[3]); if (r) return r; }
+            m = s.match(/^([A-Za-z]{3,9})[\s\-.]*(\d{1,2})(?:st|nd|rd|th)?[\s\-.,]+(\d{2,4})$/);
+            if (m) { const r = _mk(m[2], m[1], m[3]); if (r) return r; }
             return '';
         }
 
