@@ -26,6 +26,9 @@
         .chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
         .chip-wa { background: rgba(37,211,102,0.15); color: #4ade80; }
         .chip-email { background: rgba(96,165,250,0.15); color: #93c5fd; }
+        .day-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #cbd5e1; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; }
+        .day-chip input { width: 16px; height: 16px; cursor: pointer; accent-color: #22c55e; }
+        .day-chip:has(input:checked) { border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.1); color: #fff; }
         .tab-btn { background: none; border: none; color: var(--text-muted); font-weight: 700; font-size: 14px; padding: 10px 4px; cursor: pointer; border-bottom: 2px solid transparent; }
         .tab-btn.active { color: #fff; border-bottom-color: #6366f1; }
         .rtable { width: 100%; border-collapse: collapse; }
@@ -92,6 +95,18 @@
                         <div style="font-size: 12px; color: var(--text-muted);">Send the renewal reminder email.</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="sw-email" onchange="saveSettings()"><span class="slider"></span></label>
+                </div>
+
+                <!-- Reminder schedule (which lead-times fire) -->
+                <div style="padding: 16px 0 4px; border-top: 1px solid rgba(255,255,255,0.06); margin-top: 6px;">
+                    <div style="font-weight: 700; color: #fff;">When to remind</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Pick how early before expiry to message — your gym's own cadence.</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <label class="day-chip"><input type="checkbox" id="lead-7" value="7" onchange="saveSettings()"> 7 days before</label>
+                        <label class="day-chip"><input type="checkbox" id="lead-3" value="3" onchange="saveSettings()"> 3 days before</label>
+                        <label class="day-chip"><input type="checkbox" id="lead-1" value="1" onchange="saveSettings()"> 1 day before</label>
+                        <label class="day-chip"><input type="checkbox" id="lead-0" value="0" onchange="saveSettings()"> On expiry day</label>
+                    </div>
                 </div>
             </div>
 
@@ -178,6 +193,11 @@
                 document.getElementById('sw-master').checked = s.reminders_enabled;
                 document.getElementById('sw-wa').checked = s.whatsapp_reminders_enabled;
                 document.getElementById('sw-email').checked = s.email_reminders_enabled;
+                const days = new Set(s.reminder_lead_days || [7, 3, 1, 0]);
+                ['7', '3', '1', '0'].forEach(d => {
+                    const el = document.getElementById('lead-' + d);
+                    if (el) el.checked = days.has(Number(d));
+                });
                 renderBanner(s);
             } catch (e) {
                 showToast && showToast('Could not load reminder settings', 'error');
@@ -196,8 +216,12 @@
                 html = `⏸️ <strong>Reminders are OFF.</strong> No automatic messages are going out. Flip “Automated reminders” on to resume.`;
             } else {
                 const ch = [s.whatsapp_reminders_enabled && '📱 WhatsApp', s.email_reminders_enabled && '✉️ Email'].filter(Boolean).join(' + ') || 'no channels (turn one on)';
+                const ld = (s.reminder_lead_days || [7,3,1,0]);
+                const sched = ld.length
+                    ? ld.map(d => d === 0 ? 'on expiry' : d + 'd').join(' / ')
+                    : 'no schedule set';
                 bg='rgba(34,197,94,0.1)'; border='rgba(34,197,94,0.35)'; color='#86efac';
-                html = `✅ <strong>Auto-reminders are ON.</strong> Sending daily at ~9 AM via ${ch} to members expiring in 3 / 1 / 0 days.`;
+                html = `✅ <strong>Auto-reminders are ON.</strong> Sending daily at ~9 AM via ${ch}, reminding at <strong>${sched}</strong> before expiry.`;
                 if (!s.whatsapp_configured && s.whatsapp_reminders_enabled) {
                     html += ` <span style="color:#fcd34d;">(WhatsApp isn't fully configured on the server yet.)</span>`;
                 }
@@ -206,10 +230,14 @@
             b.innerHTML = html;
         }
         async function saveSettings() {
+            const leadDays = ['7', '3', '1', '0']
+                .filter(d => document.getElementById('lead-' + d)?.checked)
+                .map(Number);
             const body = {
                 reminders_enabled: document.getElementById('sw-master').checked,
                 whatsapp_reminders_enabled: document.getElementById('sw-wa').checked,
                 email_reminders_enabled: document.getElementById('sw-email').checked,
+                reminder_lead_days: leadDays,
             };
             try {
                 const r = await fetch(`${CONFIG.API_BASE_URL}/api/reminders/settings`, { method: 'PUT', headers: JSON_AUTH, body: JSON.stringify(body) });
