@@ -1472,6 +1472,15 @@
                     if (latest.plan_name && String(latest.plan_name).trim()) {
                         payload.plan_name = String(latest.plan_name).trim();
                     }
+                    // True tenure: the EARLIEST date across ALL their renewal rows
+                    // (ISO strings sort lexicographically), so the Members list can
+                    // show "member since" their first record, not the latest renewal.
+                    let earliest = '';
+                    (m.occurrences || []).forEach(o => {
+                        const d = normalizeDate(o.start_date) || normalizeDate(o.end_date);
+                        if (d && (!earliest || d < earliest)) earliest = d;
+                    });
+                    if (earliest) payload.member_since = earliest;
                     return payload;
                 });
 
