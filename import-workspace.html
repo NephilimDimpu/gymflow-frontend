@@ -1028,9 +1028,14 @@
         // ══════════════════════════════════════════════
 
         function groupMembers(rawSheets) {
-            const map = new Map();
+            // ── Pass 1: flatten every row, and index which phone(s) each name
+            // appears with. Gyms record a member's phone on ONE row but repeat
+            // the NAME on every monthly renewal row — so phone-less rows must
+            // fold into the phoned record by name, not split off into their own
+            // phone-less duplicates (the bug that lost phones + exploded dupes).
+            const occs = [];
+            const nameToPhones = {};   // nameKey -> Set(phoneKey)
             let totalRows = 0;
-
             rawSheets.forEach(sheet => {
                 sheet.rows.forEach(row => {
                     totalRows++;
@@ -1045,40 +1050,56 @@
                         remark: row.remark || '',
                         allCols: row._allCols || {},
                     };
-
-                    // Grouping key: phone (normalized) > name (lowered) > unique per row
-                    const phoneKey = normalizePhoneKey(occ.phone);
-                    let key;
-                    if (phoneKey) {
-                        key = 'p:' + phoneKey;
-                    } else if (occ.name) {
-                        key = 'n:' + occ.name.toLowerCase();
-                    } else {
-                        key = 'r:' + totalRows; // ungroupable — unique entry
+                    occ._phoneKey = normalizePhoneKey(occ.phone);
+                    occ._nameKey = occ.name.toLowerCase();
+                    occ._row = totalRows;
+                    occs.push(occ);
+                    if (occ._phoneKey && occ._nameKey) {
+                        (nameToPhones[occ._nameKey] || (nameToPhones[occ._nameKey] = new Set())).add(occ._phoneKey);
                     }
-
-                    let entry = map.get(key);
-                    if (!entry) {
-                        entry = {
-                            key,
-                            name: '',
-                            phone: '',
-                            email: '',
-                            occurrences: [],
-                            years: [],
-                            tag: null,
-                            pushed: false,
-                            include: true,
-                            edits: {},
-                        };
-                        map.set(key, entry);
-                    }
-
-                    entry.occurrences.push(occ);
-                    if (!entry.name && occ.name) entry.name = occ.name;
-                    if (!entry.phone && occ.phone) entry.phone = occ.phone;
-                    if (!entry.email && occ.email) entry.email = occ.email;
                 });
+            });
+
+            // ── Pass 2: assign each row a group key.
+            //   • has phone            → group by phone
+            //   • no phone, name maps to EXACTLY ONE phone → fold into that
+            //     phoned record (same person, phone just wasn't repeated)
+            //   • no phone, name maps to 0 or >1 phones    → group by name
+            //     (no phone anywhere, or an ambiguous same-name/different-people
+            //     case we must NOT merge blindly)
+            const map = new Map();
+            occs.forEach(occ => {
+                let key;
+                if (occ._phoneKey) {
+                    key = 'p:' + occ._phoneKey;
+                } else if (occ._nameKey) {
+                    const phones = nameToPhones[occ._nameKey];
+                    key = (phones && phones.size === 1) ? 'p:' + [...phones][0] : 'n:' + occ._nameKey;
+                } else {
+                    key = 'r:' + occ._row; // ungroupable — unique entry
+                }
+
+                let entry = map.get(key);
+                if (!entry) {
+                    entry = {
+                        key,
+                        name: '',
+                        phone: '',
+                        email: '',
+                        occurrences: [],
+                        years: [],
+                        tag: null,
+                        pushed: false,
+                        include: true,
+                        edits: {},
+                    };
+                    map.set(key, entry);
+                }
+
+                entry.occurrences.push(occ);
+                if (!entry.name && occ.name) entry.name = occ.name;
+                if (!entry.phone && occ.phone) entry.phone = occ.phone;
+                if (!entry.email && occ.email) entry.email = occ.email;
             });
 
             // Sort occurrences by end_date desc, compute years
