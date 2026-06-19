@@ -684,6 +684,10 @@
                         📤 Push to Members
                     </button>
                     <span class="push-info" id="ws-push-info"></span>
+                    <label id="ws-replace-label" title="Deletes ALL current members of this gym first, then imports this list. Use for a clean re-import." style="display:inline-flex; align-items:center; gap:7px; font-size:13px; color:#fca5a5; cursor:pointer; padding:6px 10px; border:1px solid rgba(248,113,113,0.3); border-radius:8px; background:rgba(248,113,113,0.08);">
+                        <input type="checkbox" id="ws-replace-all" style="width:15px;height:15px;cursor:pointer;accent-color:#ef4444;">
+                        ⚠️ Replace entire member list
+                    </label>
                     <button type="button" class="clear-btn" onclick="clearWorkspace()">
                         🗑️ Clear Workspace
                     </button>
@@ -1465,13 +1469,29 @@
                 return;
             }
 
-            const alreadyPushed = toPush.filter(m => m.pushed).length;
-            const msg = `Push ${toPush.length} member(s) to your Members page?\n\n` +
-                `• New people are added once.\n` +
-                `• People already in GymExec are UPDATED (no duplicates).\n` +
-                (alreadyPushed ? `• ${alreadyPushed} already pushed before — they'll be updated.\n` : '') +
-                `\nMembers tagged "Skip" are excluded.`;
-            if (!confirm(msg)) return;
+            const replaceAll = !!document.getElementById('ws-replace-all')?.checked;
+
+            if (replaceAll) {
+                // Destructive: gate behind an explicit typed confirmation.
+                const typed = prompt(
+                    `⚠️ REPLACE ENTIRE MEMBER LIST\n\n` +
+                    `This DELETES every current member of this gym, then imports the ` +
+                    `${toPush.length} member(s) below. Existing reminders/payment history for ` +
+                    `those members are removed too. This cannot be undone (your sheet is the source).\n\n` +
+                    `Type REPLACE to confirm:`);
+                if ((typed || '').trim().toUpperCase() !== 'REPLACE') {
+                    if (typeof showToast === 'function') showToast('Replace cancelled.', 'error');
+                    return;
+                }
+            } else {
+                const alreadyPushed = toPush.filter(m => m.pushed).length;
+                const msg = `Push ${toPush.length} member(s) to your Members page?\n\n` +
+                    `• New people are added once.\n` +
+                    `• People already in GymExec are UPDATED (no duplicates).\n` +
+                    (alreadyPushed ? `• ${alreadyPushed} already pushed before — they'll be updated.\n` : '') +
+                    `\nMembers tagged "Skip" are excluded.`;
+                if (!confirm(msg)) return;
+            }
 
             const btn = document.getElementById('ws-push-btn');
             btn.disabled = true;
@@ -1515,6 +1535,7 @@
                         members: payloads,
                         update_existing: true,
                         auto_plan_from_dates: true,
+                        replace_all: replaceAll,
                     }),
                 });
 
@@ -1536,11 +1557,14 @@
                 const updated = data.updated_count || 0;
                 const unchanged = data.unchanged_count || 0;
                 const errs = (data.errors && data.errors.length) || 0;
-                let msg2 = `✅ ${added} added`;
+                const deleted = data.deleted_count || 0;
+                let msg2 = deleted ? `✅ replaced — ${deleted} removed, ${added} added` : `✅ ${added} added`;
                 if (updated) msg2 += ` · ${updated} updated`;
                 if (unchanged) msg2 += ` · ${unchanged} unchanged`;
                 if (errs) msg2 += ` · ${errs} errors`;
                 if (typeof showToast === 'function') showToast(msg2, 'success');
+                // Reset the destructive toggle so it can't fire again unintentionally.
+                const rc = document.getElementById('ws-replace-all'); if (rc) rc.checked = false;
 
             } catch (err) {
                 if (typeof showToast === 'function') showToast('❌ ' + err.message, 'error');
