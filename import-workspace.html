@@ -878,6 +878,15 @@
             return norm || key;
         }
 
+        // Does a cell value look like an Indian mobile number? Used to detect the
+        // phone column by its VALUES when the header is ambiguous ("No.") or absent.
+        function looksLikePhoneValue(v) {
+            const d = String(v == null ? '' : v).replace(/\D/g, '');
+            return /^[6-9]\d{9}$/.test(d)        // 10-digit mobile
+                || /^91[6-9]\d{9}$/.test(d)      // +91 / 91 prefixed
+                || /^0[6-9]\d{9}$/.test(d);      // 0 trunk-prefixed
+        }
+
         function normalizePhoneKey(p) {
             let d = String(p || '').replace(/\D/g, '');
             if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
@@ -968,6 +977,30 @@
             const headerIdx = detectHeaderRow(raw);
             const rawHeaders = raw[headerIdx] || [];
             const canonHeaders = rawHeaders.map(h => canonicalHeader(h));
+
+            // Value-based phone detection: if the header rules didn't find a phone
+            // column, pick the UNCLAIMED column whose cells are mostly Indian mobile
+            // numbers. Catches ambiguous headers ("No.", "Number") and unlabeled
+            // columns that no header rule could resolve.
+            if (!canonHeaders.includes('phone')) {
+                const KNOWN_FIELDS = new Set(Object.values(HEADER_ALIASES));
+                const dataRows = raw.slice(headerIdx + 1);
+                const colCount = Math.max(rawHeaders.length, ...dataRows.map(r => r.length || 0));
+                let bestCol = -1, bestRatio = 0;
+                for (let c = 0; c < colCount; c++) {
+                    if (KNOWN_FIELDS.has(canonHeaders[c])) continue;  // don't steal name/plan/date/email columns
+                    let total = 0, hit = 0;
+                    for (let i = 0; i < dataRows.length && total < 50; i++) {
+                        const s = String((dataRows[i] || [])[c] ?? '').trim();
+                        if (!s) continue;
+                        total++;
+                        if (looksLikePhoneValue(s)) hit++;
+                    }
+                    const ratio = total >= 2 ? hit / total : 0;
+                    if (ratio > bestRatio) { bestRatio = ratio; bestCol = c; }
+                }
+                if (bestCol >= 0 && bestRatio >= 0.6) canonHeaders[bestCol] = 'phone';
+            }
 
             return raw.slice(headerIdx + 1).map(r => {
                 const obj = {};
