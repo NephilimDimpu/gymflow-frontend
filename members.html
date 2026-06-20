@@ -190,6 +190,7 @@
                         <option value="25">25</option>
                         <option value="50" selected>50</option>
                         <option value="100">100</option>
+                        <option value="all">All</option>
                     </select>
                 </div>
 
@@ -676,8 +677,12 @@
             loadMembers();
         }
 
+        // "All" maps to the server's max page size (2000) — enough to show every
+        // member of any realistic gym in one view; larger gyms still get a pager.
+        const ALL_PAGE_SIZE = 2000;
         function onPageSizeChange() {
-            pageSize = parseInt(document.getElementById('page-size').value, 10) || 50;
+            const v = document.getElementById('page-size').value;
+            pageSize = (v === 'all') ? ALL_PAGE_SIZE : (parseInt(v, 10) || 50);
             currentOffset = 0;   // back to first page when page size changes
             loadMembers();
         }
@@ -1656,7 +1661,7 @@
                 { element: '#search-input', popover: { title: '🔍 Search', description: 'Find any member instantly by name or phone number.' } },
                 { element: '#auto-arrange-btn', popover: { title: '⇅ Auto-arrange', description: 'One click groups everyone into tidy, colour-coded sets by plan & period — numbered, alphabetical, active members first.' } },
                 { element: '#sort-by', popover: { title: '↕️ Sort & group', description: 'Order by newest, expiry, name, or grouped by plan. Active members always appear above expired.' } },
-                { element: '#page-size', popover: { title: '🔢 Rows per page', description: 'Show 10, 25, 50 or 100 members per page — smooth even with thousands.' } },
+                { element: '#page-size', popover: { title: '🔢 Rows per page', description: 'Show 10, 25, 50, 100 — or All to see your whole list on one page.' } },
                 { popover: { title: '🎉 You\'re all set!', description: 'Active members missing a plan are flagged red. Tick members with the checkboxes to assign a plan or remove in bulk. Replay this guide anytime with the 📖 Guide button.' } },
             ];
             const valid = steps.filter(s => !s.element || document.querySelector(s.element));
