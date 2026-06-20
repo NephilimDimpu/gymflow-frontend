@@ -856,9 +856,26 @@
         }
         function escAttr(v) { return escHtml(v).replace(/"/g, '&quot;'); }
 
+        // Strong phone-column words, and words that mean a column is NOT a phone
+        // (guards against false positives like "Emergency Contact", "Plan Amount").
+        const _PHONE_WORDS = ['phone', 'mobile', 'whatsapp', 'whatsap', 'mob', 'cell', 'ph', 'contact', 'tel', 'telephone'];
+        const _NOT_PHONE_WORDS = ['plan', 'package', 'membership', 'amount', 'amt', 'fee', 'fees', 'price', 'paid',
+            'email', 'mail', 'name', 'date', 'dob', 'doj', 'expiry', 'start', 'end', 'emergency',
+            'receipt', 'invoice', 'bill', 'address', 'remark', 'note', 'id', 'sl', 'sr', 'serial'];
+
         function canonicalHeader(raw) {
             const key = String(raw || '').trim().toLowerCase();
-            return HEADER_ALIASES[key] || key;
+            if (HEADER_ALIASES[key]) return HEADER_ALIASES[key];
+            // Punctuation-insensitive retry: "Mobile No." / "Ph-No" / "Contact #" → "mobile no" …
+            const norm = key.replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+            if (HEADER_ALIASES[norm]) return HEADER_ALIASES[norm];
+            // Token fallback — catch odd phone headers ("Ph No", "Cell Number", "Mob.",
+            // "WhatsApp/Phone") when a strong phone word is present and nothing conflicts.
+            const tokens = norm.split(' ').filter(Boolean);
+            if (tokens.some(t => _PHONE_WORDS.includes(t)) && !tokens.some(t => _NOT_PHONE_WORDS.includes(t))) {
+                return 'phone';
+            }
+            return norm || key;
         }
 
         function normalizePhoneKey(p) {
