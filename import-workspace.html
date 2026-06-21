@@ -1570,7 +1570,25 @@
             btn.disabled = true;
             btn.textContent = '⏳ Pushing…';
 
+            let deletedCount = 0;
+            let cleared = false;
             try {
+                // Two-step Replace: WIPE first in its own quick request, then import.
+                // Doing both in one request risked hitting the 60s serverless limit
+                // on a large gym (which is what failed before).
+                if (replaceAll) {
+                    btn.textContent = '⏳ Clearing…';
+                    const cr = await fetch(`${CONFIG.API_BASE_URL}/api/members/clear-all`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    });
+                    const cData = await cr.json().catch(() => ({}));
+                    if (!cr.ok) throw new Error('Clear failed: ' + (cData.detail || cr.status));
+                    deletedCount = cData.deleted_count || 0;
+                    cleared = true;
+                }
+
+                btn.textContent = '⏳ Importing…';
                 const payloads = toPush.map(m => {
                     const latest = getLatestOcc(m);
                     const payload = {
@@ -1608,7 +1626,7 @@
                         members: payloads,
                         update_existing: true,
                         auto_plan_from_dates: true,
-                        replace_all: replaceAll,
+                        // replace_all handled by the separate clear-all step above
                     }),
                 });
 
@@ -1630,7 +1648,7 @@
                 const updated = data.updated_count || 0;
                 const unchanged = data.unchanged_count || 0;
                 const errs = (data.errors && data.errors.length) || 0;
-                const deleted = data.deleted_count || 0;
+                const deleted = deletedCount;
                 let msg2 = deleted ? `✅ replaced — ${deleted} removed, ${added} added` : `✅ ${added} added`;
                 if (updated) msg2 += ` · ${updated} updated`;
                 if (unchanged) msg2 += ` · ${unchanged} unchanged`;
@@ -1640,7 +1658,12 @@
                 const rc = document.getElementById('ws-replace-all'); if (rc) rc.checked = false;
 
             } catch (err) {
-                if (typeof showToast === 'function') showToast('❌ ' + err.message, 'error');
+                // If the wipe succeeded but the import didn't, the list is empty —
+                // tell them clearly that nothing's lost and they can just push again.
+                const msg = cleared
+                    ? `⚠️ Cleared ${deletedCount} members, but the import didn't finish (${err.message}). Nothing's lost — your sheet is still here. Press Push again to import into the now-empty list.`
+                    : '❌ ' + err.message;
+                if (typeof showToast === 'function') showToast(msg, 'error');
                 console.error('[PUSH]', err);
             } finally {
                 btn.disabled = false;
