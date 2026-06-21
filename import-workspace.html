@@ -627,6 +627,9 @@
                 <!-- Stats -->
                 <div class="ws-stats" id="ws-stats"></div>
 
+                <!-- Phone-detection warning (shown only when almost no phones were found) -->
+                <div id="ws-phone-warning" style="display:none; margin-top:12px; padding:12px 16px; border-radius:10px; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.35); font-size:13px; color:#fecaca; line-height:1.55;"></div>
+
                 <!-- How-to tip -->
                 <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);font-size:13px;color:#c7d2fe;line-height:1.5;">
                     💡 Review the members below, then <strong>Push</strong> to add/update them. Re-doing a messy import? Tick <strong style="color:#fca5a5;">⚠️ Replace entire member list</strong> at the bottom to wipe this gym's current members and import this list fresh (asks you to type REPLACE first).
@@ -1250,6 +1253,21 @@
                 pushed ? `<div class="ws-stat" style="border-color:rgba(34,197,94,0.3);"><strong>${pushed}</strong> pushed</div>` : '',
                 noPhone ? `<div class="ws-stat" style="border-color:rgba(245,158,11,0.3);"><strong>${noPhone}</strong> missing phone</div>` : '',
             ].filter(Boolean).join('');
+
+            // Clear feedback when the phone column wasn't detected, instead of
+            // silently importing everyone without a number.
+            const realMembers = state.members.filter(m => !m.isHeading);
+            const withPhone = realMembers.filter(m => m.phone && m.phone.trim()).length;
+            const warn = document.getElementById('ws-phone-warning');
+            if (realMembers.length >= 3 && withPhone === 0) {
+                warn.innerHTML = `⚠️ <strong>No phone numbers detected.</strong> The importer couldn't find a phone column in this sheet, so members would import <strong>without phones</strong> — and WhatsApp reminders need a phone. Check that your sheet has a phone/mobile column (any of <em>Phone, Mobile, Mobile No., Contact, WhatsApp, No.</em>), or send a screenshot of the header row to support to add it.`;
+                warn.style.display = 'block';
+            } else if (realMembers.length >= 10 && withPhone > 0 && (withPhone / realMembers.length) < 0.25) {
+                warn.innerHTML = `⚠️ Only <strong>${withPhone}</strong> of <strong>${realMembers.length}</strong> members have a phone. If you expected more, your phone column may not be reading correctly — check the sheet's phone column or share a screenshot with support.`;
+                warn.style.display = 'block';
+            } else {
+                warn.style.display = 'none';
+            }
 
             // Populate filter dropdowns
             const yearSel = document.getElementById('ws-filter-year');
