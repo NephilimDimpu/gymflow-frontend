@@ -1,0 +1,145 @@
+<!-- ============================================
+     [SCREEN] Sign-ups to verify
+     Isolated owner page: shows the shareable join link + the queue of members
+     who self-registered, with Approve / Reject. Reads /api/verify/*.
+     ============================================ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign-ups - GymExec</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    <style>
+        .claim-card { background: var(--surface, rgba(255,255,255,0.03)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+        .btn-ok { background: linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; font-weight:700; padding:10px 16px; border-radius:10px; cursor:pointer; font-family:inherit; }
+        .btn-no { background: rgba(248,113,113,0.12); color:#fca5a5; border:1px solid rgba(248,113,113,0.3); font-weight:700; padding:10px 16px; border-radius:10px; cursor:pointer; font-family:inherit; }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo" onclick="window.location.href='dashboard.html'" style="cursor: pointer;" title="Back to Dashboard">💪 GymExec</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
+                <a href="members.html" class="nav-link"><span>👥</span> Members</a>
+                <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
+                <a href="reminders.html" class="nav-link"><span>🔔</span> Reminders</a>
+                <a href="payments.html" class="nav-link"><span>💰</span> Payments</a>
+                <a href="verify-members.html" class="nav-link active"><span>🆕</span> Sign-ups</a>
+                <a href="staff.html" class="nav-link"><span>🛡️</span> Staff</a>
+                <a href="branches.html" class="nav-link"><span>📍</span> Branches</a>
+                <a href="attendance.html" class="nav-link"><span>🕘</span> Attendance</a>
+                <a href="routines.html" class="nav-link"><span>📋</span> Routines</a>
+                <a href="status.html" target="_blank" class="nav-link" style="color: #60a5fa;" title="View and share your Gym Member Status Portal & PWA App"><span>📲</span> Member PWA</a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link"><span>⚙️</span> Settings</a>
+                    <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;"><span>⭐</span> Upgrade</a>
+                    <a href="#" class="nav-link" onclick="logout()"><span>🚪</span> Logout</a>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header style="margin-bottom: 24px;">
+                <h1 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 4px;">🆕 Sign-ups to verify</h1>
+                <p style="font-size: 14px; color: var(--text-muted);">Members who joined via your link. Approve to add them; reject to discard.</p>
+            </header>
+
+            <!-- Shareable join link -->
+            <div class="glass-panel" style="padding: 16px 18px; margin-bottom: 22px; border-radius: 12px;">
+                <div style="font-weight:700; color:#fff; margin-bottom:6px;">📲 Your member join link</div>
+                <p style="font-size:13px; color:var(--text-muted); margin:0 0 12px;">Share this in your WhatsApp group or at the front desk — members fill their own details, you just approve.</p>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <input type="text" id="join-link" readonly style="flex:1; min-width:220px; padding:11px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.25); color:#cbd5e1; font-size:13px;">
+                    <button class="btn-ok" onclick="copyLink()">📋 Copy</button>
+                </div>
+            </div>
+
+            <!-- Pending queue -->
+            <div id="pending-list"></div>
+            <div id="pending-empty" style="display:none; padding:50px 20px; text-align:center; color:var(--text-muted);">
+                <div style="font-size:38px; margin-bottom:10px;">📭</div>
+                <div style="font-weight:700; color:#fff; margin-bottom:4px;">No sign-ups waiting</div>
+                When someone joins via your link, they'll appear here for you to approve.
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) { window.location.href = 'login.html'; }
+        const AUTH = { 'Authorization': `Bearer ${token}` };
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        async function loadLink() {
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/verify/join-link`, { headers: AUTH });
+                if (!r.ok) return;
+                const d = await r.json();
+                document.getElementById('join-link').value = d.join_url || '';
+            } catch (e) {}
+        }
+        function copyLink() {
+            const el = document.getElementById('join-link');
+            el.select();
+            navigator.clipboard?.writeText(el.value).then(
+                () => showToast && showToast('Link copied!', 'success'),
+                () => { document.execCommand('copy'); showToast && showToast('Link copied!', 'success'); }
+            );
+        }
+
+        async function loadPending() {
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/verify/pending`, { headers: AUTH });
+                if (!r.ok) throw new Error('pending ' + r.status);
+                const data = await r.json();
+                const list = document.getElementById('pending-list');
+                const empty = document.getElementById('pending-empty');
+                const rows = data.members || [];
+                if (!rows.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+                empty.style.display = 'none';
+                list.innerHTML = rows.map(m => `
+                    <div class="claim-card" id="pend-${m.id}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                            <div>
+                                <div style="font-weight:700; color:#fff; font-size:16px;">${esc(m.name)}</div>
+                                <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">
+                                    ${m.phone ? esc(m.phone) : 'no phone'}${m.email ? ' · ' + esc(m.email) : ''}
+                                </div>
+                                <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">Submitted ${esc(m.submitted_at || '')}</div>
+                            </div>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn-ok" onclick="resolve(${m.id}, 'approve', '${esc(m.name).replace(/'/g,'')}')">✓ Approve</button>
+                                <button class="btn-no" onclick="resolve(${m.id}, 'reject', '${esc(m.name).replace(/'/g,'')}')">✗ Reject</button>
+                            </div>
+                        </div>
+                    </div>`).join('');
+            } catch (e) { showToast && showToast('Could not load sign-ups', 'error'); }
+        }
+
+        async function resolve(id, action, name) {
+            const ok = (action === 'approve')
+                ? confirm(`Approve ${name} as a member? You can assign their plan on the Members page.`)
+                : confirm(`Reject ${name}? Their submission will be discarded.`);
+            if (!ok) return;
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/verify/${id}/${action}`, { method: 'POST', headers: AUTH });
+                if (!r.ok) throw new Error('resolve ' + r.status);
+                showToast && showToast(action === 'approve' ? `${name} approved ✓` : `${name} rejected`, 'success');
+                const card = document.getElementById('pend-' + id);
+                if (card) card.remove();
+                loadPending();
+            } catch (e) { showToast && showToast('Could not update — try again', 'error'); }
+        }
+
+        loadLink();
+        loadPending();
+    </script>
+</body>
+</html>
