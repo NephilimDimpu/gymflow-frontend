@@ -393,6 +393,10 @@ select option,
     position: sticky;
     top: 0;
     padding: 32px 20px;
+    /* Scroll internally when the nav is taller than the viewport (many items)
+       so the bottom links never spill out and overlap the page content. */
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .sidebar-logo {
