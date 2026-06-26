@@ -57,6 +57,7 @@
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <input type="text" id="join-link" readonly style="flex:1; min-width:220px; padding:11px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.25); color:#cbd5e1; font-size:13px;">
                     <button class="btn-ok" onclick="copyLink()">📋 Copy</button>
+                    <button class="btn-ok" style="background:rgba(37,211,102,0.15); color:#25d366; border:1px solid rgba(37,211,102,0.35);" onclick="shareWhatsApp()">💬 WhatsApp</button>
                 </div>
 
                 <!-- QR: members scan to open the same join form (front-desk poster) -->
@@ -113,6 +114,12 @@
                 () => { document.execCommand('copy'); showToast && showToast('Link copied!', 'success'); }
             );
         }
+        function shareWhatsApp() {
+            const url = document.getElementById('join-link').value;
+            if (!url) { showToast && showToast('Link not ready yet', 'error'); return; }
+            const msg = `Join our gym 💪 — register in 30 seconds here: ${url}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        }
 
         async function loadPending() {
             try {
@@ -132,6 +139,7 @@
                                 <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">
                                     ${m.phone ? esc(m.phone) : 'no phone'}${m.email ? ' · ' + esc(m.email) : ''}
                                 </div>
+                                ${m.requested_plan ? `<div style="margin-top:6px;"><span style="font-size:11px; font-weight:700; color:#4ade80; background:rgba(34,197,94,0.12); padding:2px 9px; border-radius:999px;">wants: ${esc(m.requested_plan)}</span></div>` : ''}
                                 <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">Submitted ${esc(m.submitted_at || '')}</div>
                             </div>
                             <div style="display:flex; gap:10px;">

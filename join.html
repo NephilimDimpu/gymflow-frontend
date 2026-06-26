@@ -31,11 +31,11 @@
         h1 { font-size: 24px; margin: 0 0 4px; }
         p.sub { color: var(--text-muted); font-size: 14px; margin: 0 0 24px; }
         label { display:block; font-size:13px; font-weight:600; color:#cbd5e1; margin:14px 0 6px; }
-        input {
+        input, select {
             width:100%; padding:13px 14px; border-radius:12px; border:1px solid var(--surface-border);
             background:rgba(0,0,0,0.3); color:#fff; font-size:15px; font-family:inherit;
         }
-        input:focus { outline:none; border-color:#22c55e; }
+        input:focus, select:focus { outline:none; border-color:#22c55e; }
         .btn {
             width:100%; margin-top:22px; padding:15px; border:none; border-radius:12px;
             background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; font-size:16px;
@@ -65,6 +65,11 @@
             <label for="f-email">Email <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
             <input type="email" id="f-email" autocomplete="email" placeholder="you@example.com">
 
+            <div id="plan-wrap" style="display:none;">
+                <label for="f-plan">Plan you want <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+                <select id="f-plan"><option value="">— Select a plan —</option></select>
+            </div>
+
             <button class="btn" id="submit-btn" onclick="submitJoin()">Submit</button>
             <p class="note">Your details go to the gym for verification — you'll be added once they confirm.</p>
         </div>
@@ -92,6 +97,18 @@
                 if (!r.ok) throw new Error('invalid');
                 const d = await r.json();
                 document.getElementById('gym-badge').textContent = (d.gym_name || 'Your Gym').toUpperCase();
+                // Offer the gym's plans if it has any.
+                const plans = d.plans || [];
+                if (plans.length) {
+                    const sel = document.getElementById('f-plan');
+                    plans.forEach(p => {
+                        const o = document.createElement('option');
+                        o.value = p.name;
+                        o.textContent = p.price ? `${p.name} — ₹${Number(p.price).toLocaleString('en-IN')}` : p.name;
+                        sel.appendChild(o);
+                    });
+                    document.getElementById('plan-wrap').style.display = 'block';
+                }
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('form-wrap').style.display = 'block';
             } catch (e) { showInvalid(); }
@@ -106,6 +123,7 @@
             const name = document.getElementById('f-name').value.trim();
             const phone = document.getElementById('f-phone').value.trim();
             const email = document.getElementById('f-email').value.trim();
+            const plan_name = (document.getElementById('f-plan').value || '').trim() || null;
             if (name.length < 2) { window.showToast && showToast('Please enter your name.', 'error'); return; }
             if (phone.replace(/\D/g, '').length < 10) { window.showToast && showToast('Enter a valid 10-digit phone number.', 'error'); return; }
 
@@ -115,7 +133,7 @@
                 const r = await fetch(`${CONFIG.API_BASE_URL}/api/public/join/${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, phone, email: email || null }),
+                    body: JSON.stringify({ name, phone, email: email || null, plan_name }),
                 });
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok) {
