@@ -156,10 +156,32 @@ window.handleTierError = async function(res) {
 //                    way without per-page boilerplate.
 // ============================================
 const originalFetch = window.fetch;
-window.fetch = async function(...args) {
+window.fetch = async function(input, init) {
+    init = init || {};
+    let _timeoutId = null;
+
+    // [TIMEOUT-SAFETY] No request may hang the UI forever (the "infinite
+    // loading spinner" bug). When the caller hasn't supplied their own
+    // AbortSignal, attach one:
+    //   • GET (page data loads) → 30s. These are fast, so this only fires on a
+    //     real stall (e.g. the free-tier DB waking) and turns an infinite
+    //     spinner into a normal error the page already handles.
+    //   • POST/PUT/etc (imports, uploads, saves) → 90s. The serverless backend
+    //     caps every request at 60s, so 90s NEVER aborts a request that would
+    //     otherwise succeed — safe for large imports.
+    // Pages with their own controller (members/staff: 25s) pass a signal and
+    // are left untouched. Non-API/CDN fetches are left untouched.
+    const _url = (typeof input === 'string') ? input : (input && input.url) || '';
+    if (_url.includes('/api/') && !init.signal && typeof AbortController !== 'undefined') {
+        const _method = (init.method || 'GET').toUpperCase();
+        const _ctrl = new AbortController();
+        _timeoutId = setTimeout(() => _ctrl.abort(), _method === 'GET' ? 30000 : 90000);
+        init = Object.assign({}, init, { signal: _ctrl.signal });
+    }
+
     try {
-        const response = await originalFetch(...args);
-        const url = (args[0] && typeof args[0] === 'string') ? args[0] : '';
+        const response = await originalFetch(input, init);
+        const url = _url;
         const isApiCall = url.includes('/api/');
 
         // 401 — session expired
@@ -196,6 +218,13 @@ window.fetch = async function(...args) {
 
         return response;
     } catch (error) {
+        // A timeout surfaces as an AbortError → make it a clearer message so the
+        // page's existing error handling shows something sensible, not a hang.
+        if (error && error.name === 'AbortError') {
+            throw new Error('Request timed out — the server may be waking up. Please retry.');
+        }
         throw error;
+    } finally {
+        if (_timeoutId) clearTimeout(_timeoutId);
     }
 };
