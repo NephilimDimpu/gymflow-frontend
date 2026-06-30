@@ -485,7 +485,7 @@
                     progressFill.style.width = '100%';
                     renewBtn.classList.add('urgent');
                     renewBtn.textContent = '🚨 Renew Now to Resume Access';
-                    renewBtn.href = `pay.html?id=${data.member_id}`;
+                    renewBtn.href = `pay.html?id=${data.public_token}`;
                     renewBtn.style.display = 'block';
                     document.getElementById('footer-note').textContent = 'Tap above to renew, or contact your gym.';
                 } else if (daysLeft <= 7 || data.status === 'expiring_soon') {
@@ -505,7 +505,7 @@
                         progressFill.style.width = '85%';
                     }
                     renewBtn.textContent = '💳 Renew Early — Don\'t Miss a Day';
-                    renewBtn.href = `pay.html?id=${data.member_id}`;
+                    renewBtn.href = `pay.html?id=${data.public_token}`;
                     renewBtn.style.display = 'block';
                     document.getElementById('footer-note').textContent = 'Renew now to keep your access uninterrupted.';
                 } else {

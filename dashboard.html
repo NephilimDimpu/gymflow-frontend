@@ -236,7 +236,31 @@
             </div>
         </div>
 
-        <!-- [REMINDER-STATS] Pro/Elite-only ROI widget for automated reminders.
+        
+        <!-- [COLLECTIONS-STATS] Payment Collections widget for Pro/Elite -->
+        <div id="collections-stats-section" style="display: none; margin-bottom: 30px;">
+            <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin: 0 0 16px;">
+                dY' Collections
+            </h3>
+            <div id="collections-stats-card" class="glass-panel" style="padding: 24px; background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(16, 185, 129, 0.04)); border: 1px solid rgba(52, 211, 153, 0.2);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Today</div>
+                        <div style="font-size: 32px; font-weight: 800; color: #34d399; line-height: 1.1;" id="col-today">dY'0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Yesterday</div>
+                        <div style="font-size: 24px; font-weight: 700; color: #fbbf24; line-height: 1.1; margin-top: 8px;" id="col-yesterday">dY'0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">This Month</div>
+                        <div style="font-size: 24px; font-weight: 700; color: #818cf8; line-height: 1.1; margin-top: 8px;" id="col-month">dY'0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<!-- [REMINDER-STATS] Pro/Elite-only ROI widget for automated reminders.
              Hidden for Starter (replaced with an upgrade teaser). -->
         <div id="reminder-stats-section" style="display: none; margin-bottom: 30px;">
             <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin: 0 0 16px;">
@@ -1024,6 +1048,7 @@
                 loadAttendanceKPI();
 
                 // Reminder ROI widget \u2014 Pro/Elite shows the data, Starter shows the teaser.
+                loadCollectionsStats();
                 loadReminderStats();
 
                 // Public-page Join Now click counter \u2014 visible to all tiers, hidden if no clicks
@@ -1081,7 +1106,27 @@
         // Pro/Elite \u2192 shows live numbers. Starter \u2192 shows upgrade teaser.
         // Anything else (network error, missing endpoint) \u2192 silent.
         // ============================================
-        async function loadReminderStats() {
+        
+        async function loadCollectionsStats() {
+            try {
+                const res = await fetch(${CONFIG.API_BASE_URL}/api/payments/collections, {
+                    headers: { 'Authorization': Bearer  }
+                });
+                const d = await res.json();
+                if (res.status === 403 && d.detail && d.detail.error === 'tier_required') {
+                    // Feature is not available, hide widget silently
+                    return;
+                }
+                if (res.ok) {
+                    document.getElementById('col-today').textContent = 'dY'' + (d.today || 0).toLocaleString('en-IN');
+                    document.getElementById('col-yesterday').textContent = 'dY'' + (d.yesterday || 0).toLocaleString('en-IN');
+                    document.getElementById('col-month').textContent = 'dY'' + (d.this_month || 0).toLocaleString('en-IN');
+                    document.getElementById('collections-stats-section').style.display = 'block';
+                }
+            } catch (e) {}
+        }
+
+async function loadReminderStats() {
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/dashboard/reminder-stats`, {
                     headers: { 'Authorization': `Bearer ${token}` }
