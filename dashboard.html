@@ -240,21 +240,21 @@
         <!-- [COLLECTIONS-STATS] Payment Collections widget for Pro/Elite -->
         <div id="collections-stats-section" style="display: none; margin-bottom: 30px;">
             <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin: 0 0 16px;">
-                dY' Collections
+                💰 Collections
             </h3>
             <div id="collections-stats-card" class="glass-panel" style="padding: 24px; background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(16, 185, 129, 0.04)); border: 1px solid rgba(52, 211, 153, 0.2);">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
                     <div>
                         <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Today</div>
-                        <div style="font-size: 32px; font-weight: 800; color: #34d399; line-height: 1.1;" id="col-today">dY'0</div>
+                        <div style="font-size: 32px; font-weight: 800; color: #34d399; line-height: 1.1;" id="col-today">₹0</div>
                     </div>
                     <div>
                         <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Yesterday</div>
-                        <div style="font-size: 24px; font-weight: 700; color: #fbbf24; line-height: 1.1; margin-top: 8px;" id="col-yesterday">dY'0</div>
+                        <div style="font-size: 24px; font-weight: 700; color: #fbbf24; line-height: 1.1; margin-top: 8px;" id="col-yesterday">₹0</div>
                     </div>
                     <div>
                         <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">This Month</div>
-                        <div style="font-size: 24px; font-weight: 700; color: #818cf8; line-height: 1.1; margin-top: 8px;" id="col-month">dY'0</div>
+                        <div style="font-size: 24px; font-weight: 700; color: #818cf8; line-height: 1.1; margin-top: 8px;" id="col-month">₹0</div>
                     </div>
                 </div>
             </div>
@@ -1109,18 +1109,18 @@
         
         async function loadCollectionsStats() {
             try {
-                const res = await fetch(${CONFIG.API_BASE_URL}/api/payments/collections, {
-                    headers: { 'Authorization': Bearer  }
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/payments/collections`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const d = await res.json();
-                if (res.status === 403 && d.detail && d.detail.error === 'tier_required') {
-                    // Feature is not available, hide widget silently
+                if (res.status === 403) {
+                    // Feature not available on this tier — hide widget silently
                     return;
                 }
                 if (res.ok) {
-                    document.getElementById('col-today').textContent = 'dY'' + (d.today || 0).toLocaleString('en-IN');
-                    document.getElementById('col-yesterday').textContent = 'dY'' + (d.yesterday || 0).toLocaleString('en-IN');
-                    document.getElementById('col-month').textContent = 'dY'' + (d.this_month || 0).toLocaleString('en-IN');
+                    const d = await res.json();
+                    document.getElementById('col-today').textContent = '₹' + (d.today || 0).toLocaleString('en-IN');
+                    document.getElementById('col-yesterday').textContent = '₹' + (d.yesterday || 0).toLocaleString('en-IN');
+                    document.getElementById('col-month').textContent = '₹' + (d.this_month || 0).toLocaleString('en-IN');
                     document.getElementById('collections-stats-section').style.display = 'block';
                 }
             } catch (e) {}
