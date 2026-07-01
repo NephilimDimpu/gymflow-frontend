@@ -1,4 +1,4 @@
-<!-- ============================================
+﻿<!-- ============================================
      [SCREEN-2] Members List Screen
      Copy this to: frontend/members.html
      View and manage all gym members
@@ -376,6 +376,8 @@
                             </select>
                         </div>
                     </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 8px;">
                         <button class="btn btn-primary" onclick="savePTPackage()" style="flex: 1;">Save Package</button>
                         <button class="btn btn-secondary" onclick="closePTModal()" style="background: rgba(255,255,255,0.05);">Cancel</button>
                     </div>
@@ -395,7 +397,7 @@
                     </div>
                     <input type="hidden" id="payment-modal-member-id">
                     <input type="hidden" id="payment-modal-plan-id">
-                    
+
                     <div class="form-group">
                         <label class="form-label" for="payment-modal-amount">Amount Received (₹)</label>
                         <input type="number" id="payment-modal-amount" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff; font-size: 18px; font-weight: 700;" placeholder="0">
@@ -413,7 +415,7 @@
                         <label class="form-label" for="payment-modal-ref">Reference ID / Note (Optional)</label>
                         <input type="text" id="payment-modal-ref" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="e.g., UPI Ref or Month advance">
                     </div>
-                    
+
                     <div id="payment-modal-plan-msg" style="margin-top: -8px; margin-bottom: 16px; font-size: 12px; color: #34d399; display: none;">
                         ✓ This will also extend their active plan.
                     </div>
@@ -430,9 +432,16 @@
     <script>
         const token = localStorage.getItem('auth_token');
         const userRole = localStorage.getItem('role') || 'owner';
+        // [TIER-GATE] Auto-reminders are a Pro+Elite feature. Starter gyms see an
+        // upgrade prompt instead of the bell button so they can't trigger 403s.
         const userTier = localStorage.getItem('tier') || 'starter';
         if (!token) { window.location.href = 'login.html'; throw new Error('redirecting'); }
 
+        // Branch filter only makes sense for ELITE gyms with MULTIPLE
+        // branches. branch_management is Elite-only — Starter/Pro can't
+        // create extra branches, and every gym has an auto-created
+        // "Main Headquarters", so a single-branch gym would otherwise see
+        // a pointless/confusing branch dropdown. Gate on tier + count.
         if (userRole === 'owner' && userTier === 'elite') loadBranchFilter();
 
         async function loadBranchFilter() {
@@ -442,6 +451,8 @@
                 });
                 if (res.ok) {
                     const branches = await res.json();
+                    // >1, not >0: hide the filter when there's only the
+                    // single auto-created HQ branch (nothing to filter).
                     if (branches.length > 1) {
                         document.getElementById('branch-filter-row').style.display = 'block';
                         document.getElementById('branch-filter').innerHTML +=
@@ -451,16 +462,17 @@
             } catch (err) { console.error(err); }
         }
 
+        // Server-driven list state (paginated). pageMembers = current page only.
         let pageMembers = [];
         let currentFilter = 'all';
-        let currentPlan = '';
+        let currentPlan = '';        // '' = all plans, 'none' = members with no plan
         let currentSearch = '';
-        let currentExpiryFrom = '';
-        let currentExpiryTo = '';
-        let currentYear = '';
+        let currentExpiryFrom = '';  // YYYY-MM-DD
+        let currentExpiryTo = '';    // YYYY-MM-DD
+        let currentYear = '';        // on-record (membership start) year, e.g. 2024
         let currentSort = 'recent';
-        let currentDuplicatesOnly = false;
-        let pageSize = 50;
+        let currentDuplicatesOnly = false;  // safety-net filter: only members sharing a name
+        let pageSize = 50;   // rows per page (10/25/50/100 selector)
         let currentOffset = 0;
         let totalMembers = 0;
         let serverCounts = { all: 0, active: 0, expiring_soon: 0, expired: 0 };
@@ -469,25 +481,38 @@
         function _escAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
         function _escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
+        // Deterministic colour per plan — same plan always gets the same colour,
+        // so colour-coded sets are consistent across pages/reloads. No-plan = grey.
         const PLAN_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#ef4444', '#eab308', '#8b5cf6', '#06b6d4'];
         function planColor(name) {
             const key = (name || '').trim().toLowerCase();
-            if (!key) return '#64748b';
+            if (!key) return '#64748b';  // no plan → neutral grey
             let h = 0;
             for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
             return PLAN_COLORS[h % PLAN_COLORS.length];
         }
+        // Is the current view a grouped (set) view?
         function _isGroupedView() { return currentSort === 'plan' || currentSort === 'plan_az'; }
 
         function _isActive(m) { return m.status === 'active' || m.status === 'expiring_soon'; }
 
+        // The colour accent for a member's row/set:
+        //  - has a plan        → that plan's colour
+        //  - ACTIVE, no plan   → RED (needs a plan assigned — "yet to assign")
+        //  - EXPIRED, no plan  → neutral grey (ex-member, no action needed)
         const NEEDS_PLAN_COLOR = '#ef4444';
         function rowAccentColor(m) {
             if (m.current_plan) return planColor(m.current_plan);
-            if (_isActive(m)) return NEEDS_PLAN_COLOR;
+            if (_isActive(m)) return NEEDS_PLAN_COLOR;       // red: assign now
+            // Expired/new no-plan: tint by on-record YEAR so each year's set of
+            // ex-members is visually distinct. Undated contacts stay neutral grey.
             return m.member_since ? planColor('yr-' + m.member_since) : '#64748b';
         }
 
+        // Group key: keeps no-plan ACTIVE members ("yet to assign") in their own
+        // set, and splits no-plan EXPIRED ex-members into one set PER on-record
+        // year (2024, 2025, …) so each year is segregated and labelled on its own —
+        // without ever assigning a plan. Undated contacts fall into a final set.
         function _groupKey(m) {
             if (!m.current_plan) {
                 if (_isActive(m)) return 'noplan|active';
@@ -496,9 +521,15 @@
             return currentSort === 'plan' ? (m.current_plan + '|' + (m.expiry_date || '')) : m.current_plan;
         }
 
+        // Ids of members ticked for bulk actions. Persists across filter/search
+        // re-renders so a selection isn't lost when the owner narrows the list.
         const selectedIds = new Set();
+        // When true, bulk actions target EVERY member matching the current filter
+        // (across all pages), not just the ticked rows. Set via the banner.
         let selectAllMatchingMode = false;
+        // Page nav keeps the "all matching" selection; a filter change clears it.
         let _keepMatchingThisLoad = false;
+        // Hide the select-all header checkbox for staff (they can't bulk delete).
         if (!(userRole === 'owner' || userRole === 'manager')) {
             document.addEventListener('DOMContentLoaded', () => {
                 const th = document.getElementById('select-all-th');
@@ -509,8 +540,11 @@
         async function loadMembers() {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = 'flex';
+            // A filter change clears an "all matching" selection; page nav keeps it.
             if (!_keepMatchingThisLoad) selectAllMatchingMode = false;
             _keepMatchingThisLoad = false;
+            // Never spin forever — abort after 25s (covers a DB cold-start) and
+            // show a clear retry instead of an infinite loading screen.
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 25000);
             try {
@@ -546,6 +580,7 @@
             } catch (error) {
                 const timedOut = error && error.name === 'AbortError';
                 showToast(timedOut ? "Loading took too long — the server may be waking up. Please retry." : "Failed to load members", "error");
+                // Show an in-place Retry so the owner isn't left on a blank/loading screen.
                 const container = document.getElementById('members-container');
                 const empty = document.getElementById('empty-state');
                 if (empty) empty.style.display = 'none';
@@ -566,6 +601,8 @@
             }
         }
 
+        // Populate the plan filter dropdown + the bulk-assign dropdown from the
+        // gym's plans (fetched once). Filter uses plan NAME; assign uses plan ID.
         async function loadPlansForControls() {
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -577,7 +614,7 @@
                         '<option value="">All plans</option>' +
                         '<option value="none">— No plan —</option>' +
                         plans.map(p => `<option value="${_escAttr(p.name)}">${_escHtml(p.name)}</option>`).join('');
-                    filterSel.value = currentPlan || '';
+                    filterSel.value = currentPlan || '';   // reflect any deep-linked filter
                 }
                 const assignSel = document.getElementById('bulk-assign-select');
                 if (assignSel) {
@@ -586,7 +623,7 @@
                         plans.map(p => `<option value="${p.id}">${_escHtml(p.name)}</option>`).join('');
                 }
                 _plansLoaded = true;
-            } catch (_) { }
+            } catch (_) { /* non-fatal */ }
         }
 
         function onPlanFilterChange() {
@@ -598,6 +635,7 @@
         function onDateFilterChange() {
             let from = document.getElementById('expiry-from').value || '';
             let to = document.getElementById('expiry-to').value || '';
+            // Be forgiving if the owner picks them backwards (from after to) — swap.
             if (from && to && from > to) {
                 [from, to] = [to, from];
                 document.getElementById('expiry-from').value = from;
@@ -621,6 +659,7 @@
             loadMembers();
         }
 
+        // Click a year chip / header → filter the whole list to that on-record year.
         function filterByYear(year) {
             currentYear = String(year);
             currentOffset = 0;
@@ -634,22 +673,27 @@
             _syncYearControls();
             loadMembers();
         }
+        // The "Year" dropdown in the filter bar — same action as the chips.
         function onYearFilterChange() {
             currentYear = document.getElementById('year-filter').value || '';
             currentOffset = 0;
-            renderYearFilterPill();
+            renderYearFilterPill();   // keep the pill in sync (dropdown already set)
             loadMembers();
         }
+        // Keep both the dropdown and the pill reflecting currentYear.
         function _syncYearControls() {
             const sel = document.getElementById('year-filter');
             if (sel) sel.value = currentYear || '';
             renderYearFilterPill();
         }
+        // Fill the Year dropdown from the distinct years the server reports.
+        // Preserves the current selection even if it isn't in the list yet.
         function populateYearFilter(years) {
             const sel = document.getElementById('year-filter');
             if (!sel || !Array.isArray(years)) return;
             const opts = ['<option value="">All years</option>']
                 .concat(years.map(y => `<option value="${y}">${y}</option>`));
+            // If a year is filtered that the server didn't list, keep it selectable.
             if (currentYear && !years.map(String).includes(String(currentYear))) {
                 opts.push(`<option value="${currentYear}">${currentYear}</option>`);
             }
@@ -671,19 +715,23 @@
 
         function onSortChange() {
             currentSort = document.getElementById('sort-by').value || 'recent';
-            _syncAutoArrangeBtn();
+            _syncAutoArrangeBtn();   // keep the Auto-arrange button state in sync
             currentOffset = 0;
             loadMembers();
         }
 
+        // "All" maps to the server's max page size (2000) — enough to show every
+        // member of any realistic gym in one view; larger gyms still get a pager.
         const ALL_PAGE_SIZE = 2000;
         function onPageSizeChange() {
             const v = document.getElementById('page-size').value;
             pageSize = (v === 'all') ? ALL_PAGE_SIZE : (parseInt(v, 10) || 50);
-            currentOffset = 0;
+            currentOffset = 0;   // back to first page when page size changes
             loadMembers();
         }
 
+        // One-click "Auto-arrange": toggle the neat grouped view (by plan & period,
+        // numbered serially) on/off. Just flips the sort — nothing destructive.
         function _syncAutoArrangeBtn() {
             const btn = document.getElementById('auto-arrange-btn');
             if (!btn) return;
@@ -720,8 +768,11 @@
             if (currentOffset > 0) { currentOffset = Math.max(0, currentOffset - pageSize); _keepMatchingThisLoad = true; loadMembers(); window.scrollTo(0, 0); }
         }
 
+        // Trigger top loader on start
         if (typeof showTopLoader === 'function') showTopLoader();
 
+        // Paint the server-provided status counts onto the filter buttons and the
+        // Members tab badge. (Counts reflect the whole filtered set, not just the page.)
         function updateFilterCounts() {
             const counts = serverCounts || { all: 0, active: 0, expiring_soon: 0, expired: 0 };
             document.querySelectorAll('.filter-count').forEach(el => {
@@ -735,6 +786,9 @@
             }
         }
 
+        // When sorted by "Plan & period", insert a heading row at the start of
+        // each set (same plan + same expiry). Members with the same plan and
+        // term are listed together, A→Z. Returns '' for any other sort.
         let _lastGroupKey = null;
         function groupDividerRow(m) {
             if (!_isGroupedView()) return '';
@@ -747,6 +801,7 @@
             if (!m.current_plan) {
                 if (_isActive(m)) { label = 'NO PLAN — ASSIGN NOW (ACTIVE)'; icon = '⚠️'; }
                 else if (m.member_since) {
+                    // One labelled set per on-record year — no plan assigned.
                     label = `ON RECORD ${m.member_since} · NO PLAN (EXPIRED — ASSIGN LATER)`;
                     icon = '📅';
                     clickYear = m.member_since;
@@ -765,6 +820,7 @@
         }
 
         function renderTable(members) {
+            console.log("[MEMBERS-DEBUG] Rendering table with:", members.length, "members");
             const container = document.getElementById('members-container');
             const empty = document.getElementById('empty-state');
             const tbody = document.getElementById('active-members-tbody');
@@ -772,12 +828,41 @@
             if (!members || members.length === 0) {
                 container.style.display = 'none';
                 empty.style.display = 'block';
+                
+                const title = document.getElementById('empty-title');
+                const subtitle = document.getElementById('empty-subtitle');
+                const btns = document.getElementById('empty-buttons');
+                const icon = document.getElementById('empty-icon');
+
+                if (currentFilter === 'all') {
+                    icon.textContent = '👥';
+                    title.textContent = 'No members found';
+                    subtitle.textContent = 'Ready to grow? Add your first member or import your existing list to get started.';
+                    btns.style.display = 'flex';
+                } else if (currentFilter === 'active') {
+                    icon.textContent = '⚡';
+                    title.textContent = 'No active members';
+                    subtitle.textContent = 'You do not have any active memberships right now.';
+                    btns.style.display = 'none';
+                } else if (currentFilter === 'expiring_soon') {
+                    icon.textContent = '⏳';
+                    title.textContent = 'No members expiring soon';
+                    subtitle.textContent = 'Great news! None of your members are expiring in the next 7 days.';
+                    btns.style.display = 'none';
+                } else if (currentFilter === 'expired') {
+                    icon.textContent = '✅';
+                    title.textContent = 'No expired members';
+                    subtitle.textContent = 'Awesome! Everyone is up to date and active.';
+                    btns.style.display = 'none';
+                }
+                
                 return;
             }
 
             container.style.display = 'block';
             empty.style.display = 'none';
 
+            // Inject the rows
             _lastGroupKey = null;
             const _grouped = _isGroupedView();
             tbody.innerHTML = members.map((m, _i) => groupDividerRow(m) + `
@@ -787,7 +872,7 @@
                     </td>
                     <td data-label="#" style="text-align: center; color: var(--text-muted); font-size: 13px;">${currentOffset + _i + 1}</td>
                     <td data-label="Member">
-                        <div style="font-weight: 700;">${m.name}${m.is_duplicate ? ` <span title="Possible duplicate." style="font-size:10px; font-weight:700; color:#fca5a5; background:rgba(248,113,113,0.15); padding:1px 7px; border-radius:8px; vertical-align:middle;">⚠️ duplicate</span>` : ''}</div>
+                        <div style="font-weight: 700;">${m.name}${m.is_duplicate ? ` <span title="This name appears on more than one member — possible duplicate. Review and delete the extra if so." style="font-size:10px; font-weight:700; color:#fca5a5; background:rgba(248,113,113,0.15); padding:1px 7px; border-radius:8px; vertical-align:middle;">⚠️ duplicate</span>` : ''}</div>
                         ${m.email ? `<div style="font-size: 11px; color: var(--text-muted);">${m.email}</div>` : ''}
                     </td>
                     <td data-label="Contact">
@@ -799,23 +884,29 @@
                             <div style="font-weight: 600; color: #fff;">${m.current_plan}</div>
                             <div style="font-size: 12px; color: var(--text-muted);">Expires: ${m.expiry_date || 'N/A'} ${m.days_left !== undefined && m.days_left !== null ? `(<span style="color: ${m.days_left <= 7 ? (m.days_left < 0 ? '#f87171' : '#fbbf24') : 'inherit'};">${m.days_left} days left</span>)` : ''}</div>
                         ` : (_isActive(m) ? `
-                            <div style="font-weight: 700; color: #ef4444;">⚠️ Assign plan</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">${m.expiry_date ? `Active till ${m.expiry_date}` : 'Active — no end date set'}</div>
+                            <div style="font-weight: 700; color: #ef4444;">⚠️ Assign plan <span style="font-size: 10px; font-weight: 600; background: rgba(239,68,68,0.15); color:#fca5a5; padding: 1px 7px; border-radius: 8px;">assign now</span></div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${m.expiry_date ? `Active till ${m.expiry_date}${m.days_left !== undefined && m.days_left !== null ? ` (${m.days_left} days left)` : ''}` : 'Active — no end date set'}</div>
                         ` : `
-                            <div style="font-weight: 600; color: #94a3b8;">No plan</div>
+                            <div style="font-weight: 600; color: #94a3b8;">No plan <span style="font-size: 10px; color: #64748b; background: rgba(148,163,184,0.12); padding: 1px 7px; border-radius: 8px;">assign later</span></div>
                             <div style="font-size: 12px; color: var(--text-muted);">${m.expiry_date ? `📅 On record: ${m.expiry_date}` : 'Assign a plan when they join or renew'}</div>
                         `)}
                     </td>
                     <td data-label="Attendance">
                         ${m.current_plan ? `
                             <div style="font-weight: 600; color: #fff;">${m.total_checkins || 0} visits</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Current plan</div>
                         ` : '<span style="color: #64748b; font-size: 12px;">—</span>'}
                     </td>
                     <td data-label="Status">
                         <span class="badge badge-${getStatusClass(m.status)}">${formatStatus(m.status)}</span>
+                        ${m.member_since ? `<span onclick="filterByYear(${m.member_since})" title="Show only members on record since ${m.member_since}" style="cursor:pointer; display:inline-block; margin-left:6px; font-size:10px; font-weight:700; color:#93c5fd; background:rgba(59,130,246,0.14); padding:1px 7px; border-radius:8px; vertical-align:middle;">'${String(m.member_since).slice(-2)}</span>` : ''}
+                        ${m.days_since_last_reminder !== null && m.days_since_last_reminder !== undefined
+                            ? `<div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">📨 ${reminderAgo(m.days_since_last_reminder)}</div>`
+                            : ''
+                        }
                     </td>
                     <td style="text-align: right;">
-                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(99, 102, 241, 0.1); color: #818cf8; border-color: rgba(99, 102, 241, 0.2);" onclick="manualCheckIn(${m.id}, '${m.name.replace(/'/g, "\\'")}')" title="Manual Check-In">⏱️</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(99, 102, 241, 0.1); color: #818cf8; border-color: rgba(99, 102, 241, 0.2);" onclick="manualCheckIn(${m.id}, '${m.name.replace("'", "\'")}')" title="Manual Check-In">⏱️</button>
                         ${(userTier !== 'starter') ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(34, 197, 94, 0.1); color: #4ade80; border-color: rgba(34, 197, 94, 0.2);" onclick="openPaymentModal(${m.id}, '${m.name.replace(/'/g, "\\'")}')" title="Record Payment">💰</button>` : ''}
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editMember(${m.id})">Edit</button>
                         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="sendReminder(${m.id})">🔔</button>
@@ -826,11 +917,16 @@
                 </tr>
             `).join('');
 
+            // Re-sync the bulk-action bar + header checkbox after every render
+            // (filtering/searching rebuilds the rows but keeps the selection).
             updateBulkBar();
         }
 
+        // ============================================
+        // [BULK-SELECT] Multi-select + bulk delete
+        // ============================================
         function onRowCheck() {
-            selectAllMatchingMode = false;
+            selectAllMatchingMode = false;  // manual change exits "all matching"
             document.querySelectorAll('.member-checkbox').forEach(cb => {
                 const id = parseInt(cb.value, 10);
                 if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
@@ -840,6 +936,7 @@
 
         function toggleSelectAll(headerCb) {
             selectAllMatchingMode = false;
+            // Select/deselect only the rows currently visible (respects filter/search).
             document.querySelectorAll('.member-checkbox').forEach(cb => {
                 cb.checked = headerCb.checked;
                 const id = parseInt(cb.value, 10);
@@ -848,6 +945,7 @@
             updateBulkBar();
         }
 
+        // Banner action: target EVERY member matching the current filter.
         function selectAllMatching() {
             selectAllMatchingMode = true;
             updateBulkBar();
@@ -877,10 +975,12 @@
             const anySelected = selectAllMatchingMode || selectedIds.size > 0;
             if (bar) bar.style.display = anySelected ? 'flex' : 'none';
             if (label) label.textContent = selectAllMatchingMode
-                ? `All ${totalMembers} matching selected`
+                ? `All ${totalMembers} matching selected (every page)`
                 : `${selectedIds.size} selected`;
+            // Delete acts on ticked rows only — hide it in all-matching mode (assign only).
             if (delBtn) delBtn.style.display = selectAllMatchingMode ? 'none' : '';
 
+            // "Select all N matching" banner (Gmail-style).
             if (banner) {
                 if (selectAllMatchingMode) {
                     banner.style.display = 'flex';
@@ -907,54 +1007,91 @@
         async function bulkDeleteSelected() {
             const ids = Array.from(selectedIds);
             if (ids.length === 0) return;
-            if (!confirm(`Permanently remove ${ids.length} selected member(s)?`)) return;
+            if (!confirm(`Permanently remove ${ids.length} selected member(s)? This cannot be undone.`)) return;
 
             const btn = document.getElementById('bulk-delete-btn');
+            const original = btn.innerHTML;
             btn.disabled = true;
+            btn.innerHTML = '⏳ Deleting…';
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk-delete`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ member_ids: ids })
                 });
-                if (res.ok) {
-                    showToast('Deleted members.', 'success');
-                    selectedIds.clear();
-                    await loadMembers();
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(typeof data.detail === 'string' ? data.detail : 'Bulk delete failed');
                 }
-            } catch (err) { showToast('Delete failed', 'error'); } finally { btn.disabled = false; }
+                showToast(data.message || `Deleted ${data.deleted_count} member(s).`, 'success');
+                selectedIds.clear();
+                await loadMembers();   // refresh current page + counts (keeps filter)
+            } catch (err) {
+                showToast(err.message || 'Failed to delete selected members', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
         }
 
+        // Assign a plan to all currently-selected members (the bulk-assign
+        // dropdown in the action bar). Backfills billing cycles onto members
+        // imported without a plan.
         async function bulkAssignPlan() {
             const sel = document.getElementById('bulk-assign-select');
             const planId = sel.value;
             if (!planId) return;
+            const planName = sel.options[sel.selectedIndex].textContent;
             const targetCount = selectAllMatchingMode ? totalMembers : selectedIds.size;
             if (targetCount === 0) { sel.value = ''; return; }
 
-            if (!confirm(`Assign plan to ${targetCount} members?`)) { sel.value = ''; return; }
+            if (!confirm(
+                `Assign "${planName}" to ${targetCount}${selectAllMatchingMode ? ' matching' : ' selected'} member(s)?\n\n` +
+                `⏱️ This starts a FRESH term from TODAY (today + the plan's length) — ` +
+                `use it to RENEW members or set up a plan for unassigned ones.\n\n` +
+                `⚠️ It does NOT keep an existing expiry date. To migrate members who ` +
+                `already have time left, re-import their sheet with "Auto-detect plan ` +
+                `from dates" instead — that keeps their real expiry.`
+            )) {
+                sel.value = '';
+                return;
+            }
             sel.disabled = true;
             try {
                 let res;
                 if (selectAllMatchingMode) {
+                    // Assign to EVERY member matching the current filter (all pages).
+                    const body = { plan_id: parseInt(planId, 10), payment_received: true };
+                    if (currentFilter && currentFilter !== 'all') body.status = currentFilter;
+                    if (currentPlan) body.plan = currentPlan;
+                    if (currentSearch) body.q = currentSearch;
+                    if (currentExpiryFrom) body.expiry_from = currentExpiryFrom;
+                    if (currentExpiryTo) body.expiry_to = currentExpiryTo;
+                    const branchId = document.getElementById('branch-filter')?.value;
+                    if (branchId) body.branch_id = parseInt(branchId, 10);
                     res = await fetch(`${CONFIG.API_BASE_URL}/api/members/assign-plan-to-matching`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ plan_id: parseInt(planId, 10), status: currentFilter })
+                        body: JSON.stringify(body)
                     });
                 } else {
                     res = await fetch(`${CONFIG.API_BASE_URL}/api/members/bulk-assign-plan`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ member_ids: Array.from(selectedIds), plan_id: parseInt(planId, 10) })
+                        body: JSON.stringify({ member_ids: Array.from(selectedIds), plan_id: parseInt(planId, 10), payment_received: true })
                     });
                 }
-                if (res.ok) {
-                    showToast('Plan assigned.', 'success');
-                    clearSelection();
-                    await loadMembers();
-                }
-            } catch (err) { showToast('Assign failed', 'error'); } finally { sel.value = ''; sel.disabled = false; }
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Assign failed');
+                showToast(data.message || `Assigned to ${data.updated} member(s).`, 'success');
+                clearSelection();
+                await loadMembers();
+            } catch (err) {
+                showToast(err.message || 'Failed to assign plan', 'error');
+            } finally {
+                sel.value = '';
+                sel.disabled = false;
+            }
         }
 
         function getStatusClass(s) {
@@ -967,33 +1104,11 @@
             return map[s] || s;
         }
 
-        async function manualCheckIn(id, name) {
-            try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin/admin/${id}`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (res.ok) showToast(data.message, 'success');
-                else showToast(data.detail || 'Failed to check in', 'error');
-            } catch (err) { showToast('Network error', 'error'); }
-        }
-
-        async function exportMembersCSV() {
-            const btn = document.getElementById('export-btn');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/exports/members.csv`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) throw new Error(`Export failed`);
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = 'members.csv'; a.click();
-                window.showToast('CSV exported', 'success');
-            } catch (err) { window.showToast('Export failed', 'error'); } finally { btn.disabled = false; }
+        function reminderAgo(days) {
+            if (days === 0) return 'Reminded today';
+            if (days === 1) return 'Reminded yesterday';
+            if (days < 0) return `Reminder due in ${-days}d`;
+            return `Reminded ${days}d ago`;
         }
 
         // ----- PAYMENT LEDGER MODAL -----
@@ -1003,10 +1118,10 @@
             document.getElementById('payment-modal-amount').value = '';
             document.getElementById('payment-modal-method').value = 'cash';
             document.getElementById('payment-modal-ref').value = '';
-            
+
             document.getElementById('payment-modal-amount').placeholder = 'Loading...';
             document.getElementById('payment-modal').style.display = 'flex';
-            
+
             const m = pageMembers.find(x => x.id === memberId);
             let planId = null;
             if (m && m.current_plan) {
@@ -1022,7 +1137,7 @@
                     }
                 } catch(e) {}
             }
-            
+
             document.getElementById('payment-modal-amount').placeholder = '0';
             document.getElementById('payment-modal-plan-id').value = planId || '';
             document.getElementById('payment-modal-plan-msg').style.display = planId ? 'block' : 'none';
@@ -1035,7 +1150,7 @@
         async function submitPayment() {
             const btn = document.getElementById('payment-modal-submit');
             const originalText = btn.textContent;
-            
+
             const payload = {
                 member_id: parseInt(document.getElementById('payment-modal-member-id').value),
                 amount: parseFloat(document.getElementById('payment-modal-amount').value),
@@ -1043,10 +1158,10 @@
                 reference: document.getElementById('payment-modal-ref').value,
                 note: document.getElementById('payment-modal-ref').value,
             };
-            
+
             const planId = document.getElementById('payment-modal-plan-id').value;
             if (planId) payload.plan_id = parseInt(planId);
-            
+
             if (!payload.amount || isNaN(payload.amount)) {
                 showToast('Please enter a valid amount', 'error');
                 return;
@@ -1075,8 +1190,214 @@
                 btn.disabled = false;
             }
         }
-    
-function logout() {
+
+        async function manualCheckIn(id, name) {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/checkin/admin/${id}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message, 'success');
+                } else if (res.status === 403 && data.detail && data.detail.error === 'tier_required') {
+                    if (confirm(data.detail.message + '\n\nGo to Upgrade page now?')) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                } else {
+                    showToast(data.detail || 'Failed to check in', 'error');
+                }
+            } catch (err) {
+                showToast('Network error while checking in', 'error');
+            }
+        }
+
+        function filterMembers(status) {
+            currentFilter = status;
+            currentDuplicatesOnly = false;  // a status tab exits duplicates-only mode
+            currentOffset = 0;  // jump back to first page when the filter changes
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
+            const dupBtn = document.getElementById('dup-filter-btn');
+            if (dupBtn) dupBtn.classList.remove('active');
+            loadMembers();
+        }
+
+        // Show/hide the "⚠️ Duplicates" pill (only when the gym actually has any).
+        function updateDuplicatePill(count) {
+            const btn = document.getElementById('dup-filter-btn');
+            if (!btn) return;
+            const c = document.getElementById('dup-count');
+            if (c) c.textContent = count;
+            btn.style.display = count > 0 ? '' : 'none';
+            if (count === 0 && currentDuplicatesOnly) {
+                // No duplicates left (owner cleaned them) → drop back to All.
+                currentDuplicatesOnly = false;
+                filterMembers('all');
+            }
+        }
+
+        // Toggle the safety-net filter that shows only members sharing a name.
+        function toggleDuplicatesFilter() {
+            currentDuplicatesOnly = !currentDuplicatesOnly;
+            currentOffset = 0;
+            const dupBtn = document.getElementById('dup-filter-btn');
+            if (dupBtn) dupBtn.classList.toggle('active', currentDuplicatesOnly);
+            if (currentDuplicatesOnly) {
+                // Clear the status tabs' active state while in duplicates view.
+                currentFilter = 'all';
+                document.querySelectorAll('.filter-btn[data-status]').forEach(b => {
+                    if (b.id !== 'dup-filter-btn') b.classList.remove('active');
+                });
+            } else {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === 'all'));
+            }
+            loadMembers();
+        }
+
+        // Debounced server-side search (waits for the owner to stop typing so we
+        // don't fire a request per keystroke against 1000+ members).
+        let _searchTimer = null;
+        function searchMembers() {
+            clearTimeout(_searchTimer);
+            _searchTimer = setTimeout(() => {
+                currentSearch = document.getElementById('search-input').value.trim();
+                currentOffset = 0;
+                loadMembers();
+            }, 350);
+        }
+
+        // Open WhatsApp with a pre-filled reminder message — bypasses Meta API
+        // entirely. Just a wa.me deep-link generated by the backend.
+        async function sendWhatsAppReminder(id) {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${id}/whatsapp-reminder`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const d = await res.json();
+                if (res.status === 403 && d.detail && d.detail.error === 'tier_required') {
+                    if (confirm(d.detail.message + '\n\nGo to Upgrade page now?')) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                    return;
+                }
+                if (!res.ok) {
+                    const errMsg = (typeof d.detail === 'string') ? d.detail : 'Could not generate WhatsApp link';
+                    window.showToast(errMsg, 'error');
+                    return;
+                }
+                if (d.wa_link) {
+                    // Open in a new tab so the owner doesn't navigate away
+                    window.open(d.wa_link, '_blank', 'noopener');
+                    window.showToast(`WhatsApp opened for ${d.member_phone}`, 'success');
+                }
+            } catch (err) {
+                window.showToast("Network error", "error");
+            }
+        }
+
+        async function sendReminder(id) {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${id}/remind`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const d = await res.json();
+                if (res.status === 403 && d.detail && d.detail.error === 'tier_required') {
+                    if (confirm(d.detail.message + '\n\nGo to Upgrade page now?')) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                    return;
+                }
+                const msg = (typeof d.detail === 'string' ? d.detail : d.message) || 'Reminder sent';
+                window.showToast(msg, res.ok ? "success" : "error");
+            } catch (err) { window.showToast("Network error", "error"); }
+        }
+
+        function editMember(id) {
+            window.location.href = `add-member.html?edit=${id}`;
+        }
+
+        async function resetMemberPassword(id, name) {
+            const newPw = prompt(`Set a new portal password for ${name}:\n(Min 6 characters — share it with the member)`);
+            if (!newPw) return;
+            if (newPw.length < 6) { window.showToast("Password must be at least 6 characters", "warning"); return; }
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${id}/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_password: newPw })
+                });
+                if (res.ok) {
+                    window.showToast(`Password reset for ${name}`, "success");
+                } else {
+                    const err = await res.json();
+                    window.showToast(err.detail || "Failed to reset", "error");
+                }
+            } catch (err) { window.showToast("Failed to reset password", "error"); }
+        }
+
+        async function deleteMember(id) {
+            if (!confirm('Permanently remove this member?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    window.showToast("Removed successfully", "success");
+                    loadMembers();
+                }
+            } catch (err) { window.showToast("Failed to delete", "error"); }
+        }
+
+        async function exportMembersCSV() {
+            const tier = localStorage.getItem('tier') || 'starter';
+            if (tier === 'starter') {
+                if (confirm("CSV export is a Pro feature. Would you like to check upgrade options?")) {
+                    window.location.href = 'upgrade-plan.html';
+                }
+                return;
+            }
+
+            const btn = document.getElementById('export-btn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span style="margin-right: 6px;">⏳</span> Exporting…';
+
+            try {
+                // Auth header is required, so we fetch + blob rather than using
+                // a plain <a href>. The backend streams the full members list
+                // (not just the loaded page) with branch + email + payment status.
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/exports/members.csv`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 403) {
+                    if (confirm("This feature requires Pro or Elite. Upgrade now?")) {
+                        window.location.href = 'upgrade-plan.html';
+                    }
+                    return;
+                }
+                if (!res.ok) throw new Error(`Export failed (${res.status})`);
+
+                const blob = await res.blob();
+                const filename = (res.headers.get('content-disposition') || '')
+                    .match(/filename="?([^"]+)"?/)?.[1]
+                    || `members_${new Date().toISOString().split('T')[0]}.csv`;
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename; a.click();
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                window.showToast('CSV exported', 'success');
+            } catch (err) {
+                window.showToast(err.message || 'Export failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        function logout() {
             localStorage.clear();
             window.location.href = 'login.html';
         }
@@ -1140,11 +1461,386 @@ function logout() {
 
         async function loadPTPackages() {
             try {
-                const res = await fetch(`${CONFIG.A
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/pt-packages`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 403) { ptPackages = []; return; }
+                if (res.ok) ptPackages = await res.json();
+            } catch (err) { console.error('[PT-LOAD]', err); ptPackages = []; }
 
-</script>
+            // Update badge
+            const countBadge = document.getElementById('pt-count');
+            if (ptPackages.length > 0) {
+                countBadge.textContent = ptPackages.length;
+                countBadge.style.display = 'inline';
+            } else {
+                countBadge.style.display = 'none';
+            }
+        }
+
+        async function renderPTTable() {
+            await loadPTPackages();
+            const container = document.getElementById('pt-members-container');
+            const empty = document.getElementById('pt-empty-state');
+            const controls = document.getElementById('pt-controls');
+            const tbody = document.getElementById('pt-members-tbody');
+
+            if (ptPackages.length === 0) {
+                container.style.display = 'none';
+                if (controls) controls.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            container.style.display = 'block';
+            if (controls) controls.style.display = 'flex';
+            empty.style.display = 'none';
+
+            const sortBy = (document.getElementById('pt-sort') || {}).value || 'member';
+            const q = ((document.getElementById('pt-search') || {}).value || '').trim().toLowerCase();
+
+            // Search by member, coach, or discipline.
+            let list = ptPackages.slice();
+            if (q) {
+                list = list.filter(p =>
+                    (p.member_name || '').toLowerCase().includes(q) ||
+                    (p.coach_name || '').toLowerCase().includes(q) ||
+                    (p.name || '').toLowerCase().includes(q)
+                );
+            }
+
+            // Active (not expired) first, then by the chosen key.
+            const grouped = (sortBy === 'coach' || sortBy === 'discipline');
+            const cmpFns = {
+                member: (a, b) => (a.member_name || '').localeCompare(b.member_name || ''),
+                coach: (a, b) => (a.coach_name || 'Unassigned').localeCompare(b.coach_name || 'Unassigned') || (a.member_name || '').localeCompare(b.member_name || ''),
+                discipline: (a, b) => (a.name || '').localeCompare(b.name || '') || (a.member_name || '').localeCompare(b.member_name || ''),
+                expiry: (a, b) => (a.end_date ? new Date(a.end_date).getTime() : Infinity) - (b.end_date ? new Date(b.end_date).getTime() : Infinity),
+                sessions: (a, b) => ((a.sessions_left ?? 999) - (b.sessions_left ?? 999)),
+            };
+            const cmp = cmpFns[sortBy] || cmpFns.member;
+            list.sort((a, b) => ((a.expired ? 1 : 0) - (b.expired ? 1 : 0)) || cmp(a, b));
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">No PT packages match “${_escHtml(q)}”.</td></tr>`;
+                return;
+            }
+
+            let lastPtKey = null;
+            tbody.innerHTML = list.map(p => {
+                const left = p.sessions_left;
+                const pct = p.sessions_total ? Math.round((p.sessions_used / p.sessions_total) * 100) : 0;
+                const isLow = left <= 2 && p.sessions_total > 0;
+                let divider = '';
+                if (grouped) {
+                    const label = sortBy === 'coach' ? (p.coach_name || 'Unassigned') : (p.name || 'Personal Training');
+                    if (label !== lastPtKey) {
+                        lastPtKey = label;
+                        const c = planColor(label);
+                        divider = `<tr><td colspan="6" style="background:${c}1f; border-left:5px solid ${c}; padding:9px 16px; font-size:12px; font-weight:800; color:${c}; text-transform:uppercase; letter-spacing:0.6px;">${sortBy === 'coach' ? '🧑‍🏫' : '🥋'} ${_escHtml(label)}</td></tr>`;
+                    }
+                }
+                return divider + `
+                <tr>
+                    <td data-label="Member">
+                        <div style="font-weight: 700;">${p.member_name || '—'}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">${p.member_phone || ''}</div>
+                    </td>
+                    <td data-label="Discipline">
+                        <span style="font-weight: 600; color: #fbbf24;">${p.name}</span>
+                    </td>
+                    <td data-label="Coach">
+                        <div style="font-weight: 600; color: #a78bfa;">${p.coach_name || 'Unassigned'}</div>
+                    </td>
+                    <td data-label="Sessions">
+                        <div style="font-weight: 700; color: ${isLow ? '#f87171' : '#34d399'};">${p.sessions_used} / ${p.sessions_total}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">${left} remaining</div>
+                        ${p.sessions_total > 0 ? `
+                            <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; width: 80px;">
+                                <div style="height: 100%; border-radius: 4px; width: ${pct}%; background: ${isLow ? '#f87171' : '#34d399'};"></div>
+                            </div>` : ''}
+                    </td>
+                    <td data-label="Expires">
+                        ${p.end_date ? `
+                            <div style="font-weight: 600; color: ${p.expired ? '#f87171' : '#fff'};">${p.end_date}</div>
+                            ${p.expired ? '<div style="font-size: 11px; color: #f87171;">Expired</div>' : ''}
+                        ` : '<span style="color: var(--text-muted);">No expiry</span>'}
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(52,211,153,0.1); color:#34d399;" onclick="logSession(${p.id})" title="Mark one session used">+1 Session</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.03);" onclick="editPTPackage(${p.id})">Edit</button>
+                        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; background: rgba(239,68,68,0.1); color:#f87171;" onclick="deletePTPackage(${p.id})">🗑️</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ----- PT Modal -----
+        async function ensurePTModalData() {
+            if (ptModalReady) return;
+            // Load coaches
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/staff`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) ptCoaches = await res.json();
+            } catch (e) { ptCoaches = []; }
+            const coachSel = document.getElementById('pt-modal-coach');
+            coachSel.innerHTML = '<option value="">No coach assigned</option>' +
+                ptCoaches.map(c => `<option value="${c.id}">${c.name}${c.custom_role ? ` (${c.custom_role})` : ''}</option>`).join('');
+
+            // Load plans for billing
+            let plans = [];
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) plans = await res.json();
+            } catch (e) {}
+            document.getElementById('pt-modal-plan').innerHTML = '<option value="">No billing record</option>' +
+                plans.map(p => `<option value="${p.id}">${p.name} - ₹${p.price.toLocaleString('en-IN')} (${p.duration_days}d)</option>`).join('');
+
+            // Members for the searchable picker — fetch the full list once and
+            // keep it in memory; the search box filters it as the owner types.
+            try {
+                const mRes = await fetch(`${CONFIG.API_BASE_URL}/api/members`, { headers: { 'Authorization': `Bearer ${token}` } });
+                _ptPickerMembers = mRes.ok ? await mRes.json() : [];
+            } catch (e) { _ptPickerMembers = []; }
+
+            ptModalReady = true;
+        }
+
+        // ----- Searchable member picker (PT modal) -----
+        let _ptPickerMembers = [];
+        function filterPTMembers() {
+            const box = document.getElementById('pt-member-results');
+            const q = (document.getElementById('pt-member-search').value || '').trim().toLowerCase();
+            let list = _ptPickerMembers;
+            if (q) {
+                list = list.filter(m =>
+                    (m.name || '').toLowerCase().includes(q) ||
+                    (m.phone || '').includes(q)
+                );
+            }
+            list = list.slice(0, 40);   // cap the dropdown; keep typing to narrow
+            if (!list.length) {
+                box.innerHTML = `<div style="padding:12px 14px; color:#94a3b8; font-size:13px;">${q ? 'No members match — keep typing or check spelling.' : 'Start typing a name or phone…'}</div>`;
+            } else {
+                box.innerHTML = list.map(m =>
+                    `<div onclick="selectPTMember(${m.id}, '${(m.name || '').replace(/'/g, "\\'")}', '${(m.phone || '')}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); font-size:14px; color:#e2e8f0;" onmouseover="this.style.background='rgba(99,102,241,0.18)'" onmouseout="this.style.background='transparent'">
+                        <span style="font-weight:600;">${_escHtml(m.name)}</span>
+                        <span style="color:#64748b; font-size:12px;"> · ${_escHtml(m.phone || 'no phone')}</span>
+                    </div>`
+                ).join('');
+            }
+            box.style.display = 'block';
+        }
+        function selectPTMember(id, name, phone) {
+            document.getElementById('pt-modal-member').value = id;
+            document.getElementById('pt-member-search').value = name + (phone ? ` (${phone})` : '');
+            document.getElementById('pt-member-results').style.display = 'none';
+        }
+        // Close the results dropdown when clicking outside it.
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('pt-member-search');
+            const box = document.getElementById('pt-member-results');
+            if (box && box.style.display === 'block' && e.target !== wrap && !box.contains(e.target)) {
+                box.style.display = 'none';
+            }
+        });
+
+        async function openPTModal() {
+            await ensurePTModalData();
+            document.getElementById('pt-modal-title').textContent = '🏋️ Add PT Package';
+            document.getElementById('pt-edit-id').value = '';
+            document.getElementById('pt-member-group').style.display = 'block';
+            document.getElementById('pt-modal-member').value = '';
+            const ptSearch = document.getElementById('pt-member-search');
+            if (ptSearch) ptSearch.value = '';
+            const ptResults = document.getElementById('pt-member-results');
+            if (ptResults) ptResults.style.display = 'none';
+            document.getElementById('pt-modal-discipline').value = 'Personal Training';
+            document.getElementById('pt-modal-coach').value = '';
+            document.getElementById('pt-modal-total').value = '';
+            document.getElementById('pt-modal-used').value = '0';
+            document.getElementById('pt-modal-expiry').value = '';
+            document.getElementById('pt-modal-plan').value = '';
+            document.getElementById('pt-modal').style.display = 'flex';
+        }
+
+        async function editPTPackage(id) {
+            await ensurePTModalData();
+            const p = ptPackages.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('pt-modal-title').textContent = '🏋️ Edit PT Package';
+            document.getElementById('pt-edit-id').value = id;
+            document.getElementById('pt-member-group').style.display = 'none'; // can't change member on edit
+            document.getElementById('pt-modal-discipline').value = p.name;
+            document.getElementById('pt-modal-coach').value = p.coach_id || '';
+            document.getElementById('pt-modal-total').value = p.sessions_total || '';
+            document.getElementById('pt-modal-used').value = p.sessions_used || 0;
+            // Convert "15 Aug 2026" back to yyyy-mm-dd for the date input
+            document.getElementById('pt-modal-expiry').value = p.end_date ? new Date(p.end_date).toISOString().split('T')[0] : '';
+            document.getElementById('pt-modal-plan').value = ''; // billing only on create
+            document.getElementById('pt-modal').style.display = 'flex';
+        }
+
+        function closePTModal() {
+            document.getElementById('pt-modal').style.display = 'none';
+        }
+
+        async function savePTPackage() {
+            const editId = document.getElementById('pt-edit-id').value;
+            const discipline = document.getElementById('pt-modal-discipline').value.trim() || 'Personal Training';
+            const coachId = document.getElementById('pt-modal-coach').value;
+            const total = parseInt(document.getElementById('pt-modal-total').value) || 0;
+            const used = parseInt(document.getElementById('pt-modal-used').value) || 0;
+            const expiry = document.getElementById('pt-modal-expiry').value || null;
+            const planId = document.getElementById('pt-modal-plan').value;
+
+            try {
+                let res;
+                if (editId) {
+                    res = await fetch(`${CONFIG.API_BASE_URL}/api/pt-packages/${editId}`, {
+                        method: 'PUT',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coach_id: coachId ? parseInt(coachId) : null,
+                            name: discipline,
+                            sessions_total: total,
+                            sessions_used: used,
+                            end_date: expiry || ''
+                        })
+                    });
+                } else {
+                    const memberId = document.getElementById('pt-modal-member').value;
+                    if (!memberId) { showToast('Please select a member', 'error'); return; }
+                    res = await fetch(`${CONFIG.API_BASE_URL}/api/members/${memberId}/pt-packages`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coach_id: coachId ? parseInt(coachId) : null,
+                            plan_id: planId ? parseInt(planId) : null,
+                            name: discipline,
+                            sessions_total: total,
+                            sessions_used: used,
+                            end_date: expiry,
+                            payment_received: true
+                        })
+                    });
+                }
+                const d = await res.json().catch(() => ({}));
+                if (res.status === 403) {
+                    if (confirm('PT tracking is a Pro feature. Upgrade now?')) window.location.href = 'upgrade-plan.html';
+                    return;
+                }
+                if (!res.ok) { showToast((typeof d.detail === 'string' ? d.detail : 'Failed to save'), 'error'); return; }
+                showToast(editId ? 'PT package updated' : 'PT package added', 'success');
+                closePTModal();
+                renderPTTable();
+            } catch (err) { showToast('Network error', 'error'); }
+        }
+
+        async function logSession(id) {
+            const p = ptPackages.find(x => x.id === id);
+            if (!p) return;
+            if (p.sessions_total && p.sessions_used >= p.sessions_total) {
+                showToast('All sessions already used', 'warning');
+                return;
+            }
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/pt-packages/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessions_used: (p.sessions_used || 0) + 1 })
+                });
+                if (res.ok) { showToast('Session logged', 'success'); renderPTTable(); }
+                else showToast('Failed to log session', 'error');
+            } catch (err) { showToast('Network error', 'error'); }
+        }
+
+        async function deletePTPackage(id) {
+            if (!confirm('Remove this PT package?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/pt-packages/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) { showToast('PT package removed', 'success'); renderPTTable(); }
+                else showToast('Failed to remove', 'error');
+            } catch (err) { showToast('Network error', 'error'); }
+        }
+
+        // ============================================
+        // [MEMBERS-TOUR] Guided walkthrough. Auto-shows ONCE for this update,
+        // then only on demand via the 📖 Guide button. Skips missing elements.
+        // ============================================
+        function startMembersTour() {
+            if (!(window.driver && window.driver.js && window.driver.js.driver)) {
+                if (typeof showToast === 'function') showToast('Guide is loading — try again in a moment.', 'info');
+                return;
+            }
+            const d = window.driver.js.driver;
+            const steps = [
+                { element: '#import-btn', popover: { title: '⬆️ Import members', description: 'Bring members in from a CSV or Excel file — even messy multi-sheet ones. GymExec auto-detects each member\'s plan from their dates.' } },
+                { element: '#export-btn', popover: { title: '⬇️ Export to Excel', description: 'Download your full member list anytime as an Excel-ready file.' } },
+                { element: 'button[data-status="all"]', popover: { title: '🗂️ Filter by status', description: 'Switch between All, Active, Expiring Soon and Expired — the count on each updates live.' } },
+                { element: '#plan-filter', popover: { title: '🏷️ Filter by plan', description: 'Show one plan at a time — or pick “No plan” to find members who still need one assigned.' } },
+                { element: '#expiry-from', popover: { title: '📅 Filter by expiry period', description: 'Pick a date range to see who expires in a given month, quarter, or year — handy for renewals.' } },
+                { element: '#search-input', popover: { title: '🔍 Search', description: 'Find any member instantly by name or phone number.' } },
+                { element: '#auto-arrange-btn', popover: { title: '⇅ Auto-arrange', description: 'One click groups everyone into tidy, colour-coded sets by plan & period — numbered, alphabetical, active members first.' } },
+                { element: '#sort-by', popover: { title: '↕️ Sort & group', description: 'Order by newest, expiry, name, or grouped by plan. Active members always appear above expired.' } },
+                { element: '#page-size', popover: { title: '🔢 Rows per page', description: 'Show 10, 25, 50, 100 — or All to see your whole list on one page.' } },
+                { popover: { title: '🎉 You\'re all set!', description: 'Active members missing a plan are flagged red. Tick members with the checkboxes to assign a plan or remove in bulk. Replay this guide anytime with the 📖 Guide button.' } },
+            ];
+            const valid = steps.filter(s => !s.element || document.querySelector(s.element));
+            const tour = d({
+                showProgress: true, allowClose: true,
+                nextBtnText: 'Next →', prevBtnText: '← Back', doneBtnText: 'Got it',
+                steps: valid,
+                onDestroyed: () => localStorage.setItem('members_tour_seen', '1')
+            });
+            tour.drive();
+        }
+        window.startMembersTour = startMembersTour;
+
+        // Auto-launch ONCE (this update is new). Then never again unless the
+        // owner taps the 📖 Guide button.
+        if (userRole === 'owner' && !localStorage.getItem('members_tour_seen')) {
+            setTimeout(() => { if (window.driver && window.driver.js) startMembersTour(); }, 1400);
+        }
+
+        // Deep-link from the dashboard "needs a plan" tile → pre-apply
+        // Active + No-plan so the owner lands on exactly that to-do list.
+        (function applyUrlFilters() {
+            const p = new URLSearchParams(location.search);
+            if (p.get('filter') === 'needs_plan') {
+                currentFilter = 'active';
+                currentPlan = 'none';
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === 'active'));
+            }
+        })();
+
+        loadMembers();
+        loadPlansForControls();   // populate plan filter + bulk-assign dropdowns
+        // Preload PT package count for the badge on first load
+        loadPTPackages();
+
+        // Export button: visible for everyone, but Starter sees an upgrade
+        // prompt on click (handled in exportMembersCSV). The button label
+        // stays consistent — no more "Unlock Elite CSV" mislabel since
+        // CSV export is actually a Pro+Elite feature, not Elite-only.
+        (function styleExportBtn() {
+            const tier = localStorage.getItem('tier') || 'starter';
+            const btn = document.getElementById('export-btn');
+            if (!btn) return;
+            if (tier === 'starter') {
+                // Subtle visual cue for locked-on-starter, click still works
+                // and routes to upgrade prompt via exportMembersCSV().
+                btn.title = 'CSV export is a Pro feature — click to upgrade';
+            }
+        })();
+    </script>
 </body>
 
+    <!-- ============================================
+         UPGRADE PATH:
+         - Add bulk actions (select multiple, send bulk reminders)
          - Add export to CSV/Excel
          - Add advanced filters (by plan, by date range)
          - Add pagination for large member lists

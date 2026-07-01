@@ -64,6 +64,7 @@
             <div style="display: flex; gap: 22px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 18px;">
                 <button class="tab-btn active" id="tab-verify-btn" onclick="switchTab('verify')">⏳ To verify <span id="pending-badge" style="display:none; background:#fbbf24; color:#000; font-size:11px; font-weight:800; padding:1px 8px; border-radius:999px; margin-left:4px;"></span></button>
                 <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">📜 History</button>
+                <button class="tab-btn" id="tab-ledger-btn" onclick="switchTab('ledger')">📒 Ledger</button>
             </div>
 
             <!-- VERIFY TAB -->
@@ -92,7 +93,7 @@
             <!-- LEDGER TAB -->
             <div id="tab-ledger" style="display:none;">
                 <div id="ledger-tier-prompt" style="display:none; padding: 30px; text-align: center; color: var(--text-muted);">
-                    <div style="font-size: 32px; margin-bottom: 12px;">??</div>
+                    <div style="font-size: 32px; margin-bottom: 12px;">📒</div>
                     <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">Payment Ledger is a Pro Feature</div>
                     <p>Upgrade to automatically track all collected payments without managing a separate register.</p>
                     <a href="upgrade-plan.html" class="btn btn-primary" style="margin-top: 12px; display: inline-block;">See Plans</a>
@@ -202,6 +203,43 @@
                     </div>`;
                 }).join('');
             } catch (e) { showToast && showToast('Could not load history', 'error'); }
+        }
+
+        async function loadLedger() {
+            const prompt = document.getElementById('ledger-tier-prompt');
+            const content = document.getElementById('ledger-content');
+            const tbody = document.getElementById('ledger-list');
+            prompt.style.display = 'none';
+            content.style.display = 'none';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">Loading…</td></tr>';
+            content.style.display = 'block';
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/payments/ledger?limit=100`, { headers: AUTH });
+                if (r.status === 403) {
+                    content.style.display = 'none';
+                    prompt.style.display = 'block';
+                    return;
+                }
+                if (!r.ok) throw new Error('ledger ' + r.status);
+                const data = await r.json();
+                const items = data.items || [];
+                if (!items.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">No payments recorded yet. Record one from the Members page.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = items.map(p => {
+                    const d = p.created_at ? new Date(p.created_at).toLocaleDateString() : '';
+                    return `<tr>
+                        <td>${esc(d)}</td>
+                        <td>${esc(p.member_name)}</td>
+                        <td style="font-weight:700; color:#fff;">${rupee(p.amount)}</td>
+                        <td>${esc(p.payment_method || '')}</td>
+                        <td style="color:var(--text-muted);">${esc(p.recorded_by_name || 'System')}</td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#f87171; padding:24px;">Could not load ledger.</td></tr>';
+            }
         }
 
 function switchTab(which) {

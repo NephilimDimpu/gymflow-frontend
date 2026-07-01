@@ -428,11 +428,16 @@ Type "DELETE" to confirm:`);
                     headers: { 'x-admin-key': adminKey }
                 });
                 if (res.ok) {
-                    alert('Tier updated successfully!');
+                    alert('Tier updated successfully! (The gym owner may need to refresh or re-login to see new features.)');
+                    loadAdminData();
+                } else {
+                    let detail = res.status;
+                    try { const d = await res.json(); detail = d.detail || detail; } catch (e) {}
+                    alert('Failed to update tier: ' + detail);
                     loadAdminData();
                 }
             } catch (err) {
-                alert('Failed to update tier');
+                alert('Failed to update tier (network error)');
             }
         }
     </script>
