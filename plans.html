@@ -1,4 +1,4 @@
-﻿<!-- ============================================
+<!-- ============================================
      [SCREEN-4] Plans Management
      Copy this to: frontend/plans.html
      Create and manage membership plans
@@ -24,44 +24,44 @@
     <div class="main-layout">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="sidebar-logo" onclick="window.location.href='dashboard.html'" style="cursor: pointer;" title="Back to Dashboard">💪 GymExec</div>
+            <div class="sidebar-logo" onclick="window.location.href='dashboard.html'" style="cursor: pointer;" title="Back to Dashboard">?? GymExec</div>
             <nav>
                 <a href="dashboard.html" class="nav-link">
-                    <span>🏠</span> Dashboard
+                    <span>??</span> Dashboard
                 </a>
                 <a href="members.html" class="nav-link">
-                    <span>👥</span> Members
+                    <span>??</span> Members
                 </a>
                 <a href="plans.html" class="nav-link active">
-                    <span>📋</span> Plans
+                    <span>??</span> Plans
                 </a>
-                <a href="reminders.html" class="nav-link"><span>🔔</span> Reminders</a>
-                <a href="payments.html" class="nav-link"><span>💰</span> Payments</a>
-                <a href="verify-members.html" class="nav-link"><span>🆕</span> Sign-ups</a>
+                <a href="reminders.html" class="nav-link"><span>??</span> Reminders</a>
+                <a href="payments.html" class="nav-link"><span>??</span> Payments</a>
+                <a href="verify-members.html" class="nav-link"><span>??</span> Sign-ups</a>
                 <a href="staff.html" class="nav-link">
-                    <span>🛡️</span> Staff
+                    <span>???</span> Staff
                 </a>
                 <a href="branches.html" class="nav-link">
-                    <span>📍</span> Branches
+                    <span>??</span> Branches
                 </a>
                 <a href="attendance.html" class="nav-link">
-                    <span>🕘</span> Attendance
+                    <span>??</span> Attendance
                 </a>
                 <a href="routines.html" class="nav-link">
-                    <span>📋</span> Routines
+                    <span>??</span> Routines
                 </a>
                 <a href="status.html" target="_blank" class="nav-link" style="color: #60a5fa;" title="View and share your Gym Member Status Portal & PWA App">
-                    <span>📲</span> Member PWA
+                    <span>??</span> Member PWA
                 </a>
                 <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
                     <a href="settings.html" class="nav-link">
-                        <span>⚙️</span> Settings
+                        <span>??</span> Settings
                     </a>
                     <a href="upgrade-plan.html" class="nav-link" style="color: #fbbf24;">
-                        <span>⭐</span> Upgrade
+                        <span>?</span> Upgrade
                     </a>
                     <a href="#" class="nav-link" onclick="logout()">
-                        <span>🚪</span> Logout
+                        <span>??</span> Logout
                     </a>
                 </div>
             </nav>
@@ -76,10 +76,10 @@
                 </div>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                     <button class="btn btn-secondary" onclick="shareAllPlans()" id="share-all-btn" style="background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.3); color: #6ee7b7; font-weight: 600;" title="Send all your plans in one WhatsApp/share message">
-                        <span style="margin-right: 6px;">📤</span> Share All Plans
+                        <span style="margin-right: 6px;">??</span> Share All Plans
                     </button>
-                    <button class="btn btn-secondary" onclick="exportPlansCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Download as Excel-compatible CSV — opens directly in Microsoft Excel or Google Sheets">
-                        <span style="margin-right: 6px;">⬇️</span> Export to Excel
+                    <button class="btn btn-secondary" onclick="exportPlansCSV()" id="export-btn" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #fff;" title="Download as Excel-compatible CSV � opens directly in Microsoft Excel or Google Sheets">
+                        <span style="margin-right: 6px;">??</span> Export to Excel
                     </button>
                     <button class="btn btn-primary" onclick="showCreateModal()">
                         + Create Plan
@@ -92,10 +92,10 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                            <span id="tier-icon" style="font-size: 32px;">🚀</span>
+                            <span id="tier-icon" style="font-size: 32px;">??</span>
                             <div>
                                 <h2 id="tier-name" style="margin: 0; font-size: 24px; font-weight: 800; color: #fff;">Starter Plan</h2>
-                                <p id="tier-price" style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">₹499/month</p>
+                                <p id="tier-price" style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">?499/month</p>
                             </div>
                         </div>
                         <p id="tier-desc" style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;"></p>
@@ -119,7 +119,7 @@
 
             <!-- [EMPTY-STATE] -->
             <div id="empty-state" class="empty-state" style="display: none;">
-                <span class="empty-icon">📋</span>
+                <span class="empty-icon">??</span>
                 <h2 class="empty-title">No plans created yet</h2>
                 <p class="empty-subtitle">Create a plan (Monthly, Yearly, etc.) to start accepting member registrations and payments.</p>
                 <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
@@ -139,7 +139,7 @@
         <div class="modal-content glass-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h2 style="margin: 0;">New Membership Plan</h2>
-                <button onclick="hideCreateModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">×</button>
+                <button onclick="hideCreateModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">�</button>
             </div>
             <form id="create-plan-form">
                 <div class="form-group">
@@ -152,7 +152,7 @@
                         <input type="number" id="plan-duration" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" value="30" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" style="color: #fff;">Price (₹)</label>
+                        <label class="form-label" style="color: #fff;">Price (?)</label>
                         <input type="number" id="plan-price" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" placeholder="999" required>
                     </div>
                 </div>
@@ -165,7 +165,7 @@
         <div class="modal-content glass-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h2 style="margin: 0;">Edit Plan</h2>
-                <button onclick="hideEditModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">×</button>
+                <button onclick="hideEditModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">�</button>
             </div>
             <form id="edit-plan-form">
                 <input type="hidden" id="edit-plan-id">
@@ -179,7 +179,7 @@
                         <input type="number" id="edit-plan-duration" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" style="color: #fff;">Price (₹)</label>
+                        <label class="form-label" style="color: #fff;">Price (?)</label>
                         <input type="number" id="edit-plan-price" class="form-input" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); color: #fff;" required>
                     </div>
                 </div>
@@ -212,7 +212,7 @@
 
         let allPlans = [];
         // The gym's public-page slug. The shareable "join link" must point
-        // to the working public gym page (g.html?s=<slug>) — NOT the old
+        // to the working public gym page (g.html?s=<slug>) � NOT the old
         // pay.html?id=<plan_token> which 422'd because pay.html expects a
         // numeric member_id, not a plan token. Fetched in loadPlans().
         let gymSlug = null;
@@ -224,9 +224,9 @@
             // [TIER-FEATURES] Must mirror backend/tier_enforcement.py.
             // Edit BOTH places when adding a feature, or this card will lie.
             starter: {
-                icon: '🚀',
+                icon: '??',
                 name: 'Starter Plan',
-                price: '₹499/month',
+                price: '?499/month',
                 desc: 'Essential tools for solo trainers and pre-launch gyms.',
                 features: [
                     { name: 'Up to 30 members, 1 plan', locked: false },
@@ -238,15 +238,18 @@
                 ]
             },
             pro: {
-                icon: '⚡',
+                icon: '?',
                 name: 'Pro Automation',
-                price: '₹999/month',
+                price: '?999/month',
                 desc: 'The powerhouse engine for fast-growing single-location gyms.',
                 features: [
                     { name: 'Everything in Starter', locked: false },
                     { name: 'Unlimited members & plans', locked: false },
+                    { name: 'Multi-branch management', locked: false },
+                    { name: 'Staff management & roles', locked: false },
+                    { name: 'Branch manager roles', locked: false },
                     { name: 'Automated daily reminders (no clicks)', locked: false },
-                    { name: 'Clean emails — no GymExec footer', locked: false },
+                    { name: 'Clean emails � no GymExec footer', locked: false },
                     { name: 'Member Check-in (Kiosk & QR)', locked: false },
                     { name: 'Class schedule board', locked: false },
                     { name: 'Excel import & CSV export', locked: false },
@@ -254,17 +257,14 @@
                 ]
             },
             elite: {
-                icon: '👑',
+                icon: '??',
                 name: 'Elite Dashboard',
-                price: '₹2,499/month',
+                price: '?2,499/month',
                 desc: 'Premium multi-branch command center + AI tier for gym chains.',
                 features: [
                     { name: 'Everything in Pro', locked: false },
-                    { name: '🤖 AI Receipt OCR', locked: false },
-                    { name: '🤖 Future AI features (analytics, churn)', locked: false },
-                    { name: 'Multi-branch management', locked: false },
-                    { name: 'Staff management & roles', locked: false },
-                    { name: 'Branch manager roles', locked: false },
+                    { name: '?? AI Receipt OCR', locked: false },
+                    { name: '?? Future AI features (analytics, churn)', locked: false },
                     { name: 'Cross-branch analytics', locked: false },
                     { name: 'Priority support (24/7)', locked: false }
                 ]
@@ -291,7 +291,7 @@
 
             tierFeaturesList.innerHTML = tierData.features
                 .map(f => `<li style="font-size: 13px; color: #cbd5e1; display: flex; align-items: center; gap: 8px;">
-                    <span style="color: #4ade80; font-weight: 700;">✓</span> ${f.name}
+                    <span style="color: #4ade80; font-weight: 700;">?</span> ${f.name}
                 </li>`)
                 .join('');
 
@@ -309,7 +309,7 @@
                 allPlans = await response.json();
 
                 // Fetch the gym's public slug so the share link can point
-                // to the real working public page. Best-effort — if this
+                // to the real working public page. Best-effort � if this
                 // fails, displayPlans() falls back to a clear "set up your
                 // public page" message instead of a broken link.
                 try {
@@ -320,7 +320,7 @@
                         const gymData = await gymRes.json();
                         gymSlug = gymData.gym_slug || null;
                     }
-                } catch (_) { /* non-fatal — handled in displayPlans */ }
+                } catch (_) { /* non-fatal � handled in displayPlans */ }
 
                 displayTierCard();
                 displayPlans();
@@ -361,15 +361,15 @@
                             <label style="font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; display: block; margin-bottom: 8px;">Share to recruit members</label>
                             <div class="payment-link-box">${joinPageLink}</div>
                             <div style="display: flex; gap: 8px; margin-top: 12px;">
-                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="copyLink('${joinPageLink}')">📋 Copy</button>
-                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="shareLink('${joinPageLink}', '${plan.name.replace(/'/g, "\\'")}')">📤 Share</button>
+                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="copyLink('${joinPageLink}')">?? Copy</button>
+                                <button class="btn" style="flex: 1; font-size: 12px; background: rgba(255,255,255,0.05); color: #fff;" onclick="shareLink('${joinPageLink}', '${plan.name.replace(/'/g, "\\'")}')">?? Share</button>
                             </div>
                         </div>`
                     : `
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
                             <label style="font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; display: block; margin-bottom: 8px;">Share to recruit members</label>
                             <div style="font-size: 13px; color: #94a3b8; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); border-radius: 8px; padding: 10px 12px;">
-                                Set up your gym's public page in <strong>Settings → Location</strong> to get a shareable join link.
+                                Set up your gym's public page in <strong>Settings ? Location</strong> to get a shareable join link.
                             </div>
                         </div>`;
 
@@ -378,11 +378,11 @@
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div>
                                 <h3 style="margin: 0; font-size: 20px; color: #fff;">${plan.name}</h3>
-                                <div style="color: var(--accent, #22c55e); font-weight: 800; font-size: 24px; margin-top: 4px;">₹${plan.price.toLocaleString()}</div>
+                                <div style="color: var(--accent, #22c55e); font-weight: 800; font-size: 24px; margin-top: 4px;">?${plan.price.toLocaleString()}</div>
                             </div>
                             <div style="display: flex; gap: 4px;">
-                                <button onclick="showEditModal(${plan.id}, '${plan.name.replace(/'/g, "\\'")}', ${plan.duration_days}, ${plan.price})" style="background: rgba(255,255,255,0.05); border: none; border-radius: 8px; padding: 8px; cursor: pointer; color: #94a3b8;">✏️</button>
-                                <button onclick="deletePlan(${plan.id})" style="background: rgba(239, 68, 68, 0.1); border: none; border-radius: 8px; padding: 8px; cursor: pointer; color: #f87171;">🗑️</button>
+                                <button onclick="showEditModal(${plan.id}, '${plan.name.replace(/'/g, "\\'")}', ${plan.duration_days}, ${plan.price})" style="background: rgba(255,255,255,0.05); border: none; border-radius: 8px; padding: 8px; cursor: pointer; color: #94a3b8;">??</button>
+                                <button onclick="deletePlan(${plan.id})" style="background: rgba(239, 68, 68, 0.1); border: none; border-radius: 8px; padding: 8px; cursor: pointer; color: #f87171;">???</button>
                             </div>
                         </div>
 
@@ -415,11 +415,11 @@
                 price: parseFloat(document.getElementById('plan-price').value)
             };
             // Submit-button lock: prevent double-submit and give feedback that
-            // something is happening. The `finally` block ALWAYS restores —
+            // something is happening. The `finally` block ALWAYS restores �
             // including on early-return paths (tier-gate confirm).
             const submitBtn = e.submitter || this.querySelector('button[type="submit"]');
             const originalLabel = submitBtn ? submitBtn.textContent : '';
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving…'; }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving�'; }
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans`, {
                     method: 'POST',
@@ -460,7 +460,7 @@
             };
             const submitBtn = e.submitter || this.querySelector('button[type="submit"]');
             const originalLabel = submitBtn ? submitBtn.textContent : '';
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving…'; }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving�'; }
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/plans/${id}`, {
                     method: 'PUT',
@@ -509,18 +509,18 @@
                     : p.duration_days >= 30
                         ? `${Math.round(p.duration_days / 30)} month`
                         : `${p.duration_days} days`;
-                return `💪 ${p.name} — ₹${p.price.toLocaleString()} (${days})`;
+                return `?? ${p.name} � ?${p.price.toLocaleString()} (${days})`;
             }).join('\n');
             const joinLine = gymSlug
-                ? `\n🔗 Join here: ${window.location.protocol}//${window.location.host}/g.html?s=${gymSlug}`
+                ? `\n?? Join here: ${window.location.protocol}//${window.location.host}/g.html?s=${gymSlug}`
                 : '';
-            const text = `📋 ${gymName} — Membership Plans\n\n${planLines}${joinLine}`;
+            const text = `?? ${gymName} � Membership Plans\n\n${planLines}${joinLine}`;
             if (navigator.share) {
                 navigator.share({ title: `${gymName} Plans`, text });
             } else {
                 navigator.clipboard.writeText(text)
                     .then(() => window.showToast('All plans copied to clipboard! Paste in WhatsApp.', 'success'))
-                    .catch(() => window.showToast('Could not copy — paste manually.', 'error'));
+                    .catch(() => window.showToast('Could not copy � paste manually.', 'error'));
             }
         }
 
@@ -549,7 +549,7 @@
             const btn = document.getElementById('export-btn');
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<span style="margin-right: 6px;">⏳</span> Exporting…';
+            btn.innerHTML = '<span style="margin-right: 6px;">?</span> Exporting�';
 
             try {
                 // Server-side export so we get the FULL plan list (with active
@@ -593,7 +593,7 @@
             if (tier === 'starter') {
                 const btn = document.getElementById('export-btn');
                 btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-                btn.innerHTML = '✨ Unlock Pro Excel Export';
+                btn.innerHTML = '? Unlock Pro Excel Export';
             }
         })();
     </script>
@@ -613,3 +613,4 @@
 </body>
 
 </html>
+
