@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -302,7 +302,7 @@
                 document.getElementById('stat-elite').innerText = stats.tier_distribution.elite;
 
                 // Load Gyms
-                const gymsRes = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/gyms`, {
+                const gymsRes = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/gyms?t=${Date.now()}`, {
                     headers: { 'x-admin-key': adminKey }
                 });
                 const gyms = await gymsRes.json();
