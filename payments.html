@@ -99,6 +99,17 @@
                     <a href="upgrade-plan.html" class="btn btn-primary" style="margin-top: 12px; display: inline-block;">See Plans</a>
                 </div>
                 <div id="ledger-content" style="display:none;">
+                    <div style="background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--text-muted);">
+                        📒 This is your digital payment register — every payment you record or confirm is saved here permanently. <strong style="color:#fff;">No need to keep a paper notebook.</strong> Search a member, filter by month, or export it all to Excel anytime.
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+                        <input id="ledger-search" type="text" placeholder="🔍 Search member…" oninput="onLedgerFilter()"
+                            style="flex:1; min-width:160px; padding:9px 12px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; font-size:14px;">
+                        <input id="ledger-month" type="month" onchange="loadLedger()"
+                            style="padding:9px 12px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; font-size:14px;">
+                        <button onclick="exportLedger()" class="btn btn-secondary" style="padding:9px 14px; font-size:13px; background:rgba(52,211,153,0.12); color:#34d399; border-color:rgba(52,211,153,0.3);">⬇️ Export to Excel</button>
+                    </div>
+                    <div id="ledger-total" style="font-size:14px; color:var(--text-muted); margin-bottom:12px;"></div>
                     <table class="table">
                         <thead>
                             <tr>
@@ -106,6 +117,7 @@
                                 <th>Member</th>
                                 <th>Amount</th>
                                 <th>Method</th>
+                                <th>Reference</th>
                                 <th>Recorded By</th>
                             </tr>
                         </thead>
@@ -205,16 +217,31 @@
             } catch (e) { showToast && showToast('Could not load history', 'error'); }
         }
 
+        let _ledgerSearchTimer = null;
+        function onLedgerFilter() {
+            clearTimeout(_ledgerSearchTimer);
+            _ledgerSearchTimer = setTimeout(loadLedger, 300);   // debounce typing
+        }
+
+        function ledgerQuery() {
+            const s = (document.getElementById('ledger-search').value || '').trim();
+            const m = document.getElementById('ledger-month').value || '';
+            const p = new URLSearchParams({ limit: '500' });
+            if (s) p.set('search', s);
+            if (m) p.set('month', m);
+            return p.toString();
+        }
+
         async function loadLedger() {
             const prompt = document.getElementById('ledger-tier-prompt');
             const content = document.getElementById('ledger-content');
             const tbody = document.getElementById('ledger-list');
+            const totalEl = document.getElementById('ledger-total');
             prompt.style.display = 'none';
-            content.style.display = 'none';
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">Loading…</td></tr>';
             content.style.display = 'block';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">Loading…</td></tr>';
             try {
-                const r = await fetch(`${CONFIG.API_BASE_URL}/api/payments/ledger?limit=100`, { headers: AUTH });
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/payments/ledger?${ledgerQuery()}`, { headers: AUTH });
                 if (r.status === 403) {
                     content.style.display = 'none';
                     prompt.style.display = 'block';
@@ -223,8 +250,11 @@
                 if (!r.ok) throw new Error('ledger ' + r.status);
                 const data = await r.json();
                 const items = data.items || [];
+                totalEl.innerHTML = items.length
+                    ? `<strong style="color:#34d399;">${rupee(data.total_amount || 0)}</strong> collected · ${data.total || items.length} payment${(data.total || items.length) === 1 ? '' : 's'}`
+                    : '';
                 if (!items.length) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">No payments recorded yet. Record one from the Members page.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">No payments found. Record one with the 💰 button on the Members page.</td></tr>';
                     return;
                 }
                 tbody.innerHTML = items.map(p => {
@@ -234,12 +264,28 @@
                         <td>${esc(p.member_name)}</td>
                         <td style="font-weight:700; color:#fff;">${rupee(p.amount)}</td>
                         <td>${esc(p.payment_method || '')}</td>
+                        <td style="color:var(--text-muted);">${esc(p.reference || '')}</td>
                         <td style="color:var(--text-muted);">${esc(p.recorded_by_name || 'System')}</td>
                     </tr>`;
                 }).join('');
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#f87171; padding:24px;">Could not load ledger.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#f87171; padding:24px;">Could not load ledger.</td></tr>';
             }
+        }
+
+        async function exportLedger() {
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/payments/ledger/export.csv?${ledgerQuery()}`, { headers: AUTH });
+                if (!r.ok) { showToast && showToast('Export failed', 'error'); return; }
+                const blob = await r.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const m = document.getElementById('ledger-month').value;
+                a.href = url;
+                a.download = m ? `payment-ledger-${m}.csv` : 'payment-ledger.csv';
+                document.body.appendChild(a); a.click(); a.remove();
+                URL.revokeObjectURL(url);
+            } catch (e) { showToast && showToast('Export failed', 'error'); }
         }
 
 function switchTab(which) {
