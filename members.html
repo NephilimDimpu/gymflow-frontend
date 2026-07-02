@@ -398,6 +398,16 @@
                     <input type="hidden" id="payment-modal-member-id">
                     <input type="hidden" id="payment-modal-plan-id">
 
+                    <!-- [AI PAYMENT VISION] Elite-only: scan a UPI screenshot to auto-fill -->
+                    <div id="payment-scan-row" style="display:none; margin-bottom:16px;">
+                        <input type="file" id="payment-scan-file" accept="image/*" capture="environment" style="display:none" onchange="scanReceipt(this)">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('payment-scan-file').click()"
+                            style="width:100%; background: rgba(129,140,248,0.12); color:#a5b4fc; border-color: rgba(129,140,248,0.3); display:flex; align-items:center; justify-content:center; gap:8px;">
+                            📷 Scan UPI screenshot <span style="font-size:10px; background:rgba(236,72,153,0.2); color:#f472b6; padding:1px 7px; border-radius:8px; font-weight:700;">AI</span>
+                        </button>
+                        <div id="payment-scan-status" style="font-size:12px; margin-top:6px; text-align:center; color:var(--text-muted);"></div>
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label" for="payment-modal-amount">Amount Received (₹)</label>
                         <input type="number" id="payment-modal-amount" class="form-input" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1); color: #fff; font-size: 18px; font-weight: 700;" placeholder="0">
@@ -1119,6 +1129,14 @@
             document.getElementById('payment-modal-method').value = 'cash';
             document.getElementById('payment-modal-ref').value = '';
 
+            // [AI PAYMENT VISION] Elite-only scan button — reset its state each open
+            const scanRow = document.getElementById('payment-scan-row');
+            if (scanRow) scanRow.style.display = (userTier === 'elite') ? 'block' : 'none';
+            const scanStatus = document.getElementById('payment-scan-status');
+            if (scanStatus) scanStatus.textContent = '';
+            const scanFile = document.getElementById('payment-scan-file');
+            if (scanFile) scanFile.value = '';
+
             document.getElementById('payment-modal-amount').placeholder = 'Loading...';
             document.getElementById('payment-modal').style.display = 'flex';
 
@@ -1145,6 +1163,45 @@
 
         function closePaymentModal() {
             document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        // [AI PAYMENT VISION] Upload a UPI screenshot -> Gemini reads amount + reference -> fills the form.
+        async function scanReceipt(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const status = document.getElementById('payment-scan-status');
+            status.style.color = 'var(--text-muted)';
+            status.textContent = '🔎 Reading screenshot…';
+            try {
+                const fd = new FormData();
+                fd.append('file', file);
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/payments/scan-receipt`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },   // no Content-Type: browser sets multipart boundary
+                    body: fd
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    status.style.color = '#f87171';
+                    status.textContent = (typeof data.detail === 'string' ? data.detail : 'Could not read screenshot.');
+                    return;
+                }
+                const p = data.parsed || {};
+                if (p.amount != null && !isNaN(p.amount)) document.getElementById('payment-modal-amount').value = p.amount;
+                if (p.reference) document.getElementById('payment-modal-ref').value = p.reference;
+                document.getElementById('payment-modal-method').value = 'upi';
+                const bits = [];
+                if (p.amount != null) bits.push('₹' + p.amount);
+                if (p.payee) bits.push('to ' + p.payee);
+                if (p.date) bits.push(p.date);
+                status.style.color = '#34d399';
+                status.textContent = '✨ Read ' + (bits.join(' · ') || 'the screenshot') + ' — check & confirm below.';
+            } catch (e) {
+                status.style.color = '#f87171';
+                status.textContent = 'Scan failed — enter the amount manually.';
+            } finally {
+                input.value = '';
+            }
         }
 
         async function submitPayment() {
