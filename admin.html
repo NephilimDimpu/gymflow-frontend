@@ -420,8 +420,8 @@ Type "DELETE" to confirm:`);
             } catch (err) { alert('Network error while activating.'); }
         }
 
-        async function updateTier(gymId, tier) {
-            if (!confirm(`Switch gym to ${tier.toUpperCase()} tier?`)) return;
+        async function updateTier(gymId, tier, _isRetry) {
+            if (!_isRetry && !confirm(`Switch gym to ${tier.toUpperCase()} tier?`)) return;
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/gyms/${gymId}/upgrade?tier=${tier}`, {
                     method: 'POST',
@@ -437,7 +437,12 @@ Type "DELETE" to confirm:`);
                     loadAdminData();
                 }
             } catch (err) {
-                alert('Failed to update tier (network error)');
+                // A network error / timeout is usually the free-tier DB waking from
+                // sleep — the failed attempt wakes it, so retry once before giving up.
+                if (!_isRetry) {
+                    return updateTier(gymId, tier, true);
+                }
+                alert('Failed to update tier — the server may be waking up. Please wait a few seconds and try once more.');
             }
         }
     </script>
