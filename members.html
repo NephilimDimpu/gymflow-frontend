@@ -264,8 +264,9 @@
             </div>
 
             <!-- Loading Spinner -->
-            <div id="loading-overlay" class="spinner-overlay" style="display: none;">
+            <div id="loading-overlay" class="spinner-overlay" style="display: none; flex-direction: column; gap: 16px;">
                 <div class="glass-spinner"></div>
+                <div id="loading-hint" style="display:none; max-width: 320px; text-align:center; color: var(--text-muted); font-size: 13px; line-height: 1.5;"></div>
             </div>
             </div><!-- /view-members -->
 
@@ -547,16 +548,26 @@
             });
         }
 
-        async function loadMembers() {
+        async function loadMembers(_isRetry) {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = 'flex';
+            // [WAKE-HINT] After 5s of waiting, tell the owner the (free-tier) DB is
+            // just waking up — so a slow first load reads as "waking" not "frozen".
+            const hint = document.getElementById('loading-hint');
+            if (hint) hint.style.display = 'none';
+            const hintTimer = setTimeout(() => {
+                if (hint) {
+                    hint.textContent = '⏳ Waking up the server — the first load after a quiet spell can take up to ~20 seconds. Hang tight…';
+                    hint.style.display = 'block';
+                }
+            }, 5000);
             // A filter change clears an "all matching" selection; page nav keeps it.
             if (!_keepMatchingThisLoad) selectAllMatchingMode = false;
             _keepMatchingThisLoad = false;
-            // Never spin forever — abort after 25s (covers a DB cold-start) and
-            // show a clear retry instead of an infinite loading screen.
+            // Never spin forever — abort after 35s (covers a DB cold-start with headroom)
+            // and auto-retry once (the first try already woke the DB) before giving up.
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 25000);
+            const timer = setTimeout(() => ctrl.abort(), 35000);
             try {
                 const params = new URLSearchParams();
                 if (currentFilter && currentFilter !== 'all') params.set('status', currentFilter);
@@ -589,6 +600,13 @@
                 renderPagination();
             } catch (error) {
                 const timedOut = error && error.name === 'AbortError';
+                // The first timeout usually just woke the DB — retry once, now warm,
+                // instead of dumping the owner on an error screen.
+                if (timedOut && !_isRetry) {
+                    clearTimeout(timer);
+                    clearTimeout(hintTimer);
+                    return loadMembers(true);
+                }
                 showToast(timedOut ? "Loading took too long — the server may be waking up. Please retry." : "Failed to load members", "error");
                 // Show an in-place Retry so the owner isn't left on a blank/loading screen.
                 const container = document.getElementById('members-container');
@@ -606,6 +624,8 @@
                 }
             } finally {
                 clearTimeout(timer);
+                clearTimeout(hintTimer);
+                if (hint) hint.style.display = 'none';
                 overlay.style.display = 'none';
                 if (typeof hideTopLoader === 'function') hideTopLoader();
             }
