@@ -1,0 +1,135 @@
+<!-- ============================================
+     [SCREEN] AI Assistant — the conversational intelligence layer (v1)
+     Ask-your-gym copilot: grounded, read-only, hands off writes to the human.
+     Talks to /api/assistant/chat.
+     ============================================ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant - GymExec</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/toast.js"></script>
+    <script src="assets/theme.js"></script>
+    <style>
+        .chat-wrap { display:flex; flex-direction:column; height: calc(100vh - 120px); max-width: 820px; }
+        .chat-log { flex:1; overflow-y:auto; padding: 8px 4px 20px; display:flex; flex-direction:column; gap:14px; }
+        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 14.5px; line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; }
+        .bubble-user { align-self:flex-end; background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border-bottom-right-radius: 4px; }
+        .bubble-ai { align-self:flex-start; background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:#e2e8f0; border-bottom-left-radius: 4px; }
+        .bubble-ai.err { border-color: rgba(248,113,113,0.3); color:#fca5a5; }
+        .typing { align-self:flex-start; color: var(--text-muted); font-size: 13px; padding: 6px 4px; }
+        .suggests { display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 14px; }
+        .suggest { background: rgba(129,140,248,0.1); border:1px solid rgba(129,140,248,0.25); color:#a5b4fc; padding:7px 12px; border-radius:999px; font-size:12.5px; cursor:pointer; }
+        .suggest:hover { background: rgba(129,140,248,0.2); }
+        .chat-input { display:flex; gap:10px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .chat-input textarea { flex:1; resize:none; height: 46px; max-height: 120px; padding: 12px 14px; background: rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.12); border-radius: 12px; color:#fff; font-size:14px; font-family:inherit; }
+        .send-btn { background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border:none; border-radius:12px; padding: 0 20px; font-weight:700; cursor:pointer; }
+        .send-btn:disabled { opacity:.5; cursor:not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo" onclick="window.location.href='dashboard.html'" style="cursor:pointer;">💪 GymExec</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link"><span>🏠</span> Dashboard</a>
+                <a href="assistant.html" class="nav-link active" style="color:#a5b4fc;"><span>✨</span> AI Assistant <span style="font-size:10px; background:rgba(236,72,153,0.2); color:#f472b6; padding:1px 6px; border-radius:8px; font-weight:700;">BETA</span></a>
+                <a href="members.html" class="nav-link"><span>👥</span> Members</a>
+                <a href="plans.html" class="nav-link"><span>📋</span> Plans</a>
+                <a href="reminders.html" class="nav-link"><span>🔔</span> Reminders</a>
+                <a href="payments.html" class="nav-link"><span>💰</span> Payments</a>
+                <a href="verify-members.html" class="nav-link"><span>🆕</span> Sign-ups</a>
+                <a href="staff.html" class="nav-link"><span>🛡️</span> Staff</a>
+                <a href="attendance.html" class="nav-link"><span>🕘</span> Attendance</a>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <a href="settings.html" class="nav-link"><span>⚙️</span> Settings</a>
+                    <a href="#" class="nav-link" onclick="logout()"><span>🚪</span> Logout</a>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header style="margin-bottom: 14px;">
+                <h1 style="font-size: 30px; letter-spacing:-1px; margin-bottom:4px;">✨ AI Assistant</h1>
+                <p style="font-size:13.5px; color: var(--text-muted);">Ask about your gym in plain language — members, expiries, collections, plans. Grounded in your real data.</p>
+            </header>
+
+            <div class="chat-wrap">
+                <div class="suggests" id="suggests">
+                    <div class="suggest" onclick="ask(this.textContent)">How is my gym doing?</div>
+                    <div class="suggest" onclick="ask(this.textContent)">Who is expiring this week?</div>
+                    <div class="suggest" onclick="ask(this.textContent)">How much did I collect this month?</div>
+                    <div class="suggest" onclick="ask(this.textContent)">What are my plans?</div>
+                </div>
+                <div class="chat-log" id="chat-log">
+                    <div class="bubble bubble-ai">👋 Hi! I'm your GymExec assistant. Ask me anything about your members, renewals, or collections. (I can look things up and report — for now, changes still happen in the app.)</div>
+                </div>
+                <div class="chat-input">
+                    <textarea id="msg" placeholder="Ask your gym… e.g. how many members expire in the next 3 days?" onkeydown="onKey(event)"></textarea>
+                    <button class="send-btn" id="send" onclick="ask()">Send</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) window.location.href = 'login.html';
+        function logout(){ localStorage.clear(); window.location.href='login.html'; }
+        const AUTH = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+        const log = document.getElementById('chat-log');
+        let history = [];   // {role, text}
+        let busy = false;
+
+        function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        function bubble(text, who, isErr){
+            const d = document.createElement('div');
+            d.className = 'bubble bubble-' + who + (isErr ? ' err' : '');
+            d.textContent = text;
+            log.appendChild(d); log.scrollTop = log.scrollHeight;
+            return d;
+        }
+        function onKey(e){ if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); ask(); } }
+
+        async function ask(preset){
+            if (busy) return;
+            const box = document.getElementById('msg');
+            const text = (preset || box.value || '').trim();
+            if (!text) return;
+            box.value = '';
+            document.getElementById('suggests').style.display = 'none';
+            bubble(text, 'user');
+            history.push({ role:'user', text });
+
+            busy = true; document.getElementById('send').disabled = true;
+            const typing = document.createElement('div');
+            typing.className = 'typing'; typing.textContent = '✨ thinking…'; typing.id = 'typing';
+            log.appendChild(typing); log.scrollTop = log.scrollHeight;
+
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/assistant/chat`, {
+                    method:'POST', headers: AUTH,
+                    body: JSON.stringify({ message: text, history: history.slice(0,-1).slice(-10) })
+                });
+                document.getElementById('typing')?.remove();
+                const data = await r.json().catch(()=>({}));
+                if (r.status === 503) { bubble(data.detail || 'The AI is busy — please try again in a moment.', 'ai', true); return; }
+                if (!r.ok) { bubble(typeof data.detail === 'string' ? data.detail : 'Something went wrong. Please try again.', 'ai', true); return; }
+                const reply = data.reply || "I'm not sure — please check the app.";
+                bubble(reply, 'ai');
+                history.push({ role:'assistant', text: reply });
+            } catch (e) {
+                document.getElementById('typing')?.remove();
+                bubble('Network error — please try again.', 'ai', true);
+            } finally {
+                busy = false; document.getElementById('send').disabled = false;
+                document.getElementById('msg').focus();
+            }
+        }
+    </script>
+</body>
+</html>
