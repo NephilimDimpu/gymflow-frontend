@@ -1,6 +1,7 @@
 <!-- ============================================
      [SCREEN] AI Assistant — the conversational intelligence layer (v1)
      Ask-your-gym copilot: grounded, read-only, hands off writes to the human.
+     Now with a living orb + voice in/out (browser Web Speech — free, no backend).
      Talks to /api/assistant/chat.
      ============================================ -->
 <!DOCTYPE html>
@@ -21,14 +22,38 @@
         .bubble-user { align-self:flex-end; background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border-bottom-right-radius: 4px; }
         .bubble-ai { align-self:flex-start; background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:#e2e8f0; border-bottom-left-radius: 4px; }
         .bubble-ai.err { border-color: rgba(248,113,113,0.3); color:#fca5a5; }
-        .typing { align-self:flex-start; color: var(--text-muted); font-size: 13px; padding: 6px 4px; }
-        .suggests { display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 14px; }
+        .suggests { display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 12px; justify-content:center; }
         .suggest { background: rgba(129,140,248,0.1); border:1px solid rgba(129,140,248,0.25); color:#a5b4fc; padding:7px 12px; border-radius:999px; font-size:12.5px; cursor:pointer; }
         .suggest:hover { background: rgba(129,140,248,0.2); }
-        .chat-input { display:flex; gap:10px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .chat-input { display:flex; gap:8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); align-items:flex-end; }
         .chat-input textarea { flex:1; resize:none; height: 46px; max-height: 120px; padding: 12px 14px; background: rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.12); border-radius: 12px; color:#fff; font-size:14px; font-family:inherit; }
-        .send-btn { background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border:none; border-radius:12px; padding: 0 20px; font-weight:700; cursor:pointer; }
+        .icon-btn { width:46px; height:46px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:#e2e8f0; font-size:18px; cursor:pointer; flex-shrink:0; }
+        .icon-btn.on { background: rgba(129,140,248,0.18); border-color: rgba(129,140,248,0.4); color:#a5b4fc; }
+        .icon-btn.mic.rec { background: rgba(239,68,68,0.2); border-color:#ef4444; color:#fca5a5; animation: micpulse 1s ease-in-out infinite; }
+        @keyframes micpulse { 0%,100%{ box-shadow:0 0 0 0 rgba(239,68,68,.4);} 50%{ box-shadow:0 0 0 6px rgba(239,68,68,0);} }
+        .send-btn { background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border:none; border-radius:12px; padding: 0 18px; height:46px; font-weight:700; cursor:pointer; flex-shrink:0; }
         .send-btn:disabled { opacity:.5; cursor:not-allowed; }
+        .lang-sel { height:46px; border-radius:12px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.12); color:#fff; font-size:12px; padding:0 6px; }
+
+        /* --- the living orb --- */
+        .orb-stage { display:flex; flex-direction:column; align-items:center; gap:10px; margin: 2px 0 16px; }
+        .orb { width:88px; height:88px; border-radius:50%; position:relative; cursor:pointer;
+            background: radial-gradient(circle at 35% 30%, #c7d2fe, #6366f1 46%, #4338ca 82%);
+            box-shadow: 0 0 40px rgba(99,102,241,.5), inset 0 0 28px rgba(255,255,255,.28);
+            animation: orb-float 4.5s ease-in-out infinite; }
+        .orb.enter { animation: orb-in .8s cubic-bezier(.2,.9,.3,1.3), orb-float 4.5s ease-in-out infinite .8s; }
+        @keyframes orb-in { from{ transform:scale(0); opacity:0;} to{ transform:scale(1); opacity:1;} }
+        @keyframes orb-float { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
+        @keyframes orb-pulse { 0%,100%{ box-shadow:0 0 40px rgba(99,102,241,.5), inset 0 0 28px rgba(255,255,255,.28);} 50%{ box-shadow:0 0 72px rgba(129,140,248,.95), inset 0 0 34px rgba(255,255,255,.45);} }
+        @keyframes orb-shimmer { 0%{ filter:hue-rotate(0);} 50%{ filter:hue-rotate(40deg) brightness(1.15);} 100%{ filter:hue-rotate(0);} }
+        .orb.listening { animation: orb-float 2.6s ease-in-out infinite, orb-pulse 1.1s ease-in-out infinite; }
+        .orb.thinking  { animation: orb-float 4.5s ease-in-out infinite, orb-shimmer 1.5s linear infinite; }
+        .orb.speaking  { animation: orb-float 4.5s ease-in-out infinite, orb-pulse .5s ease-in-out infinite; }
+        .orb .ring { position:absolute; inset:0; border-radius:50%; border:2px solid rgba(129,140,248,.45); opacity:0; pointer-events:none; }
+        .orb.listening .ring1 { animation: ring 1.5s ease-out infinite; }
+        .orb.listening .ring2 { animation: ring 1.5s ease-out infinite .75s; }
+        @keyframes ring { 0%{ transform:scale(1); opacity:.6;} 100%{ transform:scale(1.65); opacity:0;} }
+        .orb-status { font-size:12px; color:var(--text-muted); font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
     </style>
 </head>
 <body>
@@ -53,23 +78,33 @@
         </aside>
 
         <main class="main-content">
-            <header style="margin-bottom: 14px;">
-                <h1 style="font-size: 30px; letter-spacing:-1px; margin-bottom:4px;">✨ AI Assistant</h1>
-                <p style="font-size:13.5px; color: var(--text-muted);">Ask about your gym in plain language — members, expiries, collections, plans. Grounded in your real data.</p>
-            </header>
-
             <div class="chat-wrap">
+                <!-- the living co-worker -->
+                <div class="orb-stage">
+                    <div class="orb enter" id="orb" onclick="micToggle()" title="Tap to speak">
+                        <div class="ring ring1"></div><div class="ring ring2"></div>
+                    </div>
+                    <div class="orb-status" id="orb-status">Ready to help</div>
+                </div>
+
                 <div class="suggests" id="suggests">
                     <div class="suggest" onclick="ask(this.textContent)">How is my gym doing?</div>
                     <div class="suggest" onclick="ask(this.textContent)">Who is expiring this week?</div>
                     <div class="suggest" onclick="ask(this.textContent)">How much did I collect this month?</div>
-                    <div class="suggest" onclick="ask(this.textContent)">What are my plans?</div>
                 </div>
+
                 <div class="chat-log" id="chat-log">
-                    <div class="bubble bubble-ai">👋 Hi! I'm your GymExec assistant. Ask me anything about your members, renewals, or collections. (I can look things up and report — for now, changes still happen in the app.)</div>
+                    <div class="bubble bubble-ai">👋 Hi! I'm your GymExec assistant. Tap the orb 🎙️ and talk to me, or type below — ask about your members, renewals, or collections. (I can look things up and report; changes still happen in the app for now.)</div>
                 </div>
+
                 <div class="chat-input">
-                    <textarea id="msg" placeholder="Ask your gym… e.g. how many members expire in the next 3 days?" onkeydown="onKey(event)"></textarea>
+                    <select class="lang-sel" id="lang" title="Voice language">
+                        <option value="en-IN">EN</option>
+                        <option value="hi-IN">हिं</option>
+                    </select>
+                    <button class="icon-btn mic" id="mic" onclick="micToggle()" title="Speak">🎙️</button>
+                    <button class="icon-btn on" id="spk" onclick="toggleSpeak()" title="Read answers aloud">🔊</button>
+                    <textarea id="msg" placeholder="Ask your gym… or tap the mic" onkeydown="onKey(event)"></textarea>
                     <button class="send-btn" id="send" onclick="ask()">Send</button>
                 </div>
             </div>
@@ -82,16 +117,24 @@
         function logout(){ localStorage.clear(); window.location.href='login.html'; }
         const AUTH = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         const log = document.getElementById('chat-log');
-        let history = [];   // {role, text}
+        const orb = document.getElementById('orb');
+        const orbStatus = document.getElementById('orb-status');
+        let history = [];
         let busy = false;
+        let speakOn = true;
 
-        function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
         function bubble(text, who, isErr){
             const d = document.createElement('div');
             d.className = 'bubble bubble-' + who + (isErr ? ' err' : '');
             d.textContent = text;
             log.appendChild(d); log.scrollTop = log.scrollHeight;
             return d;
+        }
+        // orb state: '', listening, thinking, speaking
+        function setOrb(state, label){
+            orb.classList.remove('listening','thinking','speaking','enter');
+            if (state) orb.classList.add(state);
+            orbStatus.textContent = label || 'Ready to help';
         }
         function onKey(e){ if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); ask(); } }
 
@@ -106,29 +149,74 @@
             history.push({ role:'user', text });
 
             busy = true; document.getElementById('send').disabled = true;
-            const typing = document.createElement('div');
-            typing.className = 'typing'; typing.textContent = '✨ thinking…'; typing.id = 'typing';
-            log.appendChild(typing); log.scrollTop = log.scrollHeight;
-
+            setOrb('thinking', 'Thinking…');
             try {
                 const r = await fetch(`${CONFIG.API_BASE_URL}/api/assistant/chat`, {
                     method:'POST', headers: AUTH,
                     body: JSON.stringify({ message: text, history: history.slice(0,-1).slice(-10) })
                 });
-                document.getElementById('typing')?.remove();
                 const data = await r.json().catch(()=>({}));
-                if (r.status === 503) { bubble(data.detail || 'The AI is busy — please try again in a moment.', 'ai', true); return; }
-                if (!r.ok) { bubble(typeof data.detail === 'string' ? data.detail : 'Something went wrong. Please try again.', 'ai', true); return; }
+                if (r.status === 503) { bubble(data.detail || 'The AI is busy — please try again in a moment.', 'ai', true); setOrb('', 'Try again'); return; }
+                if (!r.ok) { bubble(typeof data.detail === 'string' ? data.detail : 'Something went wrong. Please try again.', 'ai', true); setOrb('', 'Ready to help'); return; }
                 const reply = data.reply || "I'm not sure — please check the app.";
                 bubble(reply, 'ai');
                 history.push({ role:'assistant', text: reply });
+                speak(reply);
             } catch (e) {
-                document.getElementById('typing')?.remove();
                 bubble('Network error — please try again.', 'ai', true);
+                setOrb('', 'Ready to help');
             } finally {
                 busy = false; document.getElementById('send').disabled = false;
-                document.getElementById('msg').focus();
             }
+        }
+
+        // ---------- VOICE OUT (Text-to-Speech) ----------
+        const synth = window.speechSynthesis;
+        function speak(text){
+            if (!speakOn || !synth) { setOrb('', 'Ready to help'); return; }
+            try {
+                synth.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = document.getElementById('lang').value;
+                u.rate = 1.03;
+                u.onstart = () => setOrb('speaking', 'Speaking…');
+                u.onend = () => setOrb('', 'Ready to help');
+                u.onerror = () => setOrb('', 'Ready to help');
+                synth.speak(u);
+            } catch(e){ setOrb('', 'Ready to help'); }
+        }
+        function toggleSpeak(){
+            speakOn = !speakOn;
+            const b = document.getElementById('spk');
+            b.classList.toggle('on', speakOn);
+            b.textContent = speakOn ? '🔊' : '🔇';
+            if (!speakOn && synth) synth.cancel();
+        }
+
+        // ---------- VOICE IN (Speech-to-Text) ----------
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let rec = null, recording = false;
+        if (!SR) {
+            // Browser can't listen — hide the mic, keep typing + speak-back.
+            document.getElementById('mic').style.display = 'none';
+            orb.title = 'Voice input not supported in this browser';
+        }
+        function micToggle(){
+            if (!SR || busy) return;
+            if (recording) { try { rec && rec.stop(); } catch(e){} return; }
+            if (synth) synth.cancel();
+            rec = new SR();
+            rec.lang = document.getElementById('lang').value;
+            rec.interimResults = false;
+            rec.maxAlternatives = 1;
+            rec.onstart = () => { recording = true; document.getElementById('mic').classList.add('rec'); setOrb('listening', 'Listening…'); };
+            rec.onresult = (ev) => {
+                const said = ev.results[0][0].transcript;
+                if (said && said.trim()) ask(said.trim());
+            };
+            rec.onerror = () => { setOrb('', 'Ready to help'); };
+            rec.onend = () => { recording = false; document.getElementById('mic').classList.remove('rec'); if (!busy && !orb.classList.contains('speaking')) setOrb('', 'Ready to help'); };
+            try { rec.start(); } catch(e){ setOrb('', 'Ready to help'); }
         }
     </script>
 </body>
