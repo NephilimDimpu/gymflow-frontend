@@ -55,6 +55,12 @@
         @keyframes ring { 0%{ transform:scale(1); opacity:.6;} 100%{ transform:scale(1.65); opacity:0;} }
         .orb-status { font-size:12px; color:var(--text-muted); font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
 
+        /* --- mode bar: escape hatch to the classic app --- */
+        .mode-bar { display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-bottom:4px; }
+        .mode-btn { font-size:12.5px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); padding:7px 13px; border-radius:999px; text-decoration:none; }
+        .mode-btn:hover { background:rgba(255,255,255,0.1); }
+        .mode-pref { font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+
         /* --- action confirm card / upload widget (generative UI) --- */
         .act-card { align-self:flex-start; max-width:82%; background:rgba(99,102,241,0.07); border:1px solid rgba(129,140,248,0.3); border-radius:16px; padding:16px 18px; animation: card-in .3s ease; }
         @keyframes card-in { from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
@@ -93,6 +99,15 @@
 
         <main class="main-content">
             <div class="chat-wrap">
+                <!-- switch to the classic app -->
+                <div class="mode-bar">
+                    <a href="dashboard.html" class="mode-btn" title="Open the classic dashboard">🖥️ Full app</a>
+                    <label class="mode-pref" title="Choose which screen you land on after login">
+                        <input type="checkbox" id="pref-app" onchange="setHomeMode(this.checked)">
+                        Start in the full app
+                    </label>
+                </div>
+
                 <!-- the living co-worker -->
                 <div class="orb-stage">
                     <div class="orb enter" id="orb" onclick="micToggle()" title="Tap to speak">
@@ -108,7 +123,11 @@
                 </div>
 
                 <div class="chat-log" id="chat-log">
-                    <div class="bubble bubble-ai">👋 Hi! I'm your GymExec assistant. Tap the orb 🎙️ and talk to me, or type below — ask about your members, renewals, or collections. (I can look things up and report; changes still happen in the app for now.)</div>
+                    <div class="bubble bubble-ai">👋 Hi! I'm your GymExec assistant — just talk to me and I'll run the gym with you.
+
+Try: “add a member Amit, 9000012345, monthly” · “Rahul paid 1000 cash” · “renew Priya” · “who's expiring this week?” · “upload my member list”
+
+Anything that changes data, I'll show you a card to confirm first — nothing is saved until you tap ✅.</div>
                 </div>
 
                 <div class="chat-input">
@@ -129,6 +148,19 @@
         const token = localStorage.getItem('auth_token');
         if (!token) window.location.href = 'login.html';
         function logout(){ localStorage.clear(); window.location.href='login.html'; }
+
+        // [AI-FIRST] Which screen the owner lands on after login: the orb (default) or
+        // the classic dashboard. Their choice is remembered on this device.
+        function setHomeMode(preferApp){
+            localStorage.setItem('home_mode', preferApp ? 'app' : 'ai');
+            if (window.showToast) showToast(preferApp
+                ? 'You’ll start in the full app next time.'
+                : 'You’ll start here with the assistant next time.', 'success');
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const box = document.getElementById('pref-app');
+            if (box) box.checked = (localStorage.getItem('home_mode') === 'app');
+        });
         const AUTH = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         const log = document.getElementById('chat-log');
         const orb = document.getElementById('orb');

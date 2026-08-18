@@ -377,13 +377,20 @@
         // ============================================
         // [JS-CHECK-AUTH] Redirect if already logged in
         // ============================================
+        // [AI-FIRST] Owners/managers land on the AI Assistant (the orb) by default —
+        // the conversational front door. Anyone who prefers the classic dashboard can
+        // flip "Always start in the full app" there, which sets home_mode=app.
+        function homeFor(role) {
+            const aiFirst = (localStorage.getItem('home_mode') || 'ai') !== 'app';
+            if (role === 'owner') return aiFirst ? 'assistant.html' : 'dashboard.html';
+            if (role === 'manager') return aiFirst ? 'assistant.html' : 'branch-dashboard.html';
+            if (role === 'customer') return 'customer-dashboard.html';
+            return 'staff-dashboard.html';
+        }
+
         const existingToken = localStorage.getItem('auth_token');
         if (existingToken) {
-            const existingRole = localStorage.getItem('role') || 'owner';
-            if (existingRole === 'owner') window.location.href = 'dashboard.html';
-            else if (existingRole === 'manager') window.location.href = 'branch-dashboard.html';
-            else if (existingRole === 'customer') window.location.href = 'customer-dashboard.html';
-            else window.location.href = 'staff-dashboard.html';
+            window.location.href = homeFor(localStorage.getItem('role') || 'owner');
         }
 
         // ============================================
@@ -459,10 +466,7 @@
                     localStorage.setItem('custom_role', data.custom_role);
                 }
 
-                window.location.href =
-                    data.role === 'owner' ? 'dashboard.html' :
-                        data.role === 'manager' ? 'branch-dashboard.html' :
-                            'staff-dashboard.html';
+                window.location.href = homeFor(data.role);
 
             } catch (error) {
                 console.error('[LOGIN-ERROR]', error);
