@@ -160,7 +160,38 @@ Anything that changes data, I'll show you a card to confirm first — nothing is
         document.addEventListener('DOMContentLoaded', () => {
             const box = document.getElementById('pref-app');
             if (box) box.checked = (localStorage.getItem('home_mode') === 'app');
+            firstRunCheck();
         });
+
+        // [FIRST-RUN] A brand-new gym gets a guided setup greeting instead of the
+        // generic one — this is what turns a self-serve signup into a working gym.
+        async function firstRunCheck(){
+            try {
+                const r = await fetch(`${CONFIG.API_BASE_URL}/api/assistant/setup-status`, { headers: AUTH });
+                if (!r.ok) return;
+                const s = await r.json();
+                if (s.all_done) return;                       // fully set up — normal greeting
+                const welcome = document.querySelector('.bubble-ai');
+                const chips = document.getElementById('suggests');
+                if (s.is_new_gym) {
+                    if (welcome) welcome.textContent =
+                        `👋 Welcome${s.gym_name ? ', ' + s.gym_name : ''}! Let's get your gym running — it takes about 5 minutes and I'll do the work.\n\n`
+                        + `First, what membership plan do you offer? Just tell me the name, price and how long it lasts — like “Monthly, ₹1000, 30 days”.\n\n`
+                        + `(Already have a member list in Excel? Say “upload my member list” and I'll take it from there.)`;
+                    if (chips) chips.innerHTML =
+                        `<div class="suggest" onclick="ask('Help me set up my gym')">🚀 Help me set up my gym</div>`
+                      + `<div class="suggest" onclick="ask('Monthly plan, 1000 rupees, 30 days')">Add a Monthly plan</div>`
+                      + `<div class="suggest" onclick="ask('I want to upload my member list')">📎 Upload my member list</div>`;
+                } else if (s.next_step) {
+                    const nudge = { plans: 'create your first membership plan',
+                                    members: 'add your members (I can import an Excel list)',
+                                    upi: 'add your UPI ID in Settings so members can pay from renewal links',
+                                    reminders: 'switch on automatic WhatsApp renewal reminders' }[s.next_step];
+                    if (nudge && chips) chips.insertAdjacentHTML('afterbegin',
+                        `<div class="suggest" onclick="ask('Help me ${String(nudge).replace(/'/g,'')}')">👉 Next: ${nudge}</div>`);
+                }
+            } catch (e) { /* first-run hint is optional — never block the console */ }
+        }
         const AUTH = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         const log = document.getElementById('chat-log');
         const orb = document.getElementById('orb');
