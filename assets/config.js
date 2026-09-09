@@ -209,6 +209,18 @@ window.fetch = async function(input, init) {
         // this." Routing the user straight to upgrade is the right move.
         if (response.status === 402 && isApiCall) {
             const currentPath = window.location.pathname;
+
+            // [DEMO] A demo sandbox that has used up its AI messages also gets a
+            // 402. Bouncing an anonymous visitor to the billing page is the wrong
+            // move — they have no account to upgrade yet. Leave it to the page,
+            // which shows the "Save this as my gym" prompt instead.
+            let _demoQuota = false;
+            try {
+                const _b = await response.clone().json();
+                _demoQuota = _b && _b.detail && _b.detail.reason === 'demo_ai_quota_exceeded';
+            } catch (_) { /* not JSON — fall through to the normal redirect */ }
+            if (_demoQuota) return response;
+
             // Skip if we're already on the upgrade page (avoid loop)
             if (!currentPath.includes('upgrade-plan.html') && !currentPath.includes('login.html')) {
                 console.warn('[AUTH] HTTP 402 — trial expired. Redirecting to upgrade.');

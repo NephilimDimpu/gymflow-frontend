@@ -23,7 +23,12 @@
     <script src="assets/theme.js"></script>
     <style>
         .chat-wrap { display:flex; flex-direction:column; height: calc(100vh - 120px); max-width: 820px; }
-        .chat-log { flex:1; overflow-y:auto; padding: 8px 4px 20px; display:flex; flex-direction:column; gap:14px; }
+        /* min-height:0 is required. A flex child defaults to min-height:auto,
+           which refuses to shrink below its content — so on a short viewport the
+           log pushed .chat-input out of .chat-wrap and the composer ended up
+           off-screen (reproduced at 690px viewport height). With min-height:0 the
+           log scrolls internally and the composer stays pinned in view. */
+        .chat-log { flex:1; min-height:0; overflow-y:auto; padding: 8px 4px 20px; display:flex; flex-direction:column; gap:14px; }
         .bubble { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 14.5px; line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; }
         .bubble-user { align-self:flex-end; background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border-bottom-right-radius: 4px; }
         .bubble-ai { align-self:flex-start; background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:#e2e8f0; border-bottom-left-radius: 4px; }
@@ -240,7 +245,23 @@ Anything that changes data, I'll show you a card to confirm first — nothing is
                 });
                 const data = await r.json().catch(()=>({}));
                 if (r.status === 503) { bubble(data.detail || 'The AI is busy — please try again in a moment.', 'ai', true); setOrb('', 'Try again'); return; }
-                if (!r.ok) { bubble(typeof data.detail === 'string' ? data.detail : 'Something went wrong. Please try again.', 'ai', true); setOrb('', 'Ready to help'); return; }
+                if (!r.ok) {
+                    // `detail` is sometimes a plain string and sometimes a structured
+                    // object (tier gates, AI quota). Reading only the string form
+                    // hid the real reason behind a generic "something went wrong".
+                    const d = data.detail;
+                    const msg = (typeof d === 'string') ? d
+                              : (d && (d.message || d.error)) || 'Something went wrong. Please try again.';
+                    bubble(msg, 'ai', true);
+                    // Demo sandbox out of AI messages → point at the save-your-gym
+                    // banner rather than a billing page they have no account for.
+                    if (d && d.reason === 'demo_ai_quota_exceeded') {
+                        const save = document.getElementById('gx-demo-save');
+                        if (save) setTimeout(() => save.click(), 900);
+                    }
+                    setOrb('', 'Ready to help');
+                    return;
+                }
                 const reply = data.reply || "I'm not sure — please check the app.";
                 bubble(reply, 'ai');
                 history.push({ role:'assistant', text: reply });
@@ -404,6 +425,7 @@ Anything that changes data, I'll show you a card to confirm first — nothing is
             try { rec.start(); } catch(e){ setOrb('', 'Ready to help'); }
         }
     </script>
+    <script src="assets/demo-banner.js"></script>
     <script src="assets/sw-register.js"></script>
 </body>
 </html>

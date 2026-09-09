@@ -4,216 +4,315 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-    <title>Live Demo - GymExec</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <title>Try GymExec free — no signup</title>
+    <meta name="description" content="Open a live GymExec gym in one click. Already filled with members, plans and payments so you can see exactly how it works. No email, no card, nothing to install.">
+    <meta name="theme-color" content="#020617">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="manifest" href="manifest-admin.json">
+    <!-- NOTE: assets/style.css is deliberately NOT loaded here. It forces
+         `body { background-color / color }` and `h1,h2,h3 { color }` with
+         !important, which flattens this page's dark palette into unreadable
+         light-grey-on-white. This page is a standalone public landing surface
+         that uses none of its classes — same as signup.html and login.html. -->
     <style>
         :root {
             --primary: #3b82f6;
             --accent: #10b981;
             --bg-dark: #020617;
-            --panel-bg: rgba(30, 41, 59, 0.5);
         }
 
-        .demo-banner {
-            background: linear-gradient(90deg, #3b82f6, #6366f1);
-            color: white;
-            padding: 12px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 14px;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .demo-btn {
-            background: white;
-            color: #3b82f6;
-            padding: 6px 16px;
-            border-radius: 20px;
-            text-decoration: none;
-            font-weight: 800;
-            font-size: 12px;
-            transition: transform 0.2s;
-        }
-
-        .demo-btn:hover {
-            transform: scale(1.05);
-        }
-
-        .main-layout {
-            display: flex;
+        body {
+            margin: 0;
             min-height: 100vh;
-            background: var(--bg-dark);
+            background:
+                radial-gradient(900px 520px at 50% -10%, rgba(59, 130, 246, .20), transparent 65%),
+                radial-gradient(700px 420px at 90% 100%, rgba(16, 185, 129, .14), transparent 60%),
+                var(--bg-dark);
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .wrap {
+            flex: 1;
+            width: 100%;
+            max-width: 620px;
+            margin: 0 auto;
+            padding: 56px 22px 72px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .brand {
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 22px;
+        }
+
+        h1 {
+            font-size: clamp(30px, 6vw, 44px);
+            line-height: 1.1;
+            font-weight: 900;
+            letter-spacing: -1.4px;
+            margin: 0 0 16px;
             color: #f8fafc;
         }
 
-        .sidebar {
-            width: 260px;
-            background: rgba(15, 23, 42, 0.8);
-            border-right: 1px solid rgba(255,255,255,0.05);
-            padding: 40px 20px;
+        h1 .grad {
+            background: linear-gradient(90deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .main-content {
-            flex: 1;
-            padding: 40px;
-        }
-
-        .glass-panel {
-            background: var(--panel-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 24px;
-            padding: 30px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 20px;
-            padding: 24px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 32px;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .stat-label {
-            font-size: 12px;
+        .lede {
+            font-size: 17px;
+            line-height: 1.6;
             color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            margin: 0 0 30px;
         }
 
-        .demo-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px);
-            z-index: 2000;
-            display: none;
+        .points {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 34px;
+            display: grid;
+            gap: 11px;
+        }
+
+        .points li {
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            font-size: 15px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        .points .tick {
+            flex: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, .16);
+            color: #34d399;
+            font-size: 12px;
+            font-weight: 900;
+            display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            padding: 20px;
+            margin-top: 1px;
         }
 
-        .demo-modal {
-            background: #1e293b;
-            padding: 40px;
-            border-radius: 32px;
-            max-width: 400px;
-            border: 1px solid rgba(255,255,255,0.1);
+        .field {
+            margin-bottom: 14px;
         }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 7px;
+        }
+
+        .field input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 15px 16px;
+            font-size: 16px;
+            color: #f1f5f9;
+            background: rgba(15, 23, 42, .75);
+            border: 1px solid rgba(148, 163, 184, .28);
+            border-radius: 12px;
+        }
+
+        .field input::placeholder { color: #475569; }
+
+        .field input:focus {
+            outline: none;
+            border-color: #34d399;
+            box-shadow: 0 0 0 3px rgba(52, 211, 153, .16);
+        }
+
+        .go {
+            width: 100%;
+            padding: 17px;
+            font-size: 17px;
+            font-weight: 800;
+            color: #04231a;
+            background: linear-gradient(90deg, #34d399, #60a5fa);
+            border: 0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform .12s ease, opacity .12s ease;
+        }
+
+        .go:hover:not(:disabled) { transform: translateY(-1px); }
+        .go:disabled { opacity: .65; cursor: default; transform: none; }
+
+        .fine {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #64748b;
+            text-align: center;
+            line-height: 1.55;
+        }
+
+        .fine a { color: #60a5fa; }
+
+        .err {
+            display: none;
+            margin-top: 16px;
+            padding: 13px 15px;
+            border-radius: 11px;
+            background: rgba(239, 68, 68, .12);
+            border: 1px solid rgba(239, 68, 68, .32);
+            color: #fca5a5;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Loading state — a demo start seeds a whole gym, and on a cold
+           serverless DB that can take a few seconds. Say so, or it reads
+           as a hang. */
+        .loading { display: none; text-align: center; padding: 26px 0; }
+        .loading.on { display: block; }
+        .spinner {
+            width: 42px; height: 42px; margin: 0 auto 18px;
+            border: 3px solid rgba(148, 163, 184, .22);
+            border-top-color: #34d399;
+            border-radius: 50%;
+            animation: spin .85s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading p { color: #94a3b8; font-size: 15px; margin: 0; }
+        .loading .slow { display: none; margin-top: 10px; font-size: 13px; color: #64748b; }
     </style>
 </head>
 <body>
-    <div class="demo-banner">
-        <span>✨ You are viewing the <b>GymExec Interactive Demo</b>. Explore how it works!</span>
-        <a href="signup.html" class="demo-btn">GET STARTED FREE</a>
-    </div>
+    <div class="wrap">
+        <div class="brand">GymExec</div>
 
-    <div class="main-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div style="font-size: 24px; font-weight: 900; margin-bottom: 40px; color: #3b82f6;">💪 GymExec</div>
-            <nav style="display: flex; flex-direction: column; gap: 10px;">
-                <a href="#" class="nav-link active" onclick="showDemoInfo('Dashboard')">🏠 Dashboard</a>
-                <a href="#" class="nav-link" onclick="showDemoInfo('Members')">👥 Members</a>
-                <a href="#" class="nav-link" onclick="showDemoInfo('Plans')">📋 Plans</a>
-                <a href="#" class="nav-link" onclick="showDemoInfo('Personal Training')">🏋️ Personal Training</a>
-                <a href="#" class="nav-link" onclick="showDemoInfo('Attendance')">🕘 Attendance</a>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
-                <div>
-                    <h1 style="font-size: 36px; font-weight: 900; letter-spacing: -1.5px;">Elite Gym & Fitness</h1>
-                    <p style="color: #94a3b8;">Demo Dashboard (Pro Plan)</p>
-                </div>
-                <button class="btn btn-primary" onclick="showDemoInfo('Add Member')">+ Add Member</button>
-            </header>
-
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #3b82f6;">158</div>
-                    <div class="stat-label">Active Members</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #fbbf24;">12</div>
-                    <div class="stat-label">Expiring Soon</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #ef4444;">4</div>
-                    <div class="stat-label">Unpaid Fees</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #10b981;">₹54,200</div>
-                    <div class="stat-label">Month Revenue</div>
-                </div>
-            </div>
-
-            <div class="glass-panel">
-                <h2 style="margin-bottom: 20px;">Recent Activity</h2>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; justify-content: space-between; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px;">
-                        <span>👤 Rahul Sharma checked in</span>
-                        <span style="color: #94a3b8; font-size: 12px;">2 mins ago</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px;">
-                        <span>🏋️ PT Session: Priya Patel with Coach Aryan</span>
-                        <span style="color: #94a3b8; font-size: 12px;">15 mins ago</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px;">
-                        <span>💰 Payment Received: ₹2,400 from Amit Singh</span>
-                        <span style="color: #94a3b8; font-size: 12px;">1 hour ago</span>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Demo Modal -->
-    <div id="demo-overlay" class="demo-overlay">
-        <div class="demo-modal">
-            <div style="font-size: 40px; margin-bottom: 20px;">⚡</div>
-            <h2 id="demo-title">Demo Feature</h2>
-            <p id="demo-text" style="color: #94a3b8; margin: 16px 0 24px; line-height: 1.6;">
-                In the full version, this allows you to manage your gym effortlessly.
+        <div id="intro">
+            <h1>Try a <span class="grad">real gym</span><br>in one click.</h1>
+            <p class="lede">
+                No signup, no email, no card. We open a working gym for you that's
+                already full of members, plans and payment history &mdash; so you can
+                see how it actually runs instead of staring at empty tables.
             </p>
-            <button class="btn btn-primary" style="width: 100%;" onclick="hideDemo()">Got it!</button>
-            <a href="signup.html" style="display: block; margin-top: 20px; color: #3b82f6; text-decoration: none; font-weight: 600;">Start your free trial →</a>
+
+            <ul class="points">
+                <li><span class="tick">&#10003;</span><span>12 members already loaded, some expiring, some lapsed &mdash; just like a real gym.</span></li>
+                <li><span class="tick">&#10003;</span><span>Talk to the AI assistant: ask it who's expiring, or tell it to record a payment.</span></li>
+                <li><span class="tick">&#10003;</span><span>Add your own members and change anything. It's yours to break.</span></li>
+                <li><span class="tick">&#10003;</span><span>Like it? Save it as your gym and everything you added carries over.</span></li>
+            </ul>
+
+            <form id="startForm" novalidate>
+                <div class="field">
+                    <label for="gymName">What's your gym called? <span style="text-transform:none;letter-spacing:0;color:#475569;font-weight:600">(optional)</span></label>
+                    <input id="gymName" type="text" maxlength="60" placeholder="e.g. Iron Temple Fitness" autocomplete="organization">
+                </div>
+                <button class="go" id="startBtn" type="submit">Open my demo gym &rarr;</button>
+            </form>
+
+            <div class="err" id="err" role="alert"></div>
+
+            <p class="fine">
+                Demo gyms are deleted after 7 days.<br>
+                Already have an account? <a href="login.html">Log in</a>
+            </p>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingMsg">Building your gym&hellip;</p>
+            <p class="slow" id="slowMsg">Our server is waking up &mdash; this can take up to 30 seconds the first time.</p>
         </div>
     </div>
 
+    <script src="assets/config.js"></script>
     <script>
-        function showDemoInfo(feature) {
-            document.getElementById('demo-title').textContent = feature;
-            let text = "";
-            if(feature === 'Members') text = "Manage your entire member database. Filter by status, send renewal reminders via WhatsApp, and track attendance with one tap.";
-            else if(feature === 'Add Member') text = "Quickly register new members, assign them a plan, and auto-send a welcome email with their personal login link.";
-            else if(feature === 'Personal Training') text = "Track PT sessions per member. Assign a coach, set session limits, and let members see their remaining sessions in real-time.";
-            else text = `The ${feature} module is fully interactive in the production version of GymExec. Create your gym today to try it!`;
-            
-            document.getElementById('demo-text').textContent = text;
-            document.getElementById('demo-overlay').style.display = 'flex';
+    (function () {
+        'use strict';
+
+        var form    = document.getElementById('startForm');
+        var btn     = document.getElementById('startBtn');
+        var intro   = document.getElementById('intro');
+        var loading = document.getElementById('loading');
+        var errBox  = document.getElementById('err');
+        var slowMsg = document.getElementById('slowMsg');
+        var slowTimer = null;
+
+        function showError(msg) {
+            loading.classList.remove('on');
+            intro.style.display = '';
+            errBox.textContent = msg;
+            errBox.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = 'Open my demo gym &rarr;';
+            if (slowTimer) { clearTimeout(slowTimer); slowTimer = null; }
         }
 
-        function hideDemo() {
-            document.getElementById('demo-overlay').style.display = 'none';
-        }
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            errBox.style.display = 'none';
+            btn.disabled = true;
+            intro.style.display = 'none';
+            loading.classList.add('on');
+
+            // Cold Postgres can take ~20s to wake. Reassure rather than look stuck.
+            slowTimer = setTimeout(function () { slowMsg.style.display = 'block'; }, 4000);
+
+            try {
+                var res = await fetch(CONFIG.API_BASE_URL + '/api/demo/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gym_name: document.getElementById('gymName').value.trim() })
+                });
+
+                if (res.status === 429) {
+                    showError('That\'s a few demos from this connection already. Please wait a little while, or sign up free — it takes about a minute.');
+                    return;
+                }
+
+                var data = {};
+                try { data = await res.json(); } catch (_) {}
+
+                if (!res.ok) {
+                    showError((window.getErrorMessage ? window.getErrorMessage(data) : null) ||
+                              'We couldn\'t open a demo right now. Please try again in a moment.');
+                    return;
+                }
+
+                // Log the visitor into their sandbox exactly like a normal login,
+                // plus the is_demo flag that switches on the demo banner.
+                localStorage.setItem('auth_token', data.access_token);
+                localStorage.setItem('gym_id', data.gym_id);
+                localStorage.setItem('user_type', data.user_type || 'gym');
+                localStorage.setItem('role', data.role || 'owner');
+                localStorage.setItem('tier', data.tier || 'elite');
+                localStorage.setItem('gym_name', document.getElementById('gymName').value.trim() || 'My Demo Gym');
+                localStorage.setItem('is_demo', '1');
+
+                // Land on the assistant — the orb is the thing that makes people
+                // stop and look, and the seeded data gives it something to say.
+                window.location.href = 'assistant.html';
+            } catch (err) {
+                showError('Network problem — please check your connection and try again.');
+            }
+        });
+    })();
     </script>
+    <script src="assets/sw-register.js"></script>
 </body>
 </html>
