@@ -132,7 +132,7 @@
   modal.innerHTML =
     '<div id="gx-demo-card" role="dialog" aria-modal="true" aria-labelledby="gx-demo-title">' +
       '<h2 id="gx-demo-title">Keep this gym</h2>' +
-      '<p class="gx-sub">Everything you\'ve added stays exactly as it is &mdash; members, plans and payments all carry over. You get 14 days of full access, then a free plan. No card needed.</p>' +
+      '<p class="gx-sub">Everything you\'ve added stays exactly as it is &mdash; members, plans and payments all carry over. You get the full free trial of every feature, then a free plan. No card needed.</p>' +
       '<form id="gx-demo-form" novalidate>' +
         '<label for="gx-f-name">Gym name</label>' +
         '<input id="gx-f-name" name="name" autocomplete="organization" required>' +

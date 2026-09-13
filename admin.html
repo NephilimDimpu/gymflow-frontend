@@ -92,6 +92,29 @@
             </div>
         </div>
 
+        <!-- [DEMO FUNNEL] Did the demo links turn into gyms? Started -> engaged -> saved.
+             Demo sandboxes are excluded from the tiles above. -->
+        <div class="glass-panel" style="padding: 32px; margin-bottom: 40px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <h2 style="font-size: 20px; margin-bottom: 6px;">🧪 Demo Funnel</h2>
+                    <p style="color: #64748b; font-size: 13px; margin:0;">Visitors who opened a one-click demo at gymexec.com/demo. "Engaged" = used the AI or added members.</p>
+                </div>
+                <select id="funnel-days" onchange="loadDemoFunnel()" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:8px 12px; border-radius:8px; font-size:13px;">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                </select>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-top:20px;">
+                <div><div class="stat-label">Demos started</div><div class="stat-val" id="fn-started">–</div></div>
+                <div><div class="stat-label">Engaged</div><div class="stat-val" id="fn-engaged" style="color:#60a5fa;">–</div><div id="fn-engaged-pct" style="font-size:12px;color:#64748b;"></div></div>
+                <div><div class="stat-label">Saved as a gym</div><div class="stat-val" id="fn-claimed" style="color:#34d399;">–</div><div id="fn-claimed-pct" style="font-size:12px;color:#64748b;"></div></div>
+                <div><div class="stat-label">Still live</div><div class="stat-val" id="fn-live">–</div></div>
+            </div>
+            <div id="fn-recent" style="margin-top:20px; overflow-x:auto;"></div>
+        </div>
+
         <!-- [BROADCAST] Send an announcement to all gyms' dashboards -->
         <div class="glass-panel" style="padding: 32px; margin-bottom: 40px;">
             <h2 style="font-size: 20px; margin-bottom: 6px;">📢 Broadcast Announcement</h2>
@@ -119,7 +142,12 @@
         </div>
 
         <div class="glass-panel" style="padding: 32px;">
-            <h2 style="font-size: 20px;">Active Tenants</h2>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <h2 style="font-size: 20px;">Active Tenants</h2>
+                <label style="font-size:13px; color:#94a3b8; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="show-demos" onchange="renderGyms()"> Show demo sandboxes <span id="demo-count" style="color:#64748b;"></span>
+                </label>
+            </div>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
@@ -305,38 +333,145 @@
                 const gymsRes = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/gyms?t=${Date.now()}`, {
                     headers: { 'x-admin-key': adminKey }
                 });
-                const gyms = await gymsRes.json();
-                const tbody = document.getElementById('gym-table-body');
-                tbody.innerHTML = gyms.map(gym => `
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600;">${gym.name}</div>
-                            <div style="font-size: 12px; color: #64748b;">${gym.owner_name} (${gym.email})</div>
-                        </td>
-                        <td><span class="tier-badge tier-${gym.tier}">${gym.tier}</span></td>
-                        <td>${gym.branch_count}</td>
-                        <td>${gym.member_count}</td>
-                        <td>${new Date(gym.created_at).toLocaleDateString()}</td>
-                        <td>${accessCell(gym)}</td>
-                        <td>
-                            <div style="display: flex; gap: 8px;">
-                                <button onclick="extendActivation(${gym.id}, '${(gym.name||'').replace(/'/g,'')}')" class="btn-upgrade" style="background: rgba(34,197,94,0.18); border-color: #22c55e; color: #4ade80;" title="Activate / extend access">⏱️ Activate</button>
-                                <select onchange="updateTier(${gym.id}, this.value)" class="btn-upgrade" style="background: rgba(0,0,0,0.2);">
-                                    <option value="starter" ${gym.tier === 'starter' ? 'selected' : ''}>Starter</option>
-                                    <option value="pro" ${gym.tier === 'pro' ? 'selected' : ''}>Pro</option>
-                                    <option value="elite" ${gym.tier === 'elite' ? 'selected' : ''}>Elite</option>
-                                </select>
-                                <button onclick="resetPassword(${gym.id}, '${gym.name}')" class="btn-upgrade" style="background: rgba(99, 102, 241, 0.2); border-color: #6366f1; color: #818cf8;" title="Reset Password">🔑</button>
-                                <button onclick="deleteGym(${gym.id}, '${gym.name}')" class="btn-upgrade" style="background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;" title="Delete Gym">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('');
+                allGyms = await gymsRes.json();
+                renderGyms();
+
+                // Independent of the tenant list — its own try/catch, so a funnel
+                // hiccup can never trip the catch below and sign the admin out.
+                loadDemoFunnel();
 
             } catch (err) {
                 alert('Unauthorized or Session Expired');
                 localStorage.removeItem('super_admin_key');
                 location.reload();
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // [XSS] Everything a gym controls is untrusted here. Gym and owner names
+        // are accepted with only a length check, and /api/demo/start lets anyone
+        // set one with no account at all — while this page holds the super-admin
+        // key in localStorage. So: escape all text, and never splice names into
+        // inline onclick="…'${name}'…" strings (quotes break out of those even
+        // when the text is escaped). Rows carry ids in data-* attributes instead.
+        // ------------------------------------------------------------------
+        function esc(v) {
+            return String(v == null ? '' : v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        let allGyms = [];
+        const TIERS = ['starter', 'pro', 'elite'];
+
+        function renderGyms() {
+            const showDemos = document.getElementById('show-demos').checked;
+            const demos = allGyms.filter(g => g.subscription_status === 'demo');
+            document.getElementById('demo-count').textContent = demos.length ? `(${demos.length})` : '';
+
+            // Real tenants first; demo sandboxes only on request so the list you
+            // act on is your actual customers.
+            const rows = allGyms
+                .filter(g => showDemos || g.subscription_status !== 'demo')
+                .sort((a, b) => (a.subscription_status === 'demo') - (b.subscription_status === 'demo'));
+
+            const tbody = document.getElementById('gym-table-body');
+            tbody.innerHTML = rows.map(gym => {
+                const isDemo = gym.subscription_status === 'demo';
+                const tier = TIERS.includes(gym.tier) ? gym.tier : 'starter';
+                return `
+                <tr data-gym-id="${Number(gym.id)}" style="${isDemo ? 'opacity:.6;' : ''}">
+                    <td>
+                        <div style="font-weight: 600;">${esc(gym.name)}${isDemo ? ' <span style="font-size:10px;font-weight:700;letter-spacing:.5px;background:rgba(148,163,184,.18);color:#94a3b8;padding:2px 7px;border-radius:6px;margin-left:6px;">DEMO</span>' : ''}</div>
+                        <div style="font-size: 12px; color: #64748b;">${esc(gym.owner_name)} (${esc(gym.email)})</div>
+                    </td>
+                    <td><span class="tier-badge tier-${tier}">${tier}</span></td>
+                    <td>${Number(gym.branch_count) || 0}</td>
+                    <td>${Number(gym.member_count) || 0}</td>
+                    <td>${esc(new Date(gym.created_at).toLocaleDateString())}</td>
+                    <td>${accessCell(gym)}</td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <button data-act="activate" class="btn-upgrade" style="background: rgba(34,197,94,0.18); border-color: #22c55e; color: #4ade80;" title="Activate / extend access">⏱️ Activate</button>
+                            <select data-act="tier" class="btn-upgrade" style="background: rgba(0,0,0,0.2);">
+                                ${TIERS.map(t => `<option value="${t}" ${tier === t ? 'selected' : ''}>${t[0].toUpperCase() + t.slice(1)}</option>`).join('')}
+                            </select>
+                            <button data-act="password" class="btn-upgrade" style="background: rgba(99, 102, 241, 0.2); border-color: #6366f1; color: #818cf8;" title="Reset Password">🔑</button>
+                            <button data-act="delete" class="btn-upgrade" style="background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;" title="Delete Gym">🗑️</button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // One delegated listener replaces the old inline handlers. The gym name
+        // is looked up from the data, so it never passes through HTML at all.
+        function gymForEvent(e) {
+            const tr = e.target.closest('tr[data-gym-id]');
+            if (!tr) return null;
+            const id = Number(tr.dataset.gymId);
+            return allGyms.find(g => g.id === id) || null;
+        }
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('#gym-table-body [data-act]');
+            if (!btn || btn.tagName === 'SELECT') return;
+            const gym = gymForEvent(e);
+            if (!gym) return;
+            if (btn.dataset.act === 'activate') extendActivation(gym.id, gym.name || '');
+            if (btn.dataset.act === 'password') resetPassword(gym.id, gym.name || '');
+            if (btn.dataset.act === 'delete') deleteGym(gym.id, gym.name || '');
+        });
+        document.addEventListener('change', (e) => {
+            const sel = e.target.closest('#gym-table-body select[data-act="tier"]');
+            if (!sel) return;
+            const gym = gymForEvent(e);
+            if (gym) updateTier(gym.id, sel.value);
+        });
+
+        async function loadDemoFunnel() {
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            try {
+                const days = document.getElementById('funnel-days').value || '30';
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/demo-funnel?days=${encodeURIComponent(days)}`, {
+                    headers: { 'x-admin-key': adminKey }
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const f = await res.json();
+                set('fn-started', f.started);
+                set('fn-engaged', f.engaged);
+                set('fn-claimed', f.claimed);
+                set('fn-live', f.live);
+                set('fn-engaged-pct', f.started ? `${f.engaged_pct}% of demos` : '');
+                set('fn-claimed-pct', f.started ? `${f.claimed_pct}% of demos` : '');
+
+                const box = document.getElementById('fn-recent');
+                if (!f.recent || !f.recent.length) {
+                    box.innerHTML = '<p style="color:#64748b;font-size:13px;margin:0;">No demos in this window yet. Share gymexec.com/demo and they will show up here.</p>';
+                    return;
+                }
+                const badge = {
+                    claimed: 'background:rgba(52,211,153,.16);color:#34d399;',
+                    live: 'background:rgba(96,165,250,.16);color:#60a5fa;',
+                    expired: 'background:rgba(148,163,184,.14);color:#94a3b8;',
+                    removed: 'background:rgba(148,163,184,.08);color:#64748b;',
+                };
+                box.innerHTML = `
+                    <table>
+                        <thead><tr><th>Started</th><th>Outcome</th><th>AI messages</th><th>Members added</th><th>Demo gym</th></tr></thead>
+                        <tbody>${f.recent.map(d => `
+                            <tr>
+                                <td>${esc(d.started_at ? new Date(d.started_at + 'Z').toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '—')}</td>
+                                <td><span style="${badge[d.outcome] || badge.removed}font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;text-transform:uppercase;">${esc(d.outcome)}</span></td>
+                                <td>${Number(d.ai_messages) || 0}</td>
+                                <td>${Number(d.members_added) || 0}</td>
+                                <td style="color:#64748b;">#${Number(d.demo_gym_id)}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>`;
+            } catch (err) {
+                set('fn-started', '–');
+                const box = document.getElementById('fn-recent');
+                if (box) box.innerHTML = '<p style="color:#f87171;font-size:13px;margin:0;">Could not load the demo funnel. It will retry on the next refresh.</p>';
             }
         }
 
