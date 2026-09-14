@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Allow: /discover.html
 Allow: /g.html
+Allow: /demo.html
 Allow: /pricing.html
 Allow: /login.html
 Allow: /signup.html

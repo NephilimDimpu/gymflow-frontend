@@ -595,6 +595,27 @@
             }
         });
 
+        // [TRIAL/DEMO] The button wiring above assumes the current tier is a PAID
+        // plan: its button says "Renew" and every lower tier says "Switch to …"
+        // (a free downgrade). A gym on a trial — or an unsaved demo, which runs
+        // at Elite — has not paid for anything, so that framing is wrong: an
+        // Elite trial owner who wants Pro was offered a free "switch" instead of
+        // a way to buy Pro. For those gyms every tier is a real purchase.
+        function applyUnpaidPlanButtons(status) {
+            if (status !== 'trial' && status !== 'demo') return;
+            ['starter', 'pro', 'elite'].forEach(tier => {
+                const b = document.getElementById(`btn-${tier}`);
+                if (!b) return;
+                const name = tier.charAt(0).toUpperCase() + tier.slice(1);
+                b.setAttribute('onclick', `initPayment('${tier}')`);
+                b.innerText = tier === currentTier ? `Subscribe to ${name}` : `Choose ${name}`;
+                b.style.borderColor = '';
+                b.style.color = '';
+            });
+            const badge = document.getElementById(`badge-${currentTier}`);
+            if (badge) badge.innerText = status === 'demo' ? 'IN YOUR DEMO' : 'ON FREE TRIAL';
+        }
+
         // Load auto-renew status + show pending downgrade banner
         async function loadAutoRenewStatus() {
             try {
@@ -603,6 +624,7 @@
                 });
                 if (res.ok) {
                     const data = await res.json();
+                    applyUnpaidPlanButtons(data.subscription_status);
                     document.getElementById('auto-renew-toggle').checked = data.auto_renew;
                     if (data.auto_renew) {
                         document.getElementById('auto-renew-status').textContent = '✅ Active';
@@ -644,7 +666,7 @@
                     body: JSON.stringify({ tier, billing_cycle: currentBilling })
                 });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || 'Downgrade failed');
+                if (!res.ok) throw new Error(paymentErrorMessage(data, 'Downgrade failed'));
 
                 if (data.scheduled_tier) {
                     // Scheduled for later
@@ -701,7 +723,36 @@
         // ============================================
         // [JS-PAYMENT] Razorpay Payment Flow
         // ============================================
+        // [DEMO] A visitor still in an unsaved demo must save it before paying.
+        // The sandbox's login is a throwaway address with a password nobody
+        // knows, so a payment there would buy an account they can never get
+        // back into (the backend refuses it too — see _refuse_payment_for_demo).
+        // Opening the save modal instead turns "pay" into "save, then pay":
+        // saving reloads this page as a real account with all their data.
+        function demoMustSaveFirst() {
+            let isDemo = false;
+            try { isDemo = localStorage.getItem('is_demo') === '1'; } catch (_) {}
+            if (!isDemo) return false;
+            openSaveGymModal();
+            return true;
+        }
+        function openSaveGymModal() {
+            showToast('Save this demo as your gym first — then you can subscribe. Your data stays.', 'info');
+            const save = document.getElementById('gx-demo-save');
+            if (save) save.click();
+        }
+        // Backend errors are sometimes { detail: "text" } and sometimes
+        // { detail: { message, reason } }. `err.detail || '…'` printed
+        // "[object Object]" for the structured kind.
+        function paymentErrorMessage(err, fallback) {
+            if (err && err.detail && typeof err.detail === 'object' && err.detail.reason === 'demo_must_claim') {
+                openSaveGymModal();
+            }
+            return (window.getErrorMessage ? window.getErrorMessage(err, fallback) : null) || fallback;
+        }
+
         async function initPayment(tier) {
+            if (demoMustSaveFirst()) return;
             const autoRenew = document.getElementById('auto-renew-toggle').checked;
 
             // Route to subscription flow if auto-renew is checked
@@ -725,8 +776,8 @@
                 });
 
                 if (!orderRes.ok) {
-                    const err = await orderRes.json();
-                    throw new Error(err.detail || 'Could not create order');
+                    const err = await orderRes.json().catch(() => ({}));
+                    throw new Error(paymentErrorMessage(err, 'Could not create order'));
                 }
 
                 const orderData = await orderRes.json();
@@ -815,6 +866,7 @@
         // [JS-SUBSCRIPTION] Razorpay Subscription Flow
         // ============================================
         async function initSubscription(tier) {
+            if (demoMustSaveFirst()) return;
             const clickedBtn = document.getElementById(`btn-${tier}`);
             clickedBtn.disabled = true;
             clickedBtn.innerText = 'Processing...';
@@ -831,8 +883,8 @@
                 });
 
                 if (!subRes.ok) {
-                    const err = await subRes.json();
-                    throw new Error(err.detail || 'Could not create subscription');
+                    const err = await subRes.json().catch(() => ({}));
+                    throw new Error(paymentErrorMessage(err, 'Could not create subscription'));
                 }
 
                 const subData = await subRes.json();
