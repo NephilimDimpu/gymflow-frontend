@@ -92,6 +92,30 @@
             </div>
         </div>
 
+        <!-- [ACTIVATION] Signups mean nothing on their own. These are the steps that
+             show a gym actually moved in: real member list, reminders switched on,
+             reminders going out. Demo sandboxes are excluded (they arrive seeded). -->
+        <div class="glass-panel" style="padding: 32px; margin-bottom: 40px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <h2 style="font-size: 20px; margin-bottom: 6px;">🌱 Activation</h2>
+                    <p style="color: #64748b; font-size: 13px; margin:0;">Of the gyms that signed up, how many actually use GymExec. "Moved in" = 20+ members.</p>
+                </div>
+                <select id="activation-days" onchange="loadActivation()" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:8px 12px; border-radius:8px; font-size:13px;">
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="365">Last year</option>
+                </select>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-top:20px;">
+                <div><div class="stat-label">Signed up</div><div class="stat-val" id="act-signed">–</div></div>
+                <div><div class="stat-label">Moved in (20+ members)</div><div class="stat-val" id="act-moved" style="color:#60a5fa;">–</div></div>
+                <div><div class="stat-label">Reminders on</div><div class="stat-val" id="act-on" style="color:#fbbf24;">–</div></div>
+                <div><div class="stat-label">Reminders sent</div><div class="stat-val" id="act-sent" style="color:#34d399;">–</div></div>
+            </div>
+            <div id="act-list" style="margin-top:20px; overflow-x:auto;"></div>
+        </div>
+
         <!-- [DEMO FUNNEL] Did the demo links turn into gyms? Started -> engaged -> saved.
              Demo sandboxes are excluded from the tiles above. -->
         <div class="glass-panel" style="padding: 32px; margin-bottom: 40px;">
@@ -339,6 +363,7 @@
                 // Independent of the tenant list — its own try/catch, so a funnel
                 // hiccup can never trip the catch below and sign the admin out.
                 loadDemoFunnel();
+                loadActivation();
 
             } catch (err) {
                 alert('Unauthorized or Session Expired');
@@ -427,6 +452,47 @@
             const gym = gymForEvent(e);
             if (gym) updateTier(gym.id, sel.value);
         });
+
+        async function loadActivation() {
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            try {
+                const days = document.getElementById('activation-days').value || '30';
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/super-admin/activation?days=${encodeURIComponent(days)}`, {
+                    headers: { 'x-admin-key': adminKey }
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const a = await res.json();
+                const t = a.totals || {};
+                set('act-signed', t.signed_up ?? 0);
+                set('act-moved', t.added_members ?? 0);
+                set('act-on', t.reminders_on ?? 0);
+                set('act-sent', t.reminders_sent ?? 0);
+
+                const box = document.getElementById('act-list');
+                if (!a.gyms || !a.gyms.length) {
+                    box.innerHTML = '<p style="color:#64748b;font-size:13px;margin:0;">No signups in this window yet.</p>';
+                    return;
+                }
+                box.innerHTML = `
+                    <table>
+                        <thead><tr><th>Gym</th><th>Joined</th><th>Members</th><th>Moved in</th><th>Reminders</th><th>Sent</th></tr></thead>
+                        <tbody>${a.gyms.map(g => `
+                            <tr>
+                                <td>${esc(g.name)} <span style="color:#64748b;font-size:11px;">${esc(g.tier)}/${esc(g.status || '')}</span></td>
+                                <td>${esc(g.created_at ? new Date(g.created_at + 'Z').toLocaleDateString('en-IN', {day:'2-digit', month:'short'}) : '—')}</td>
+                                <td>${Number(g.members) || 0}</td>
+                                <td>${g.activated ? '<span style="color:#34d399;font-weight:700;">yes</span>' : '<span style="color:#64748b;">no</span>'}</td>
+                                <td>${g.reminders_on ? '<span style="color:#34d399;">on</span>' : '<span style="color:#f87171;">off</span>'}</td>
+                                <td>${Number(g.reminders_sent) || 0}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>`;
+            } catch (err) {
+                set('act-signed', '–');
+                const box = document.getElementById('act-list');
+                if (box) box.innerHTML = '<p style="color:#f87171;font-size:13px;margin:0;">Could not load activation. It will retry on the next refresh.</p>';
+            }
+        }
 
         async function loadDemoFunnel() {
             const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };

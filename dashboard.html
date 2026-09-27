@@ -593,7 +593,38 @@
                         <button class="btn btn-primary" onclick="location.href='upgrade-plan.html'" style="padding: 8px 16px; font-size: 13px;">View Plans</button>
                     </div>
                 `;
+                showTrialImpact();   // no-op until the reminder numbers arrive
             }
+        }
+
+        // [TRIAL-IMPACT] Put the money reminders brought back INTO the trial banner.
+        //
+        // Reminders fire as memberships near expiry, so the first renewals they
+        // recover land around week 3-4 — right when the 30-day trial ends. If the
+        // owner never sees that number, day 30 reads as "pay ₹999 for something I
+        // barely noticed". Shown next to the countdown, the ask becomes concrete:
+        // pay ₹999 to keep the ₹X you just got back.
+        //
+        // Called from BOTH the banner render and the stats load, because either
+        // can finish first; it is idempotent and silent when there is nothing to say.
+        function showTrialImpact() {
+            const d = window.__remImpact;
+            if (!d) return;
+            const count = d.recovered_count ?? 0;
+            const revenue = d.recovered_revenue ?? 0;
+            if (count <= 0) return;
+
+            const content = document.querySelector('.trial-banner .banner-content');
+            if (!content || document.getElementById('trial-impact')) return;
+
+            const line = document.createElement('p');
+            line.id = 'trial-impact';
+            line.style.cssText = 'margin-top:6px; font-weight:600;';
+            line.innerHTML =
+                `💰 WhatsApp reminders brought back <strong>${count} member${count === 1 ? '' : 's'}</strong>` +
+                ` — <strong>₹${revenue.toLocaleString('en-IN')}</strong> — in the last 30 days.` +
+                ` Keep them running from ₹999/month.`;
+            content.appendChild(line);
         }
 
         async function initDashboard() {
@@ -1162,6 +1193,9 @@ async function loadReminderStats() {
                 }
                 document.getElementById('rem-summary').innerHTML = summary;
                 document.getElementById('reminder-stats-section').style.display = 'block';
+
+                window.__remImpact = d;
+                showTrialImpact();   // the banner may already be on screen
             } catch (e) { /* silent \u2014 non-critical widget */ }
         }
 

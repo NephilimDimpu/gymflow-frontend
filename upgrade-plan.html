@@ -651,6 +651,35 @@
         }
         loadAutoRenewStatus();
 
+        // [IMPACT] Lead the pricing page with what reminders already earned them.
+        // "₹999/month" means nothing next to "₹9,000 came back last month".
+        // Starter gyms get a 403 here (the feature is Pro) — nothing is shown.
+        async function loadReminderImpact() {
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/dashboard/reminder-stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const d = await res.json();
+                const count = d.recovered_count ?? 0;
+                if (count <= 0) return;      // say nothing rather than show a zero
+
+                const revenue = (d.recovered_revenue ?? 0).toLocaleString('en-IN');
+                const strip = document.createElement('div');
+                strip.style.cssText = 'padding:16px 24px; margin-bottom:20px; border-radius:12px;' +
+                    'background:linear-gradient(135deg, rgba(52,211,153,0.12), rgba(96,165,250,0.08));' +
+                    'border:1px solid rgba(52,211,153,0.35); color:#d1fae5; font-size:14px; line-height:1.55;';
+                strip.innerHTML =
+                    `💰 In the last 30 days, WhatsApp reminders brought back ` +
+                    `<strong style="color:#fff;">${count} member${count === 1 ? '' : 's'}</strong> — ` +
+                    `<strong style="color:#fff;">₹${revenue}</strong>. ` +
+                    `Keep them running below.`;
+                const header = document.querySelector('.pricing-header');
+                if (header) header.after(strip);
+            } catch (e) { /* silent — never block the pricing page */ }
+        }
+        loadReminderImpact();
+
         // [DOWNGRADE] Request a free tier downgrade
         async function requestDowngrade(tier) {
             const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
